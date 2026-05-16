@@ -1,0 +1,132 @@
+========================================
+COMO ATIVAR GERAÇÃO DE CÓDIGO EAN-13
+========================================
+
+O erro do AngularJS ocorreu porque modificamos o arquivo main.js diretamente.
+Para resolver, criamos um arquivo JavaScript SEPARADO que evita conflitos.
+
+========================================
+OPÇÃO 1: ADICIONAR SCRIPT NA PÁGINA DE PRODUTOS
+========================================
+
+1. Localize o arquivo da página de produtos (provavelmente):
+   - modernpos/admin/product.php
+   - modernpos/admin/add_product.php
+   - modernpos/admin/edit_product.php
+
+2. Adicione esta linha ANTES do </body> ou após os outros scripts:
+
+<script src="<?php echo root_url(); ?>assets/itsolution24/js/product-code-generator.js"></script>
+
+3. Salve e teste na página de produtos.
+
+========================================
+OPÇÃO 2: INCLUIR NO FOOTER/HEADER GLOBAL
+========================================
+
+Se você usa um footer.php ou header.php global:
+
+1. Abra: modernpos/admin/footer.php
+
+2. Adicione antes do </body>:
+
+<script src="<?php echo root_url(); ?>assets/itsolution24/js/product-code-generator.js"></script>
+
+========================================
+OPÇÃO 3: USAR INLINE NA PÁGINA
+========================================
+
+Se preferir não criar arquivo separado, adicione direto na página:
+
+<script>
+(function($) {
+    $(document).ready(function() {
+        $('.random_num').off('click').on('click', function(e) {
+            e.preventDefault();
+            var $input = $(this).parent('.input-group').children('input');
+            var $btn = $(this);
+            var $icon = $btn.find('i');
+            var originalIcon = $icon.attr('class');
+            
+            $icon.removeClass('fa-random').addClass('fa-spinner fa-spin');
+            $btn.prop('disabled', true);
+            
+            $.ajax({
+                url: '<?php echo root_url(); ?>_inc/generate_product_code.php',
+                method: 'POST',
+                dataType: 'json',
+                timeout: 10000,
+                success: function(response) {
+                    if (response && response.success && response.code) {
+                        $input.val(response.code);
+                        if (window.toastr) {
+                            window.toastr.success('Code: ' + response.code);
+                        }
+                    } else {
+                        $input.val(Math.random().toString().substring(2, 15));
+                        if (window.toastr && response.error) {
+                            window.toastr.warning(response.error);
+                        }
+                    }
+                },
+                error: function() {
+                    $input.val(Math.random().toString().substring(2, 15));
+                },
+                complete: function() {
+                    $icon.attr('class', originalIcon);
+                    $btn.prop('disabled', false);
+                }
+            });
+        });
+    });
+})(jQuery);
+</script>
+
+========================================
+TESTANDO A IMPLEMENTAÇÃO
+========================================
+
+1. Limpe o cache do navegador (Ctrl + Shift + Delete)
+2. Recarregue a página de produtos
+3. Clique no botão de gerar código
+4. Deve aparecer um spinner e depois um código EAN-13
+
+========================================
+LOCALIZAR ARQUIVO DE PRODUTOS
+========================================
+
+Execute no PowerShell:
+
+Get-ChildItem -Path "C:\xampp\htdocs\modernpos\admin" -Filter "*product*.php" | Select-Object Name
+
+Isso mostrará todos os arquivos PHP relacionados a produtos.
+
+========================================
+VERIFICAR SE SCRIPT FOI CARREGADO
+========================================
+
+1. Abra o Console do navegador (F12)
+2. Vá para a aba Network
+3. Recarregue a página
+4. Procure por "product-code-generator.js"
+5. Se aparecer com status 200, está carregado corretamente
+
+========================================
+RESUMO DOS ARQUIVOS
+========================================
+
+✅ SQL: _inc/sql/create_product_code_sequence_table.sql (EXECUTAR NO BD)
+✅ Backend: _inc/generate_product_code.php (Já criado)
+✅ Frontend: assets/itsolution24/js/product-code-generator.js (Já criado)
+✅ Script de teste: _inc/test_generate_code.php (Funciona independente)
+
+========================================
+PRÓXIMOS PASSOS
+========================================
+
+1. Execute o SQL no banco de dados
+2. Escolha UMA das opções acima (recomendo Opção 1 ou 2)
+3. Limpe cache e teste
+4. Use _inc/test_generate_code.php para validar que o backend funciona
+
+========================================

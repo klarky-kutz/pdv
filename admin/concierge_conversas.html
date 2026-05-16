@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Conversas · Concierge IA · ModernPOS</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<style>
+/* ─── RESET ─── */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Source Sans Pro','Helvetica Neue',Helvetica,Arial,sans-serif;font-size:14px;background:#ecf0f5;overflow:hidden;color:#333}
+a{text-decoration:none;color:inherit}
+button{cursor:pointer;font-family:inherit}
+input,select,textarea{font-family:inherit}
+
+/* ─── SHELL ─── */
+.shell{display:flex;height:100vh;overflow:hidden}
+
+/* ─── SIDEBAR ─── */
+.sb{width:230px;background:#222d32;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden}
+.sb-logo{height:50px;background:#2c3b41;display:flex;align-items:center;padding:0 15px;gap:10px;border-bottom:1px solid #1a2226;flex-shrink:0}
+.sb-logo-text{font-size:16px;font-weight:700;color:#fff;letter-spacing:.3px}
+.sb-logo-badge{background:#6d28d9;color:#fff;font-size:9px;font-weight:700;padding:2px 5px;border-radius:2px;letter-spacing:.5px}
+.sb-user{background:#1a2226;padding:10px 15px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.sb-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#6d28d9,#a78bfa);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;flex-shrink:0}
+.sb-user-info{min-width:0}
+.sb-user-name{color:#fff;font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-user-role{color:#8aa4af;font-size:11px;display:flex;align-items:center;gap:4px}
+.sb-user-dot{width:7px;height:7px;border-radius:50%;background:#00a65a;flex-shrink:0}
+.sb-scroll{flex:1;overflow-y:auto;overflow-x:hidden}
+.sb-scroll::-webkit-scrollbar{width:4px}
+.sb-scroll::-webkit-scrollbar-track{background:#1a2226}
+.sb-scroll::-webkit-scrollbar-thumb{background:#3d4e54;border-radius:2px}
+.sb-hdr{font-size:10px;font-weight:700;color:#4b646f;text-transform:uppercase;letter-spacing:.5px;padding:14px 15px 5px}
+.mi{display:flex;align-items:center;gap:10px;padding:9px 12px 9px 15px;color:#b8c7ce;border-left:3px solid transparent;transition:all .15s;cursor:pointer;font-size:13.5px}
+.mi:hover{background:#1e282c;color:#ddd6fe;border-left-color:#6d28d9}
+.mi.act{background:#1e282c;color:#fff;border-left-color:#6d28d9}
+.mi i{width:16px;text-align:center;font-size:13px;opacity:.85}
+.sb-pro{background:linear-gradient(180deg,#160a2e 0%,#1a0f35 100%);border-top:1px solid #2d1b5e;flex-shrink:0}
+.sb-pro-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 15px 5px}
+.sb-pro-label{font-size:10px;font-weight:700;color:#7c4aed;text-transform:uppercase;letter-spacing:.5px}
+.pro-badge{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;letter-spacing:.4px}
+.mi-pro{display:flex;align-items:center;gap:10px;padding:9px 12px 9px 15px;color:#9f6ae3;border-left:3px solid transparent;cursor:pointer;font-size:13px;transition:all .15s}
+.mi-pro:hover{background:rgba(109,40,217,.15);color:#ddd6fe;border-left-color:#a78bfa}
+.mi-pro.act{background:rgba(109,40,217,.2);color:#ddd6fe;border-left-color:#a78bfa}
+.mi-pro i{width:16px;text-align:center;font-size:12px;opacity:.9}
+
+/* ─── MAIN ─── */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+
+/* ─── TOPBAR ─── */
+.tb{height:50px;background:#222d32;display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0;border-bottom:1px solid #1a2226}
+.tb-toggle{color:#b8c7ce;font-size:18px;cursor:pointer;padding:4px 8px;border-radius:2px;transition:color .15s}
+.tb-toggle:hover{color:#fff}
+.tb-spacer{flex:1}
+.tb-ai-status{display:flex;align-items:center;gap:6px;background:rgba(109,40,217,.15);border:1px solid rgba(109,40,217,.35);border-radius:20px;padding:4px 10px;cursor:default}
+.tb-ai-dot{width:8px;height:8px;border-radius:50%;background:#a78bfa;animation:blink 1.4s infinite}
+.tb-ai-text{color:#c4b5fd;font-size:11px;font-weight:600;letter-spacing:.3px}
+@keyframes blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.7)}}
+.tb-sep{width:1px;height:20px;background:#3d4e54}
+.tb-icon{width:34px;height:34px;display:flex;align-items:center;justify-content:center;color:#b8c7ce;font-size:16px;cursor:pointer;border-radius:2px;position:relative;transition:color .15s}
+.tb-icon:hover{color:#fff;background:#1e282c}
+.tb-notif-badge{position:absolute;top:4px;right:4px;width:8px;height:8px;background:#dd4b39;border-radius:50%;border:2px solid #222d32}
+.tb-user{display:flex;align-items:center;gap:8px;padding:4px 8px;border-radius:2px;cursor:pointer;transition:background .15s}
+.tb-user:hover{background:#1e282c}
+.tb-user-av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#6d28d9,#a78bfa);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:11px}
+.tb-user-name{color:#b8c7ce;font-size:12px;font-weight:600}
+
+/* ─── CONTENT ─── */
+.ct{flex:1;padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
+.ct::-webkit-scrollbar{width:6px}
+.ct::-webkit-scrollbar-track{background:#e5e7eb}
+.ct::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:3px}
+
+/* ─── CONTENT HEADER ─── */
+.ch{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.ch-left h1{font-size:20px;font-weight:700;color:#333;line-height:1}
+.ch-left .breadcrumb{display:flex;align-items:center;gap:6px;margin-top:3px;font-size:12px;color:#9ca3af}
+.ch-left .breadcrumb span{color:#6d28d9;font-weight:600}
+.ch-left .breadcrumb i{font-size:9px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:2px;font-size:13px;font-weight:600;border:none;transition:all .18s;cursor:pointer}
+.btn-primary{background:linear-gradient(135deg,#6d28d9,#7c3aed);color:#fff;box-shadow:0 2px 8px rgba(109,40,217,.35)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(109,40,217,.45)}
+.btn-secondary{background:#fff;border:1px solid #d1d5db;color:#374151}
+.btn-secondary:hover{border-color:#a78bfa;color:#6d28d9}
+.btn-stats{background:#fff;border:1px solid #c4b5fd;color:#6d28d9}
+.btn-stats:hover{background:#ede9fe}
+.btn-sm{padding:5px 10px;font-size:12px}
+
+/* ─── INFO BOXES ─── */
+.ib-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.ib{background:#fff;border:1px solid #e5e7eb;border-radius:2px;padding:14px;display:flex;align-items:center;gap:14px;box-shadow:0 1px 8px rgba(0,0,0,.06);position:relative;overflow:hidden}
+.ib-icon{width:62px;height:62px;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;flex-shrink:0}
+.ib-icon.violet{background:linear-gradient(135deg,#6d28d9,#7c3aed)}
+.ib-icon.blue{background:linear-gradient(135deg,#2563eb,#3b82f6)}
+.ib-icon.amber{background:linear-gradient(135deg,#d97706,#f59e0b)}
+.ib-icon.green{background:linear-gradient(135deg,#059669,#10b981)}
+.ib-content{flex:1;min-width:0}
+.ib-num{font-size:26px;font-weight:900;color:#111827;line-height:1.1}
+.ib-label{font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+.ib-sub{font-size:11px;color:#9ca3af;margin-top:3px}
+.ib-badge{position:absolute;top:10px;right:10px;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px}
+.ib-badge.up{background:#d1fae5;color:#065f46}
+.ib-badge.warn{background:#fef3c7;color:#92400e}
+.ib-badge.down{background:#fee2e2;color:#991b1b}
+
+/* ─── FILTER BAR ─── */
+.filter-bar{background:#fff;border:1px solid #e5e7eb;border-radius:2px;padding:10px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.fb-label{font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;display:flex;align-items:center;gap:5px}
+.fb-chips{display:flex;gap:6px;flex-wrap:wrap}
+.fb-chip{padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid #d1d5db;color:#6b7280;cursor:pointer;transition:all .15s;background:#fff;display:flex;align-items:center;gap:4px}
+.fb-chip:hover{border-color:#a78bfa;color:#6d28d9;background:#f5f3ff}
+.fb-chip.on{background:#ede9fe;border-color:#c4b5fd;color:#4c1d95}
+.fb-spacer{flex:1}
+.fb-search{display:flex;align-items:center;gap:7px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:2px;padding:5px 10px;transition:border-color .15s}
+.fb-search:focus-within{border-color:#7c3aed;box-shadow:0 0 0 2px rgba(124,58,237,.12)}
+.fb-search i{color:#9ca3af;font-size:13px}
+.fb-search input{border:none;background:transparent;outline:none;font-size:13px;color:#374151;width:180px}
+.fb-search input::placeholder{color:#9ca3af}
+
+/* ─── TABLE BOX ─── */
+.box{background:#fff;border:1px solid #e5e7eb;border-radius:2px;box-shadow:0 1px 8px rgba(0,0,0,.06);overflow:hidden}
+.bh{border-top:3px solid #6d28d9;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f3f4f6}
+.bt{font-size:14px;font-weight:700;color:#374151;display:flex;align-items:center;gap:8px}
+.bt i{color:#6d28d9}
+.bt .count{background:#ede9fe;color:#4c1d95;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px}
+.bh-actions{display:flex;gap:8px;align-items:center}
+table{width:100%;border-collapse:collapse}
+thead th{background:#f9fafb;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;padding:10px 14px;text-align:left;border-bottom:1px solid #e5e7eb;white-space:nowrap}
+tbody tr{border-bottom:1px solid #f3f4f6;transition:background .12s}
+tbody tr:hover{background:#faf5ff}
+tbody tr:last-child{border-bottom:none}
+td{padding:10px 14px;vertical-align:middle}
+.bf{background:#f9fafb;border-top:1px solid #f3f4f6;padding:10px 16px;display:flex;align-items:center;justify-content:space-between}
+.bf-info{font-size:12px;color:#9ca3af;font-weight:600}
+.pagination{display:flex;gap:4px}
+.pg-btn{width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:2px;border:1px solid #d1d5db;background:#fff;color:#6b7280;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+.pg-btn:hover{border-color:#a78bfa;color:#6d28d9}
+.pg-btn.act{background:linear-gradient(135deg,#6d28d9,#7c3aed);border-color:#6d28d9;color:#fff}
+
+/* ─── AVATARS ─── */
+.av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0}
+.av-a{background:linear-gradient(135deg,#fce7f3,#f9a8d4);color:#db2777}
+.av-b{background:linear-gradient(135deg,#eff6ff,#dbeafe);color:#1d4ed8}
+.av-c{background:linear-gradient(135deg,#f0fdf4,#dcfce7);color:#059669}
+.av-d{background:linear-gradient(135deg,#fefce8,#fef9c3);color:#b45309}
+.av-e{background:linear-gradient(135deg,#f5f3ff,#ede9fe);color:#6d28d9}
+.av-f{background:linear-gradient(135deg,#fff1f2,#fecdd3);color:#be123c}
+
+/* ─── BADGES ─── */
+.badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.badge-ativa{background:#d1fae5;color:#065f46}
+.badge-finalizada{background:#f3f4f6;color:#6b7280}
+.badge-pix{background:#fef3c7;color:#92400e}
+.badge-ia{background:linear-gradient(135deg,#7c3aed,#a78bfa);color:#fff}
+
+/* ─── INTERACTION ─── */
+.inter-num{font-size:20px;font-weight:900;color:#4c1d95;line-height:1}
+.inter-sub{font-size:10px;color:#9ca3af;font-weight:600;margin-top:2px}
+
+/* ─── PRODUCT CELL ─── */
+.pname{font-weight:700;color:#111827;font-size:13px}
+.pvar{font-size:11px;color:#9ca3af;margin-top:2px;display:flex;align-items:center;gap:4px}
+.sw-sm{width:11px;height:11px;border-radius:50%;display:inline-block;border:1.5px solid rgba(0,0,0,.12);flex-shrink:0}
+
+/* ─── MODAL ─── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100;display:flex;align-items:center;justify-content:center;animation:fadeIn .2s}
+.overlay.hide{display:none}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{background:#fff;border-radius:2px;box-shadow:0 10px 40px rgba(0,0,0,.3);animation:slideUp .2s;width:820px;max-width:calc(100vw - 32px);max-height:92vh;display:flex;flex-direction:column}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.mh{background:linear-gradient(135deg,#4c1d95,#7c3aed);padding:20px;display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0}
+.mh-info .mt{font-size:16px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px}
+.mh-info .ms{font-size:12px;color:#c4b5fd;margin-top:3px}
+.mh-close{background:none;border:none;color:#c4b5fd;font-size:18px;cursor:pointer;padding:2px 6px;border-radius:2px;transition:color .15s;line-height:1}
+.mh-close:hover{color:#fff}
+.mb{padding:18px;flex:1;overflow-y:auto;display:flex;gap:16px}
+.mb::-webkit-scrollbar{width:4px}
+.mb::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:2px}
+.mf{background:#faf5ff;border-top:1px solid #ede9fe;padding:12px 18px;display:flex;justify-content:flex-end;gap:8px;flex-shrink:0}
+
+/* ─── CHAT ─── */
+.chat-col{flex:1;display:flex;flex-direction:column;min-height:0;max-height:480px;overflow-y:auto}
+.chat-col::-webkit-scrollbar{width:4px}
+.chat-col::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:2px}
+.chat-col-title{font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px;flex-shrink:0}
+.chat-msgs{display:flex;flex-direction:column;gap:10px}
+.msg-wrap-ia{align-self:flex-start;max-width:80%}
+.msg-wrap-cl{align-self:flex-end;max-width:80%}
+.msg{padding:9px 12px;border-radius:2px;font-size:12.5px;line-height:1.5}
+.msg-ia{background:linear-gradient(135deg,#f5f3ff,#ede9fe);border:1px solid #ddd6fe;color:#374151}
+.msg-cl{background:#dcfce7;border:1px solid #bbf7d0;color:#374151}
+.msg-meta{font-size:10px;color:#9ca3af;margin-top:4px;font-weight:600}
+.msg-meta-r{text-align:right}
+.msg-prod{background:#fff;border:1px solid #e5e7eb;border-radius:2px;padding:8px;margin-top:6px;display:flex;align-items:center;gap:8px}
+.msg-prod-img{width:38px;height:38px;border-radius:2px;background:linear-gradient(135deg,#fce7f3,#fdf2f8);display:flex;align-items:center;justify-content:center;font-size:15px;color:#f9a8d4;flex-shrink:0}
+.msg-prod-name{font-size:11px;font-weight:700;color:#374151}
+.msg-prod-price{font-size:11px;color:#6d28d9;font-weight:700;margin-top:2px}
+
+/* ─── CHAT INFO COL ─── */
+.ci-col{width:210px;flex-shrink:0;display:flex;flex-direction:column;gap:10px}
+.ci-box{background:#f9fafb;border:1px solid #e5e7eb;border-radius:2px;padding:12px}
+.ci-title{font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;display:flex;align-items:center;gap:5px}
+.ci-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;font-size:12px}
+.ci-row:last-child{margin-bottom:0}
+.ci-lbl{color:#6b7280;font-weight:600}
+.ci-val{color:#374151;font-weight:700;text-align:right}
+
+/* ─── PIX STATUS ─── */
+.pix-chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:4px 9px;border-radius:20px;margin-top:4px}
+.pix-pend{background:#fef3c7;color:#92400e}
+.pix-conf{background:#d1fae5;color:#065f46}
+
+/* ─── TOAST ─── */
+.toast{position:fixed;bottom:20px;right:20px;background:#222d32;color:#fff;border-left:3px solid #6d28d9;padding:10px 16px;border-radius:2px;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;z-index:9999;transform:translateX(120%);transition:transform .3s cubic-bezier(.34,1.56,.64,1);min-width:260px;box-shadow:0 4px 20px rgba(0,0,0,.3)}
+.toast.show{transform:translateX(0)}
+.toast i{color:#a78bfa}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ════════ SIDEBAR ════════ -->
+  <aside class="sb">
+    <div class="sb-logo">
+      <i class="fa fa-bolt" style="color:#a78bfa;font-size:18px"></i>
+      <span class="sb-logo-text">ModernPOS</span>
+      <span class="sb-logo-badge">SaaS</span>
+    </div>
+    <div class="sb-user">
+      <div class="sb-avatar">M</div>
+      <div class="sb-user-info">
+        <div class="sb-user-name">Moda Feminina</div>
+        <div class="sb-user-role"><span class="sb-user-dot"></span>Gerente</div>
+      </div>
+    </div>
+    <div class="sb-scroll">
+      <div class="sb-hdr">Menu Principal</div>
+      <div class="mi"><i class="fa fa-th-large"></i> Dashboard</div>
+      <div class="mi"><i class="fa fa-desktop"></i> PDV</div>
+      <div class="mi"><i class="fa fa-shopping-cart"></i> Vendas</div>
+      <div class="mi"><i class="fa fa-truck"></i> Compras</div>
+      <div class="mi"><i class="fa fa-tag"></i> Produtos</div>
+      <div class="mi"><i class="fa fa-users"></i> Clientes</div>
+      <div class="mi"><i class="fa fa-bar-chart"></i> Relatórios</div>
+      <div class="mi"><i class="fa fa-cog"></i> Configurações</div>
+      <div class="sb-pro">
+        <div class="sb-pro-hdr">
+          <span class="sb-pro-label"><i class="fa fa-magic" style="margin-right:4px"></i>Concierge IA</span>
+          <span class="pro-badge">PRO</span>
+        </div>
+        <div class="mi-pro"><i class="fa fa-tag"></i> Catálogo IA</div>
+        <div class="mi-pro"><i class="fa fa-trello"></i> Pedidos</div>
+        <div class="mi-pro act"><i class="fa fa-comments"></i> Conversas</div>
+        <div class="mi-pro"><i class="fa fa-qrcode"></i> Comprovantes Pix</div>
+        <div class="mi-pro"><i class="fa fa-cubes"></i> Estoque IA</div>
+        <div class="mi-pro"><i class="fa fa-line-chart"></i> Performance</div>
+        <div class="mi-pro"><i class="fa fa-cog"></i> Configurações IA</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ════════ MAIN ════════ -->
+  <div class="main">
+
+    <!-- TOPBAR -->
+    <div class="tb">
+      <div class="tb-toggle"><i class="fa fa-bars"></i></div>
+      <div class="tb-spacer"></div>
+      <div class="tb-ai-status">
+        <div class="tb-ai-dot"></div>
+        <span class="tb-ai-text">IA Online · 8 ativos</span>
+      </div>
+      <div class="tb-sep"></div>
+      <div class="tb-icon" title="Notificações">
+        <i class="fa fa-bell-o"></i>
+        <span class="tb-notif-badge"></span>
+      </div>
+      <div class="tb-icon" title="Ajuda"><i class="fa fa-question-circle-o"></i></div>
+      <div class="tb-user">
+        <div class="tb-user-av">M</div>
+        <span class="tb-user-name">Moda Fem.</span>
+        <i class="fa fa-angle-down" style="color:#8aa4af;font-size:11px"></i>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="ct">
+
+      <!-- Content Header -->
+      <div class="ch">
+        <div class="ch-left">
+          <h1><i class="fa fa-comments" style="color:#6d28d9;margin-right:8px"></i>Painel de Conversas</h1>
+          <div class="breadcrumb">
+            <i class="fa fa-home"></i> Home
+            <i class="fa fa-angle-right"></i> Concierge IA
+            <i class="fa fa-angle-right"></i> <span>Conversas</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary btn-sm"><i class="fa fa-calendar"></i> Hoje</button>
+          <button class="btn btn-secondary btn-sm"><i class="fa fa-download"></i> Exportar CSV</button>
+          <button class="btn btn-primary" onclick="showToast('Conversas atualizadas!')"><i class="fa fa-refresh"></i> Atualizar</button>
+        </div>
+      </div>
+
+      <!-- INFO BOXES -->
+      <div class="ib-grid">
+        <div class="ib">
+          <div class="ib-icon violet"><i class="fa fa-comments"></i></div>
+          <div class="ib-content">
+            <div class="ib-num">43</div>
+            <div class="ib-label">Conversas Hoje</div>
+            <div class="ib-sub">8 ativas agora</div>
+          </div>
+          <div class="ib-badge up">+22%</div>
+        </div>
+        <div class="ib">
+          <div class="ib-icon green"><i class="fa fa-check-circle"></i></div>
+          <div class="ib-content">
+            <div class="ib-num">18,6%</div>
+            <div class="ib-label">Taxa de Conversão</div>
+            <div class="ib-sub">8 vendas de 43 atendimentos</div>
+          </div>
+          <div class="ib-badge up">+3,2%</div>
+        </div>
+        <div class="ib">
+          <div class="ib-icon blue"><i class="fa fa-credit-card"></i></div>
+          <div class="ib-content">
+            <div class="ib-num">R$ 124,50</div>
+            <div class="ib-label">Ticket Médio IA</div>
+            <div class="ib-sub">vs R$ 108,90 mês passado</div>
+          </div>
+          <div class="ib-badge up">+14%</div>
+        </div>
+        <div class="ib">
+          <div class="ib-icon amber"><i class="fa fa-clock-o"></i></div>
+          <div class="ib-content">
+            <div class="ib-num">1m 24s</div>
+            <div class="ib-label">Tempo Médio Resposta</div>
+            <div class="ib-sub">incluindo busca de produtos</div>
+          </div>
+          <div class="ib-badge warn">▼ 8s</div>
+        </div>
+      </div>
+
+      <!-- FILTER BAR -->
+      <div class="filter-bar">
+        <span class="fb-label"><i class="fa fa-filter"></i> Filtrar</span>
+        <div class="fb-chips">
+          <div class="fb-chip on" onclick="filtrar(this)">Todas</div>
+          <div class="fb-chip" onclick="filtrar(this)"><i class="fa fa-circle" style="color:#059669;font-size:7px"></i> Ativas</div>
+          <div class="fb-chip" onclick="filtrar(this)"><i class="fa fa-check" style="color:#6b7280;font-size:10px"></i> Finalizadas</div>
+          <div class="fb-chip" onclick="filtrar(this)"><i class="fa fa-qrcode" style="color:#d97706;font-size:10px"></i> Aguard. Pix</div>
+          <div class="fb-chip" onclick="filtrar(this)">Hoje</div>
+        </div>
+        <div class="fb-spacer"></div>
+        <div class="fb-search">
+          <i class="fa fa-search"></i>
+          <input type="text" placeholder="Buscar cliente ou telefone...">
+        </div>
+      </div>
+
+      <!-- TABLE BOX -->
+      <div class="box">
+        <div class="bh">
+          <span class="bt"><i class="fa fa-comments"></i> Conversas <span class="count">43</span></span>
+          <div class="bh-actions">
+            <button class="btn btn-secondary btn-sm"><i class="fa fa-download"></i> Exportar</button>
+            <button class="btn btn-secondary btn-sm"><i class="fa fa-refresh"></i> Atualizar</button>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Cliente</th>
+              <th>Último Produto Solicitado</th>
+              <th class="sort" style="color:#6d28d9">Interações IA <i class="fa fa-sort" style="opacity:.4"></i></th>
+              <th>Último Contato</th>
+              <th>Status</th>
+              <th>Ação</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <div style="display:flex;align-items:center;gap:10px">
+                  <div class="av av-a">M</div>
+                  <div>
+                    <div style="font-weight:700;color:#111827;font-size:13px">Maria Souza</div>
+                    <div style="font-size:11px;color:#9ca3af;margin-top:1px"><i class="fa fa-whatsapp" style="color:#25d366"></i> 11 98765-4321</div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div class="pname">Vestido Midi Floral</div>
+                <div class="pvar"><span class="sw-sm" style="background:#f9a8d4"></span>Rosa · M · R$ 89,90</div>
+              </td>
+              <td>
+                <div class="inter-num">12</div>
+                <div class="inter-sub">mensagens trocadas</div>
+              </td>
+              <td>
+                <div style="font-size:12px;font-weight:700;color:#374151">Hoje 15h42</div>
+                <div style="font-size:11px;color:#9ca3af">há 5 min</div>
+              </td>
+              <td><span class="badge badge-pix"><i class="fa fa-qrcode"></i> Aguard. Pix</span></td>
+              <td><button class="btn btn-stats btn-sm" onclick="abrirModal('conversa')"><i class="fa fa-eye"></i> Ver Conversa</button></td>
+            </tr>
+            <tr>
+              <td>
+                <div style="display:flex;align-items:center;gap:10px">
+                  <div class="av av-b">F</div>
+                  <div>
+                    <div style="font-weight:700;color:#111827;font-size:13px">Fernanda Lima</div>
+                    <div style="font-size:11px;color:#9ca3af;margin-top:1px"><i class="fa fa-whatsapp" style="color:#25d366"></i> 11 91234-5678</div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div class="pname">Calça Wide Leg Premium</div>
+                <div class="pvar"><span class="sw-sm" style="background:#92400e"></span>Caramelo · P · R$ 149,90</div>
+              </td>
+              <td>
+                <div class="inter-num">8</div>
+                <div class="inter-sub">mensagens trocadas</div>
+              </td>
+              <td>
+                <div style="font-size:12px;font-weight:700;color:#374151">Hoje 15h30</div>
+                <div style="font-size:11px;color:#9ca3af">há 17 min</div>
+              </td>
+              <td><span class="badge badge-ativa"><i class="fa fa-circle" style="font-size:7px"></i> Ativa</span></td>
+              <td><button class="btn btn-stats btn-sm" onclick="abrirModal('conversa')"><i class="fa fa-eye"></i> Ver Conversa</button></td>
+            </tr>
+            <tr>
+              <td>
+                <div style="display:flex;align-items:center;gap:10px">
+                  <div class="av av-c">J</div>
+                  <div>
+                    <div style="font-weight:700;color:#111827;font-size:13px">Juliana Costa</div>
+                    <div style="font-size:11px;color:#9ca3af;margin-top:1px"><i class="fa fa-whatsapp" style="color:#25d366"></i> 11 95432-8765</div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div class="pname">Conjunto Tule Saia+Blusa</div>
+                <div class="pvar"><span class="sw-sm" style="background:#c4b5fd"></span>Lilás · M · R$ 219,90</div>
+              </td>
+              <td>
+                <div class="inter-num" style="color:#7c3aed">24</div>
+                <div class="inter-sub">mensagens trocadas</div>
+              </td>
+              <td>
+                <div style="font-size:12px;font-weight:700;color:#374151">Hoje 14h58</div>
+                <div style="font-size:11px;color:#9ca3af">há 49 min</div>
+              </td>
+              <td><span class="badge badge-finalizada"><i class="fa fa-check"></i> Finalizada</span></td>
+              <td><button class="btn btn-stats btn-sm" onclick="abrirModal('conversa')"><i class="fa fa-eye"></i> Ver Conversa</button></td>
+            </tr>
+            <tr>
+              <td>
+                <div style="display:flex;align-items:center;gap:10px">
+                  <div class="av av-d">C</div>
+                  <div>
+                    <div style="font-weight:700;color:#111827;font-size:13px">Carla Mendes</div>
+                    <div style="font-size:11px;color:#9ca3af;margin-top:1px"><i class="fa fa-whatsapp" style="color:#25d366"></i> 11 97777-1234</div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div class="pname">Blusa Cropped Ribana</div>
+                <div class="pvar"><span class="sw-sm" style="background:#fff;border:1.5px solid #d1d5db"></span>Branca · G · R$ 79,90</div>
+              </td>
+              <td>
+                <div class="inter-num">6</div>
+                <div class="inter-sub">mensagens trocadas</div>
+              </td>
+              <td>
+                <div style="font-size:12px;font-weight:700;color:#374151">Hoje 14h22</div>
+                <div style="font-size:11px;color:#9ca3af">há 1h25</div>
+              </td>
+              <td><span class="badge badge-ativa"><i class="fa fa-circle" style="font-size:7px"></i> Ativa</span></td>
+              <td><button class="btn btn-stats btn-sm" onclick="abrirModal('conversa')"><i class="fa fa-eye"></i> Ver Conversa</button></td>
+            </tr>
+            <tr>
+              <td>
+                <div style="display:flex;align-items:center;gap:10px">
+                  <div class="av av-e">A</div>
+                  <div>
+                    <div style="font-weight:700;color:#111827;font-size:13px">Amanda Rocha</div>
+                    <div style="font-size:11px;color:#9ca3af;margin-top:1px"><i class="fa fa-whatsapp" style="color:#25d366"></i> 11 99876-5432</div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div class="pname">Saia Midi Plissada</div>
+                <div class="pvar"><span class="sw-sm" style="background:#4ade80"></span>Verde · P · R$ 129,90</div>
+              </td>
+              <td>
+                <div class="inter-num">17</div>
+                <div class="inter-sub">mensagens trocadas</div>
+              </td>
+              <td>
+                <div style="font-size:12px;font-weight:700;color:#374151">Hoje 13h10</div>
+                <div style="font-size:11px;color:#9ca3af">há 2h37</div>
+              </td>
+              <td><span class="badge badge-finalizada"><i class="fa fa-check"></i> Finalizada</span></td>
+              <td><button class="btn btn-stats btn-sm" onclick="abrirModal('conversa')"><i class="fa fa-eye"></i> Ver Conversa</button></td>
+            </tr>
+            <tr>
+              <td>
+                <div style="display:flex;align-items:center;gap:10px">
+                  <div class="av av-f">T</div>
+                  <div>
+                    <div style="font-weight:700;color:#111827;font-size:13px">Tatiane Ferreira</div>
+                    <div style="font-size:11px;color:#9ca3af;margin-top:1px"><i class="fa fa-whatsapp" style="color:#25d366"></i> 11 93344-5678</div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div class="pname">Vestido Midi Floral</div>
+                <div class="pvar"><span class="sw-sm" style="background:#111827"></span>Preto · GG · R$ 89,90</div>
+              </td>
+              <td>
+                <div class="inter-num">9</div>
+                <div class="inter-sub">mensagens trocadas</div>
+              </td>
+              <td>
+                <div style="font-size:12px;font-weight:700;color:#374151">Hoje 12h45</div>
+                <div style="font-size:11px;color:#9ca3af">há 3h02</div>
+              </td>
+              <td><span class="badge badge-ia"><i class="fa fa-magic"></i> IA em Atend.</span></td>
+              <td><button class="btn btn-stats btn-sm" onclick="abrirModal('conversa')"><i class="fa fa-eye"></i> Ver Conversa</button></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="bf">
+          <span class="bf-info">Exibindo 1–6 de 43 conversas · 8 ativas agora</span>
+          <div class="pagination">
+            <div class="pg-btn"><i class="fa fa-chevron-left"></i></div>
+            <div class="pg-btn act">1</div>
+            <div class="pg-btn">2</div>
+            <div class="pg-btn">3</div>
+            <div class="pg-btn">...</div>
+            <div class="pg-btn">8</div>
+            <div class="pg-btn"><i class="fa fa-chevron-right"></i></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /ct -->
+  </div><!-- /main -->
+</div><!-- /shell -->
+
+<!-- ════════ MODAL: CONVERSA ════════ -->
+<div class="overlay hide" id="ov-conversa">
+  <div class="modal">
+    <div class="mh">
+      <div class="mh-info">
+        <div class="mt"><i class="fa fa-comments"></i> Conversa — Maria Souza</div>
+        <div class="ms"><i class="fa fa-whatsapp" style="color:#86efac"></i> 11 98765-4321 · 12 mensagens · Iniciada hoje às 15h30</div>
+      </div>
+      <button class="mh-close" onclick="fecharModal('conversa')"><i class="fa fa-times"></i></button>
+    </div>
+    <div class="mb">
+      <!-- Chat Messages Column -->
+      <div class="chat-col">
+        <div class="chat-col-title"><i class="fa fa-comments"></i> Histórico da conversa</div>
+        <div class="chat-msgs">
+          <div class="msg-wrap-ia">
+            <div class="msg msg-ia"><i class="fa fa-magic" style="color:#a78bfa;margin-right:4px"></i>Olá! Bem-vinda à Moda Feminina 😊 Sou a Luna, sua consultora virtual! Como posso te ajudar hoje?</div>
+            <div class="msg-meta">Luna (IA) · 15h30</div>
+          </div>
+          <div class="msg-wrap-cl">
+            <div class="msg msg-cl">Oi! Quero ver opções de vestido midi floral, visto M</div>
+            <div class="msg-meta msg-meta-r">Maria · 15h31</div>
+          </div>
+          <div class="msg-wrap-ia">
+            <div class="msg msg-ia">Que ótimo! Temos peças incríveis para você! Veja esta opção exclusiva:
+              <div class="msg-prod">
+                <div class="msg-prod-img"><i class="fa fa-camera"></i></div>
+                <div>
+                  <div class="msg-prod-name">Vestido Midi Floral</div>
+                  <div class="msg-prod-price">R$ 89,90 · Rosa · M ✓ Em estoque</div>
+                </div>
+              </div>
+            </div>
+            <div class="msg-meta">Luna (IA) · 15h31</div>
+          </div>
+          <div class="msg-wrap-cl">
+            <div class="msg msg-cl">Amei! Quero o rosa M mesmo! 😍</div>
+            <div class="msg-meta msg-meta-r">Maria · 15h35</div>
+          </div>
+          <div class="msg-wrap-ia">
+            <div class="msg msg-ia">Ótima escolha! Vou gerar seu pedido agora. Confirma os dados?<br><br>📦 Vestido Midi Floral — Rosa · M · 1x<br>💰 Total: <strong>R$ 89,90</strong></div>
+            <div class="msg-meta">Luna (IA) · 15h35</div>
+          </div>
+          <div class="msg-wrap-cl">
+            <div class="msg msg-cl">Confirmo!</div>
+            <div class="msg-meta msg-meta-r">Maria · 15h36</div>
+          </div>
+          <div class="msg-wrap-ia">
+            <div class="msg msg-ia"><i class="fa fa-qrcode" style="color:#d97706;margin-right:4px"></i><strong>Seu link Pix foi gerado!</strong><br>Valor: R$ 89,90 · Expira em 30 minutos.<br><br>Após o pagamento, seu pedido entra em separação automaticamente ✨</div>
+            <div class="msg-meta">Luna (IA) · 15h42</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Info Column -->
+      <div class="ci-col">
+        <div class="ci-box">
+          <div class="ci-title"><i class="fa fa-user"></i> Perfil da Cliente</div>
+          <div class="ci-row"><span class="ci-lbl">Nome</span><span class="ci-val">Maria Souza</span></div>
+          <div class="ci-row"><span class="ci-lbl">Tamanho</span><span class="ci-val">M habitual</span></div>
+          <div class="ci-row"><span class="ci-lbl">Histórico</span><span class="ci-val">7 compras</span></div>
+          <div style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap">
+            <span class="badge badge-finalizada">Pastéis</span>
+            <span class="badge badge-finalizada">Florais</span>
+            <span class="badge badge-ia">VIP</span>
+          </div>
+        </div>
+        <div class="ci-box">
+          <div class="ci-title"><i class="fa fa-shopping-cart"></i> Pedido Gerado</div>
+          <div class="ci-row"><span class="ci-lbl">Nº Pedido</span><span class="ci-val">#1042</span></div>
+          <div class="ci-row"><span class="ci-lbl">Produto</span><span class="ci-val">Vestido Midi</span></div>
+          <div class="ci-row"><span class="ci-lbl">Variante</span><span class="ci-val">Rosa · M</span></div>
+          <div class="ci-row"><span class="ci-lbl">Total</span><span class="ci-val" style="color:#059669">R$ 89,90</span></div>
+          <div>
+            <span class="pix-chip pix-pend"><i class="fa fa-qrcode"></i> Pix Pendente</span>
+          </div>
+        </div>
+        <div class="ci-box">
+          <div class="ci-title"><i class="fa fa-bar-chart"></i> Esta Sessão</div>
+          <div class="ci-row"><span class="ci-lbl">Mensagens</span><span class="ci-val">12</span></div>
+          <div class="ci-row"><span class="ci-lbl">Duração</span><span class="ci-val">12 min</span></div>
+          <div class="ci-row"><span class="ci-lbl">Produtos vistos</span><span class="ci-val">3</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-secondary" onclick="fecharModal('conversa')"><i class="fa fa-times"></i> Fechar</button>
+      <button class="btn btn-primary" onclick="showToast('Abrindo WhatsApp...')"><i class="fa fa-whatsapp"></i> Responder no WhatsApp</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"><i class="fa fa-magic"></i> <span id="toast-msg">Operação concluída</span></div>
+
+<script>
+function abrirModal(id){document.getElementById('ov-'+id).classList.remove('hide')}
+function fecharModal(id){document.getElementById('ov-'+id).classList.add('hide')}
+document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',function(e){if(e.target===this)this.classList.add('hide')}))
+let _tt;
+function showToast(msg){const t=document.getElementById('toast');document.getElementById('toast-msg').textContent=msg;t.classList.add('show');clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('show'),2800)}
+function filtrar(el){document.querySelectorAll('.fb-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on')}
+document.querySelectorAll('.mi,.mi-pro').forEach(m=>m.addEventListener('click',function(){document.querySelectorAll('.mi.act').forEach(x=>x.classList.remove('act'));this.classList.add('act')}))
+</script>
+</body>
+</html>

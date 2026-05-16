@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Catálogo IA · Moda IA · ModernPOS</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<style>
+/* ─── RESET ─── */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Source Sans Pro','Helvetica Neue',Helvetica,Arial,sans-serif;font-size:14px;background:#ecf0f5;overflow:hidden;color:#333}
+a{text-decoration:none;color:inherit}
+button{cursor:pointer;font-family:inherit}
+input,select,textarea{font-family:inherit}
+
+/* ─── SHELL ─── */
+.shell{display:flex;height:100vh;overflow:hidden}
+
+/* ─── SIDEBAR ─── */
+.sb{width:230px;background:#222d32;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden}
+.sb-logo{height:50px;background:#2c3b41;display:flex;align-items:center;padding:0 15px;gap:10px;border-bottom:1px solid #1a2226;flex-shrink:0}
+.sb-logo-text{font-size:16px;font-weight:700;color:#fff;letter-spacing:.3px}
+.sb-logo-badge{background:#6d28d9;color:#fff;font-size:9px;font-weight:700;padding:2px 5px;border-radius:2px;letter-spacing:.5px}
+.sb-user{background:#1a2226;padding:10px 15px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.sb-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#6d28d9,#a78bfa);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;flex-shrink:0}
+.sb-user-info{min-width:0}
+.sb-user-name{color:#fff;font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-user-role{color:#8aa4af;font-size:11px;display:flex;align-items:center;gap:4px}
+.sb-user-dot{width:7px;height:7px;border-radius:50%;background:#00a65a;flex-shrink:0}
+.sb-scroll{flex:1;overflow-y:auto;overflow-x:hidden}
+.sb-scroll::-webkit-scrollbar{width:4px}
+.sb-scroll::-webkit-scrollbar-track{background:#1a2226}
+.sb-scroll::-webkit-scrollbar-thumb{background:#3d4e54;border-radius:2px}
+.sb-hdr{font-size:10px;font-weight:700;color:#4b646f;text-transform:uppercase;letter-spacing:.5px;padding:14px 15px 5px}
+.mi{display:flex;align-items:center;gap:10px;padding:9px 12px 9px 15px;color:#b8c7ce;border-left:3px solid transparent;transition:all .15s;cursor:pointer;font-size:13.5px}
+.mi:hover{background:#1e282c;color:#ddd6fe;border-left-color:#6d28d9}
+.mi.act{background:#1e282c;color:#fff;border-left-color:#6d28d9}
+.mi i{width:16px;text-align:center;font-size:13px;opacity:.85}
+
+/* ─── SIDEBAR PRO BLOCK ─── */
+.sb-pro{background:linear-gradient(180deg,#160a2e 0%,#1a0f35 100%);border-top:1px solid #2d1b5e;flex-shrink:0}
+.sb-pro-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 15px 5px}
+.sb-pro-label{font-size:10px;font-weight:700;color:#7c4aed;text-transform:uppercase;letter-spacing:.5px}
+.pro-badge{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;letter-spacing:.4px}
+.mi-pro{display:flex;align-items:center;gap:10px;padding:9px 12px 9px 15px;color:#9f6ae3;border-left:3px solid transparent;cursor:pointer;font-size:13px;transition:all .15s;text-decoration:none}
+.mi-pro:hover{background:rgba(109,40,217,.15);color:#ddd6fe;border-left-color:#a78bfa}
+.mi-pro.act{background:rgba(109,40,217,.2);color:#ddd6fe;border-left-color:#a78bfa}
+.mi-pro i{width:16px;text-align:center;font-size:12px;opacity:.9}
+
+/* ─── MAIN ─── */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+
+/* ─── TOPBAR ─── */
+.tb{height:50px;background:#222d32;display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0;border-bottom:1px solid #1a2226}
+.tb-toggle{color:#b8c7ce;font-size:18px;cursor:pointer;padding:4px 8px;border-radius:2px;transition:color .15s}
+.tb-toggle:hover{color:#fff}
+.tb-spacer{flex:1}
+.tb-ai-status{display:flex;align-items:center;gap:6px;background:rgba(109,40,217,.15);border:1px solid rgba(109,40,217,.35);border-radius:20px;padding:4px 10px;cursor:default}
+.tb-ai-dot{width:8px;height:8px;border-radius:50%;background:#a78bfa;animation:blink 1.4s infinite}
+.tb-ai-text{color:#c4b5fd;font-size:11px;font-weight:600;letter-spacing:.3px}
+@keyframes blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.7)}}
+.tb-sep{width:1px;height:20px;background:#3d4e54}
+.tb-icon{width:34px;height:34px;display:flex;align-items:center;justify-content:center;color:#b8c7ce;font-size:16px;cursor:pointer;border-radius:2px;position:relative;transition:color .15s}
+.tb-icon:hover{color:#fff;background:#1e282c}
+.tb-notif-badge{position:absolute;top:4px;right:4px;width:8px;height:8px;background:#dd4b39;border-radius:50%;border:2px solid #222d32}
+.tb-user{display:flex;align-items:center;gap:8px;padding:4px 8px;border-radius:2px;cursor:pointer;transition:background .15s}
+.tb-user:hover{background:#1e282c}
+.tb-user-av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#6d28d9,#a78bfa);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:11px}
+.tb-user-name{color:#b8c7ce;font-size:12px;font-weight:600}
+
+/* ─── CONTENT ─── */
+.ct{flex:1;padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
+.ct::-webkit-scrollbar{width:6px}
+.ct::-webkit-scrollbar-track{background:#e5e7eb}
+.ct::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:3px}
+
+/* ─── CONTENT HEADER ─── */
+.ch{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.ch-left h1{font-size:20px;font-weight:700;color:#333;line-height:1}
+.ch-left .breadcrumb{display:flex;align-items:center;gap:6px;margin-top:3px;font-size:12px;color:#9ca3af}
+.ch-left .breadcrumb span{color:#6d28d9;font-weight:600}
+.ch-left .breadcrumb i{font-size:9px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:2px;font-size:13px;font-weight:600;border:none;transition:all .18s}
+.btn-primary{background:linear-gradient(135deg,#6d28d9,#7c3aed);color:#fff;box-shadow:0 2px 8px rgba(109,40,217,.35)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(109,40,217,.45)}
+.btn-secondary{background:#fff;border:1px solid #d1d5db;color:#374151}
+.btn-secondary:hover{border-color:#a78bfa;color:#6d28d9}
+.btn-danger{background:#fff;border:1px solid #fca5a5;color:#dc2626}
+.btn-danger:hover{background:#fee2e2}
+.btn-stats{background:#fff;border:1px solid #c4b5fd;color:#6d28d9}
+.btn-stats:hover{background:#ede9fe}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-upgrade{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;font-weight:700;box-shadow:0 2px 8px rgba(217,119,6,.3)}
+.btn-upgrade:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(217,119,6,.4)}
+
+/* ─── PLAN USAGE BANNER ─── */
+.usage-bar{background:#fff;border:1px solid #e5e7eb;border-radius:2px;padding:12px 16px;display:flex;align-items:center;gap:16px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.usage-item{display:flex;align-items:center;gap:10px;flex:1}
+.usage-label{font-size:12px;font-weight:600;color:#6b7280;white-space:nowrap}
+.usage-track{flex:1;height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden;min-width:80px}
+.usage-fill{height:100%;border-radius:3px;background:#6d28d9;transition:width .3s}
+.usage-fill.warn{background:#d97706}
+.usage-fill.crit{background:#dd4b39}
+.usage-num{font-size:12px;font-weight:700;color:#374151;white-space:nowrap}
+.usage-sep{width:1px;height:30px;background:#e5e7eb}
+
+/* ─── INFO BOXES ─── */
+.ib-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.ib{background:#fff;border:1px solid #e5e7eb;border-radius:2px;padding:14px;display:flex;align-items:center;gap:14px;box-shadow:0 1px 8px rgba(0,0,0,.06);position:relative;overflow:hidden}
+.ib-icon{width:62px;height:62px;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;flex-shrink:0}
+.ib-icon.violet{background:linear-gradient(135deg,#6d28d9,#7c3aed)}
+.ib-icon.blue{background:linear-gradient(135deg,#2563eb,#3b82f6)}
+.ib-icon.amber{background:linear-gradient(135deg,#d97706,#f59e0b)}
+.ib-icon.green{background:linear-gradient(135deg,#059669,#10b981)}
+.ib-content{flex:1;min-width:0}
+.ib-num{font-size:26px;font-weight:900;color:#111827;line-height:1.1}
+.ib-label{font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+.ib-sub{font-size:11px;color:#9ca3af;margin-top:3px}
+.ib-badge{position:absolute;top:10px;right:10px;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px}
+.ib-badge.up{background:#d1fae5;color:#065f46}
+.ib-badge.warn{background:#fef3c7;color:#92400e}
+.ib-badge.hot{background:linear-gradient(135deg,#7c3aed,#a78bfa);color:#fff}
+
+/* ─── FILTER BAR ─── */
+.filter-bar{background:#fff;border:1px solid #e5e7eb;border-radius:2px;padding:10px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.fb-label{font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;display:flex;align-items:center;gap:5px}
+.fb-chips{display:flex;gap:6px;flex-wrap:wrap}
+.fb-chip{padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid #d1d5db;color:#6b7280;cursor:pointer;transition:all .15s;background:#fff;display:flex;align-items:center;gap:4px}
+.fb-chip:hover{border-color:#a78bfa;color:#6d28d9;background:#f5f3ff}
+.fb-chip.on{background:#ede9fe;border-color:#c4b5fd;color:#4c1d95}
+.fb-spacer{flex:1}
+.fb-search{display:flex;align-items:center;gap:7px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:2px;padding:5px 10px;transition:border-color .15s}
+.fb-search:focus-within{border-color:#7c3aed;box-shadow:0 0 0 2px rgba(124,58,237,.12)}
+.fb-search i{color:#9ca3af;font-size:13px}
+.fb-search input{border:none;background:transparent;outline:none;font-size:13px;color:#374151;width:180px}
+.fb-search input::placeholder{color:#9ca3af}
+
+/* ─── TABLE BOX ─── */
+.box{background:#fff;border:1px solid #e5e7eb;border-radius:2px;box-shadow:0 1px 8px rgba(0,0,0,.06);overflow:hidden}
+.bh{border-top:3px solid #6d28d9;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f3f4f6}
+.bt{font-size:14px;font-weight:700;color:#374151;display:flex;align-items:center;gap:8px}
+.bt i{color:#6d28d9}
+.bt .count{background:#ede9fe;color:#4c1d95;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px}
+.bh-actions{display:flex;gap:8px;align-items:center}
+table{width:100%;border-collapse:collapse}
+thead th{background:#f9fafb;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;padding:10px 14px;text-align:left;border-bottom:1px solid #e5e7eb;white-space:nowrap}
+thead th.sort{cursor:pointer}
+thead th.sort:hover{color:#6d28d9}
+tbody tr{border-bottom:1px solid #f3f4f6;transition:background .12s}
+tbody tr:hover{background:#faf5ff}
+tbody tr:last-child{border-bottom:none}
+td{padding:10px 14px;vertical-align:middle}
+
+/* ─── TABLE CELLS ─── */
+.td-foto{width:60px}
+.td-foto .thumb{width:48px;height:48px;border-radius:2px;object-fit:cover;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-size:18px;color:#c4b5fd;border:1px solid #e5e7eb;overflow:hidden}
+.td-foto .thumb img{width:100%;height:100%;object-fit:cover}
+.td-produto .pname{font-weight:700;color:#111827;font-size:13.5px}
+.td-produto .pid{font-size:11px;color:#9ca3af;margin-top:2px}
+.td-produto .pcat{display:inline-block;background:#f3f4f6;color:#6b7280;font-size:10px;padding:2px 6px;border-radius:10px;margin-top:3px;font-weight:600}
+.td-variantes .swatches{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:4px}
+.swatch{width:16px;height:16px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.15);flex-shrink:0}
+.td-variantes .vinfo{font-size:11px;color:#6b7280;font-weight:600}
+.td-demand{min-width:130px}
+.demand-num{font-size:20px;font-weight:900;color:#4c1d95;line-height:1}
+.demand-num.hot{color:#7c3aed}
+.demand-sub{font-size:10px;color:#9ca3af;font-weight:600;margin-top:1px}
+.demand-bar{height:5px;background:#ede9fe;border-radius:3px;margin-top:6px;overflow:hidden}
+.demand-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#a78bfa);border-radius:3px}
+.demand-fill.hot{background:linear-gradient(90deg,#4c1d95,#7c3aed);box-shadow:0 0 6px rgba(109,40,217,.4)}
+.td-status .toggle-wrap{display:flex;align-items:center;gap:7px}
+.toggle-track{width:36px;height:20px;border-radius:20px;background:#e5e7eb;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
+.toggle-track.on{background:linear-gradient(135deg,#6d28d9,#7c3aed)}
+.toggle-thumb{width:16px;height:16px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.toggle-track.on .toggle-thumb{left:18px}
+.status-lbl{font-size:11px;font-weight:700;color:#6b7280}
+.status-lbl.on{color:#059669}
+.td-acoes{white-space:nowrap}
+.td-acoes .btn-sm{margin-right:4px}
+
+/* ─── TABLE FOOTER ─── */
+.bf{background:#f9fafb;border-top:1px solid #f3f4f6;padding:10px 16px;display:flex;align-items:center;justify-content:space-between}
+.bf-info{font-size:12px;color:#9ca3af;font-weight:600}
+.pagination{display:flex;gap:4px}
+.pg-btn{width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:2px;border:1px solid #d1d5db;background:#fff;color:#6b7280;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+.pg-btn:hover{border-color:#a78bfa;color:#6d28d9}
+.pg-btn.act{background:linear-gradient(135deg,#6d28d9,#7c3aed);border-color:#6d28d9;color:#fff}
+
+/* ─── MODAL ─── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100;display:flex;align-items:center;justify-content:center;animation:fadeIn .2s}
+.overlay.hide{display:none}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{background:#fff;border-radius:2px;box-shadow:0 10px 40px rgba(0,0,0,.3);animation:slideUp .2s;width:680px;max-width:calc(100vw - 32px);max-height:90vh;display:flex;flex-direction:column}
+.modal-lg{width:840px}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.mh{background:linear-gradient(135deg,#4c1d95,#7c3aed);padding:20px;display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0}
+.mh-info .mt{font-size:16px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px}
+.mh-info .ms{font-size:12px;color:#c4b5fd;margin-top:3px}
+.mh-close{background:none;border:none;color:#c4b5fd;font-size:18px;cursor:pointer;padding:2px 6px;border-radius:2px;transition:color .15s;line-height:1}
+.mh-close:hover{color:#fff}
+.mb{padding:18px;flex:1;overflow-y:auto}
+.mb::-webkit-scrollbar{width:4px}
+.mb::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:2px}
+.mf{background:#faf5ff;border-top:1px solid #ede9fe;padding:12px 18px;display:flex;justify-content:flex-end;gap:8px;flex-shrink:0}
+
+/* ─── STEPPER ─── */
+.stepper{display:flex;align-items:center;gap:0;margin-bottom:20px}
+.step{display:flex;align-items:center;flex:1}
+.step:last-child{flex:none}
+.step-indicator{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;z-index:1}
+.step-indicator.done{background:#059669;color:#fff}
+.step-indicator.active{background:linear-gradient(135deg,#6d28d9,#7c3aed);color:#fff;box-shadow:0 0 0 3px rgba(109,40,217,.2)}
+.step-indicator.pending{background:#e5e7eb;color:#9ca3af}
+.step-label{font-size:11px;font-weight:600;margin-left:6px;white-space:nowrap}
+.step-label.done{color:#059669}
+.step-label.active{color:#6d28d9}
+.step-label.pending{color:#9ca3af}
+.step-line{flex:1;height:2px;background:#e5e7eb;margin:0 8px}
+.step-line.done{background:#059669}
+
+/* ─── FORM ─── */
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-group{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+.form-group:last-child{margin-bottom:0}
+.form-label{font-size:12px;font-weight:600;color:#555;display:flex;align-items:center;gap:4px}
+.form-label .req{color:#f9264c}
+.form-control{border:1px solid #d1d5db;border-radius:2px;padding:8px 10px;font-size:13.5px;color:#374151;background:#fff;transition:all .15s;outline:none;width:100%}
+.form-control:focus{border-color:#7c3aed;box-shadow:0 0 0 2px rgba(124,58,237,.12)}
+.form-hint{font-size:11px;color:#9ca3af}
+
+/* ─── TAGS INPUT ─── */
+.tags-input{border:1px solid #d1d5db;border-radius:2px;padding:6px 8px;display:flex;flex-wrap:wrap;gap:5px;background:#fff;cursor:text;transition:border-color .15s}
+.tags-input:focus-within{border-color:#7c3aed;box-shadow:0 0 0 2px rgba(124,58,237,.12)}
+.tag-chip{background:#ede9fe;color:#4c1d95;border:1px solid #c4b5fd;border-radius:20px;padding:2px 8px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px}
+.tag-chip button{background:none;border:none;color:#7c3aed;font-size:14px;line-height:1;cursor:pointer;padding:0}
+.tags-input input{border:none;outline:none;font-size:13px;color:#374151;min-width:80px;flex:1;background:transparent;padding:2px 0}
+
+/* ─── VARIANT CARDS ─── */
+.variant-card{border:1px solid #e5e7eb;border-radius:2px;margin-bottom:10px;overflow:hidden}
+.variant-header{background:#f9fafb;padding:10px 14px;display:flex;align-items:center;gap:10px;cursor:pointer}
+.variant-header:hover{background:#f5f3ff}
+.vc-swatch{width:22px;height:22px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1.5px rgba(0,0,0,.2)}
+.vc-name{font-weight:700;font-size:13px;color:#374151;flex:1}
+.vc-badge{background:#ede9fe;color:#4c1d95;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px}
+.vc-toggle{color:#9ca3af;transition:transform .2s}
+.vc-toggle.open{transform:rotate(-90deg)}
+.variant-body{padding:14px;border-top:1px solid #f3f4f6;display:none}
+.variant-body.open{display:block}
+.size-grid{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.sz-pill{padding:5px 10px;border-radius:2px;border:1.5px solid #d1d5db;font-size:12px;font-weight:700;color:#6b7280;cursor:pointer;transition:all .15s;background:#fff}
+.sz-pill.on{background:#ede9fe;border-color:#7c3aed;color:#4c1d95}
+.sz-pill:hover{border-color:#a78bfa;color:#6d28d9}
+.webp-badge{background:#ede9fe;color:#6d28d9;border:1px solid #c4b5fd;border-radius:20px;font-size:10px;font-weight:700;padding:2px 7px;display:inline-flex;align-items:center;gap:4px}
+.upload-area{border:2px dashed #d1d5db;border-radius:2px;padding:14px;text-align:center;cursor:pointer;transition:all .15s;position:relative}
+.upload-area:hover{border-color:#a78bfa;background:#faf5ff}
+.upload-area i{font-size:22px;color:#c4b5fd;margin-bottom:6px;display:block}
+.upload-area span{font-size:12px;color:#9ca3af}
+
+/* ─── STATS MODAL ─── */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
+.stat-box{background:#f9fafb;border:1px solid #e5e7eb;border-radius:2px;padding:14px}
+.stat-box .sv{font-size:28px;font-weight:900;color:#4c1d95;line-height:1}
+.stat-box .sl{font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.4px;margin-top:3px}
+.mini-chart{display:flex;align-items:flex-end;gap:4px;height:60px;padding:0 2px}
+.bar-item{flex:1;background:linear-gradient(180deg,#7c3aed,#a78bfa);border-radius:2px 2px 0 0;transition:height .3s;position:relative}
+.bar-item.today{background:linear-gradient(180deg,#4c1d95,#6d28d9);box-shadow:0 0 8px rgba(109,40,217,.35)}
+.bar-label{font-size:9px;color:#9ca3af;text-align:center;margin-top:4px}
+.bar-wrap{display:flex;flex-direction:column-reverse}
+
+/* ─── TOAST ─── */
+.toast{position:fixed;bottom:20px;right:20px;background:#222d32;color:#fff;border-left:3px solid #6d28d9;padding:10px 16px;border-radius:2px;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;z-index:9999;transform:translateX(120%);transition:transform .3s cubic-bezier(.34,1.56,.64,1);min-width:260px;box-shadow:0 4px 20px rgba(0,0,0,.3)}
+.toast.show{transform:translateX(0)}
+.toast i{color:#a78bfa}
+
+/* ─── EMPTY STATE ─── */
+.empty{padding:40px;text-align:center;color:#9ca3af}
+.empty i{font-size:36px;color:#c4b5fd;margin-bottom:12px;display:block}
+.empty p{font-size:14px;font-weight:600}
+</style>
+</head>
+<body>
+<!--
+  ╔══════════════════════════════════════════════════════╗
+  ║  SAAS PLAN GATE — /painel/adicionar                  ║
+  ║  PHP: $plan['ai_concierge_enabled'] → overlay-lock   ║
+  ║  PHP: $plan['ai_catalog_limit']    → .usage-fill     ║
+  ║  PHP: $plan['ai_webhook_calls']    → topbar counter  ║
+  ║  Permissão: has_permission('access','concierge_ia')   ║
+  ╚══════════════════════════════════════════════════════╝
+-->
+<div class="shell">
+
+  <!-- ════════ SIDEBAR ════════ -->
+  <aside class="sb">
+    <div class="sb-logo">
+      <i class="fa fa-bolt" style="color:#a78bfa;font-size:18px"></i>
+      <span class="sb-logo-text">ModernPOS</span>
+      <span class="sb-logo-badge">SaaS</span>
+    </div>
+
+    <div class="sb-user">
+      <div class="sb-avatar">M</div>
+      <div class="sb-user-info">
+        <div class="sb-user-name">Moda Feminina</div>
+        <div class="sb-user-role"><span class="sb-user-dot"></span>Gerente</div>
+      </div>
+    </div>
+
+    <div class="sb-scroll">
+      <div class="sb-hdr">Menu Principal</div>
+      <div class="mi"><i class="fa fa-th-large"></i> Dashboard</div>
+      <div class="mi"><i class="fa fa-desktop"></i> PDV</div>
+      <div class="mi"><i class="fa fa-shopping-cart"></i> Vendas</div>
+      <div class="mi"><i class="fa fa-truck"></i> Compras</div>
+      <div class="mi"><i class="fa fa-tag"></i> Produtos</div>
+      <div class="mi"><i class="fa fa-users"></i> Clientes</div>
+      <div class="mi"><i class="fa fa-bar-chart"></i> Relatórios</div>
+      <div class="mi"><i class="fa fa-cog"></i> Configurações</div>
+
+      <!-- PRO BLOCK -->
+      <div class="sb-pro">
+        <div class="sb-pro-hdr">
+          <span class="sb-pro-label"><i class="fa fa-magic" style="margin-right:4px"></i>Moda IA</span>
+          <span class="pro-badge">PRO</span>
+        </div>
+        <a class="mi-pro act" href="concierge_catalogo.html"><i class="fa fa-tag"></i> Catálogo IA</a>
+        <a class="mi-pro" href="concierge_pedidos.html"><i class="fa fa-trello"></i> Pedidos</a>
+        <div class="mi-pro"><i class="fa fa-comments"></i> Conversas</div>
+        <a class="mi-pro" href="concierge_pix.html"><i class="fa fa-qrcode"></i> Comprovantes Pix</a>
+        <a class="mi-pro" href="concierge_estoque.html"><i class="fa fa-cubes"></i> Estoque IA</a>
+        <div class="mi-pro"><i class="fa fa-line-chart"></i> Performance</div>
+        <a class="mi-pro" href="concierge_config.html"><i class="fa fa-cog"></i> Configurações IA</a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ════════ MAIN ════════ -->
+  <div class="main">
+
+    <!-- TOPBAR -->
+    <div class="tb">
+      <div class="tb-toggle"><i class="fa fa-bars"></i></div>
+      <div class="tb-spacer"></div>
+      <!-- IA Online indicator [PHP: if $ai_ativo] -->
+      <div class="tb-ai-status">
+        <div class="tb-ai-dot"></div>
+        <span class="tb-ai-text">IA Online</span>
+      </div>
+      <div class="tb-sep"></div>
+      <div class="tb-icon" title="Pedidos pendentes">
+        <i class="fa fa-bell-o"></i>
+        <span class="tb-notif-badge"></span>
+      </div>
+      <div class="tb-icon" title="Ajuda"><i class="fa fa-question-circle-o"></i></div>
+      <div class="tb-user">
+        <div class="tb-user-av">M</div>
+        <span class="tb-user-name">Moda Fem.</span>
+        <i class="fa fa-angle-down" style="color:#8aa4af;font-size:11px"></i>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="ct">
+
+      <!-- Content Header -->
+      <div class="ch">
+        <div class="ch-left">
+          <h1><i class="fa fa-tag" style="color:#6d28d9;margin-right:8px"></i>Catálogo IA</h1>
+          <div class="breadcrumb">
+            <i class="fa fa-home"></i> Home
+            <i class="fa fa-angle-right"></i> Moda IA
+            <i class="fa fa-angle-right"></i> <span>Catálogo IA</span>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="abrirModal('novo-modelo')">
+          <i class="fa fa-plus"></i> Novo Modelo
+        </button>
+      </div>
+
+      <!-- PLAN USAGE BANNER [PHP: $plan_usage] -->
+      <div class="usage-bar">
+        <div class="usage-item">
+          <span class="usage-label"><i class="fa fa-tag" style="color:#6d28d9"></i> Catálogo</span>
+          <div class="usage-track"><div class="usage-fill" style="width:36%"></div></div>
+          <span class="usage-num">18 / 50 modelos</span>
+        </div>
+        <div class="usage-sep"></div>
+        <div class="usage-item">
+          <span class="usage-label"><i class="fa fa-bolt" style="color:#d97706"></i> Chamadas IA</span>
+          <div class="usage-track"><div class="usage-fill warn" style="width:72%"></div></div>
+          <span class="usage-num">361 / 500/mês</span>
+        </div>
+        <div class="usage-sep"></div>
+        <div class="usage-item">
+          <span class="usage-label"><i class="fa fa-hdd-o" style="color:#2563eb"></i> Storage</span>
+          <div class="usage-track"><div class="usage-fill" style="width:18%"></div></div>
+          <span class="usage-num">9,2 / 50 MB</span>
+        </div>
+        <button class="btn btn-upgrade btn-sm" style="flex-shrink:0"><i class="fa fa-arrow-circle-up"></i> Fazer Upgrade</button>
+      </div>
+
+      <!-- INFO BOXES -->
+      <div class="ib-grid">
+        <div class="ib">
+          <div class="ib-icon green"><i class="fa fa-check-circle"></i></div>
+          <div class="ib-content">
+            <div class="ib-num">42</div>
+            <div class="ib-label">Produtos Ativos</div>
+            <div class="ib-sub">com estoque disponivel</div>
+          </div>
+          <div class="ib-badge up">+2 hoje</div>
+        </div>
+        <div class="ib">
+          <div class="ib-icon amber"><i class="fa fa-warning"></i></div>
+          <div class="ib-content">
+            <div class="ib-num">5</div>
+            <div class="ib-label">Sem Estoque</div>
+            <div class="ib-sub">aguardando reposicao</div>
+          </div>
+          <div class="ib-badge warn">Revisar</div>
+        </div>
+        <div class="ib">
+          <div class="ib-icon violet"><i class="fa fa-star"></i></div>
+          <div class="ib-content">
+            <div class="ib-num">8</div>
+            <div class="ib-label">Produtos Destaque</div>
+            <div class="ib-sub">melhores indices IA</div>
+          </div>
+          <div class="ib-badge up">Top</div>
+        </div>
+        <div class="ib">
+          <div class="ib-icon blue"><i class="fa fa-clock-o"></i></div>
+          <div class="ib-content">
+            <div class="ib-num">12</div>
+            <div class="ib-label">Atualizados Hoje</div>
+            <div class="ib-sub">variantes ou preco</div>
+          </div>
+          <div class="ib-badge up">+12%</div>
+        </div>
+      </div>
+
+      <!-- FILTER BAR -->
+      <div class="filter-bar">
+        <span class="fb-label"><i class="fa fa-filter"></i> Filtrar</span>
+        <div class="fb-chips">
+          <div class="fb-chip on" onclick="filtrar(this)">Todos</div>
+          <div class="fb-chip" onclick="filtrar(this)"><i class="fa fa-check-circle" style="color:#059669"></i> Ativos</div>
+          <div class="fb-chip" onclick="filtrar(this)">Inativos</div>
+          <div class="fb-chip" onclick="filtrar(this)">🔥 Mais quentes</div>
+          <div class="fb-chip" onclick="filtrar(this)"><i class="fa fa-exclamation-circle" style="color:#dd4b39"></i> Zerados</div>
+        </div>
+        <div class="fb-spacer"></div>
+        <div class="fb-search">
+          <i class="fa fa-search"></i>
+          <input type="text" placeholder="Buscar modelo ou tag...">
+        </div>
+      </div>
+
+      <!-- TABLE -->
+      <div class="box">
+        <div class="bh">
+          <span class="bt"><i class="fa fa-tag"></i> Catálogo de Modelos <span class="count">47</span></span>
+          <div class="bh-actions">
+            <button class="btn btn-secondary btn-sm"><i class="fa fa-download"></i> Exportar</button>
+            <button class="btn btn-secondary btn-sm"><i class="fa fa-refresh"></i> Atualizar</button>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Foto</th>
+              <th class="sort">Produto <i class="fa fa-sort" style="opacity:.4"></i></th>
+              <th>Variantes</th>
+              <th class="sort" style="color:#6d28d9">Demanda IA <i class="fa fa-sort" style="opacity:.4"></i></th>
+              <th>Status</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="table-body">
+            <!-- Linha 1 -->
+            <tr>
+              <td class="td-foto">
+                <div class="thumb" style="background:linear-gradient(135deg,#fdf2f8,#fce7f3)">
+                  <i class="fa fa-camera" style="color:#f9a8d4"></i>
+                </div>
+              </td>
+              <td class="td-produto">
+                <div class="pname">Vestido Midi Floral</div>
+                <div class="pid">#MOD-001</div>
+                <span class="pcat">Vestidos</span>
+              </td>
+              <td class="td-variantes">
+                <div class="swatches">
+                  <span class="swatch" style="background:#f9a8d4" title="Rosa"></span>
+                  <span class="swatch" style="background:#111827" title="Preto"></span>
+                  <span class="swatch" style="background:#f9fafb;border:1.5px solid #d1d5db" title="Off-White"></span>
+                </div>
+                <div class="vinfo">3 cores · 5 tamanhos · 14 SKUs</div>
+              </td>
+              <td class="td-demand">
+                <div class="demand-num hot">312</div>
+                <div class="demand-sub">Solicitações IA</div>
+                <div class="demand-bar"><div class="demand-fill hot" style="width:100%"></div></div>
+              </td>
+              <td class="td-status">
+                <div class="toggle-wrap">
+                  <div class="toggle-track on" onclick="this.classList.toggle('on');this.nextElementSibling.classList.toggle('on');this.nextElementSibling.textContent=this.classList.contains('on')?'Ativo':'Inativo'">
+                    <div class="toggle-thumb"></div>
+                  </div>
+                  <span class="status-lbl on">Ativo</span>
+                </div>
+              </td>
+              <td class="td-acoes">
+                <button class="btn btn-secondary btn-sm" onclick="showToast('Abrindo editor...')"><i class="fa fa-pencil"></i> Editar</button>
+                <button class="btn btn-stats btn-sm" onclick="abrirModal('stats')"><i class="fa fa-bar-chart"></i> Stats</button>
+                <button class="btn btn-danger btn-sm"><i class="fa fa-trash-o"></i></button>
+              </td>
+            </tr>
+            <!-- Linha 2 -->
+            <tr>
+              <td class="td-foto">
+                <div class="thumb" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7)">
+                  <i class="fa fa-camera" style="color:#86efac"></i>
+                </div>
+              </td>
+              <td class="td-produto">
+                <div class="pname">Blusa Cropped Ribana</div>
+                <div class="pid">#MOD-002</div>
+                <span class="pcat">Blusas</span>
+              </td>
+              <td class="td-variantes">
+                <div class="swatches">
+                  <span class="swatch" style="background:#fff;border:1.5px solid #d1d5db" title="Branca"></span>
+                  <span class="swatch" style="background:#111827" title="Preta"></span>
+                  <span class="swatch" style="background:#d6b896" title="Bege"></span>
+                  <span class="swatch" style="background:#fda4af" title="Rose"></span>
+                </div>
+                <div class="vinfo">4 cores · 3 tamanhos · 12 SKUs</div>
+              </td>
+              <td class="td-demand">
+                <div class="demand-num hot">187</div>
+                <div class="demand-sub">Solicitações IA</div>
+                <div class="demand-bar"><div class="demand-fill hot" style="width:60%"></div></div>
+              </td>
+              <td class="td-status">
+                <div class="toggle-wrap">
+                  <div class="toggle-track on" onclick="this.classList.toggle('on');this.nextElementSibling.classList.toggle('on');this.nextElementSibling.textContent=this.classList.contains('on')?'Ativo':'Inativo'">
+                    <div class="toggle-thumb"></div>
+                  </div>
+                  <span class="status-lbl on">Ativo</span>
+                </div>
+              </td>
+              <td class="td-acoes">
+                <button class="btn btn-secondary btn-sm" onclick="showToast('Abrindo editor...')"><i class="fa fa-pencil"></i> Editar</button>
+                <button class="btn btn-stats btn-sm" onclick="abrirModal('stats')"><i class="fa fa-bar-chart"></i> Stats</button>
+                <button class="btn btn-danger btn-sm"><i class="fa fa-trash-o"></i></button>
+              </td>
+            </tr>
+            <!-- Linha 3 -->
+            <tr>
+              <td class="td-foto">
+                <div class="thumb" style="background:linear-gradient(135deg,#fefce8,#fef9c3)">
+                  <i class="fa fa-camera" style="color:#fde047"></i>
+                </div>
+              </td>
+              <td class="td-produto">
+                <div class="pname">Calça Wide Leg Premium</div>
+                <div class="pid">#MOD-003</div>
+                <span class="pcat">Calças</span>
+              </td>
+              <td class="td-variantes">
+                <div class="swatches">
+                  <span class="swatch" style="background:#92400e" title="Caramelo"></span>
+                  <span class="swatch" style="background:#111827" title="Preto"></span>
+                </div>
+                <div class="vinfo">2 cores · 6 tamanhos · 12 SKUs</div>
+              </td>
+              <td class="td-demand">
+                <div class="demand-num">143</div>
+                <div class="demand-sub">Solicitações IA</div>
+                <div class="demand-bar"><div class="demand-fill" style="width:46%"></div></div>
+              </td>
+              <td class="td-status">
+                <div class="toggle-wrap">
+                  <div class="toggle-track on" onclick="this.classList.toggle('on');this.nextElementSibling.classList.toggle('on');this.nextElementSibling.textContent=this.classList.contains('on')?'Ativo':'Inativo'">
+                    <div class="toggle-thumb"></div>
+                  </div>
+                  <span class="status-lbl on">Ativo</span>
+                </div>
+              </td>
+              <td class="td-acoes">
+                <button class="btn btn-secondary btn-sm" onclick="showToast('Abrindo editor...')"><i class="fa fa-pencil"></i> Editar</button>
+                <button class="btn btn-stats btn-sm" onclick="abrirModal('stats')"><i class="fa fa-bar-chart"></i> Stats</button>
+                <button class="btn btn-danger btn-sm"><i class="fa fa-trash-o"></i></button>
+              </td>
+            </tr>
+            <!-- Linha 4 -->
+            <tr>
+              <td class="td-foto">
+                <div class="thumb" style="background:linear-gradient(135deg,#f5f3ff,#ede9fe)">
+                  <i class="fa fa-camera" style="color:#c4b5fd"></i>
+                </div>
+              </td>
+              <td class="td-produto">
+                <div class="pname">Conjunto Tule Saia+Blusa</div>
+                <div class="pid">#MOD-004</div>
+                <span class="pcat">Conjuntos</span>
+              </td>
+              <td class="td-variantes">
+                <div class="swatches">
+                  <span class="swatch" style="background:#c4b5fd" title="Lilás"></span>
+                  <span class="swatch" style="background:#fff;border:1.5px solid #d1d5db" title="Branco"></span>
+                </div>
+                <div class="vinfo">2 cores · 3 tamanhos · 6 SKUs</div>
+              </td>
+              <td class="td-demand">
+                <div class="demand-num">98</div>
+                <div class="demand-sub">Solicitações IA</div>
+                <div class="demand-bar"><div class="demand-fill" style="width:31%"></div></div>
+              </td>
+              <td class="td-status">
+                <div class="toggle-wrap">
+                  <div class="toggle-track on" onclick="this.classList.toggle('on');this.nextElementSibling.classList.toggle('on');this.nextElementSibling.textContent=this.classList.contains('on')?'Ativo':'Inativo'">
+                    <div class="toggle-thumb"></div>
+                  </div>
+                  <span class="status-lbl on">Ativo</span>
+                </div>
+              </td>
+              <td class="td-acoes">
+                <button class="btn btn-secondary btn-sm" onclick="showToast('Abrindo editor...')"><i class="fa fa-pencil"></i> Editar</button>
+                <button class="btn btn-stats btn-sm" onclick="abrirModal('stats')"><i class="fa fa-bar-chart"></i> Stats</button>
+                <button class="btn btn-danger btn-sm"><i class="fa fa-trash-o"></i></button>
+              </td>
+            </tr>
+            <!-- Linha 5 -->
+            <tr>
+              <td class="td-foto">
+                <div class="thumb" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7)">
+                  <i class="fa fa-camera" style="color:#6ee7b7"></i>
+                </div>
+              </td>
+              <td class="td-produto">
+                <div class="pname">Saia Midi Plissada</div>
+                <div class="pid">#MOD-005</div>
+                <span class="pcat">Saias</span>
+              </td>
+              <td class="td-variantes">
+                <div class="swatches">
+                  <span class="swatch" style="background:#4ade80" title="Verde"></span>
+                  <span class="swatch" style="background:#b45309" title="Terracota"></span>
+                  <span class="swatch" style="background:#111827" title="Preto"></span>
+                </div>
+                <div class="vinfo">3 cores · 4 tamanhos · 12 SKUs</div>
+              </td>
+              <td class="td-demand">
+                <div class="demand-num">76</div>
+                <div class="demand-sub">Solicitações IA</div>
+                <div class="demand-bar"><div class="demand-fill" style="width:24%"></div></div>
+              </td>
+              <td class="td-status">
+                <div class="toggle-wrap">
+                  <div class="toggle-track" onclick="this.classList.toggle('on');this.nextElementSibling.classList.toggle('on');this.nextElementSibling.textContent=this.classList.contains('on')?'Ativo':'Inativo'">
+                    <div class="toggle-thumb"></div>
+                  </div>
+                  <span class="status-lbl">Inativo</span>
+                </div>
+              </td>
+              <td class="td-acoes">
+                <button class="btn btn-secondary btn-sm" onclick="showToast('Abrindo editor...')"><i class="fa fa-pencil"></i> Editar</button>
+                <button class="btn btn-stats btn-sm" onclick="abrirModal('stats')"><i class="fa fa-bar-chart"></i> Stats</button>
+                <button class="btn btn-danger btn-sm"><i class="fa fa-trash-o"></i></button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="bf">
+          <span class="bf-info">Exibindo 1–5 de 47 modelos</span>
+          <div class="pagination">
+            <div class="pg-btn"><i class="fa fa-chevron-left"></i></div>
+            <div class="pg-btn act">1</div>
+            <div class="pg-btn">2</div>
+            <div class="pg-btn">3</div>
+            <div class="pg-btn">...</div>
+            <div class="pg-btn">10</div>
+            <div class="pg-btn"><i class="fa fa-chevron-right"></i></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /ct -->
+  </div><!-- /main -->
+</div><!-- /shell -->
+
+<!-- ════════ MODAL: NOVO MODELO ════════ -->
+<div class="overlay hide" id="ov-novo-modelo">
+  <div class="modal">
+    <div class="mh">
+      <div class="mh-info">
+        <div class="mt"><i class="fa fa-tag"></i> Novo Modelo</div>
+        <div class="ms">Cadastre um produto para o Catálogo IA</div>
+      </div>
+      <button class="mh-close" onclick="fecharModal('novo-modelo')"><i class="fa fa-times"></i></button>
+    </div>
+    <div class="mb">
+      <!-- Stepper -->
+      <div class="stepper">
+        <div class="step">
+          <div class="step-indicator active" id="si1">1</div>
+          <span class="step-label active">Informações</span>
+          <div class="step-line" id="sl1"></div>
+        </div>
+        <div class="step">
+          <div class="step-indicator pending" id="si2">2</div>
+          <span class="step-label pending">Variantes</span>
+          <div class="step-line" id="sl2"></div>
+        </div>
+        <div class="step">
+          <div class="step-indicator pending" id="si3">3</div>
+          <span class="step-label pending">Preview</span>
+        </div>
+      </div>
+
+      <!-- Step 1 -->
+      <div id="step-1">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Nome do Modelo <span class="req">*</span></label>
+            <input class="form-control" type="text" placeholder="Ex: Vestido Midi Floral">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Categoria <span class="req">*</span></label>
+            <select class="form-control">
+              <option>Vestidos</option>
+              <option>Blusas</option>
+              <option>Calças</option>
+              <option>Saias</option>
+              <option>Conjuntos</option>
+              <option>Acessórios</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Descrição</label>
+          <textarea class="form-control" rows="3" placeholder="Descreva o modelo para ajudar a IA a identificar e recomendar..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tags <span class="form-hint">(Enter para adicionar)</span></label>
+          <div class="tags-input" id="tags-input">
+            <span class="tag-chip">midi <button onclick="removeTag(this)">×</button></span>
+            <span class="tag-chip">floral <button onclick="removeTag(this)">×</button></span>
+            <span class="tag-chip">feminino <button onclick="removeTag(this)">×</button></span>
+            <input type="text" placeholder="Adicionar tag..." onkeydown="addTag(event,this)">
+          </div>
+          <span class="form-hint">Tags ajudam a IA a encontrar produtos similares</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Foto de Capa <span class="webp-badge"><i class="fa fa-magic"></i> WebP Auto</span></label>
+          <div class="upload-area" onclick="showToast('Selecionando arquivo...')">
+            <i class="fa fa-camera"></i>
+            <span>Clique ou arraste a foto aqui</span><br>
+            <small style="color:#c4b5fd;font-size:11px">Convertida para WebP automaticamente · Máx. 5MB</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2 (hidden) -->
+      <div id="step-2" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <div style="font-size:13px;font-weight:700;color:#374151">Variantes por cor</div>
+          <button class="btn btn-primary btn-sm" onclick="showToast('Variante adicionada!')"><i class="fa fa-plus"></i> Nova Cor</button>
+        </div>
+
+        <!-- Variant card Rosa -->
+        <div class="variant-card">
+          <div class="variant-header" onclick="toggleVariant(this)">
+            <span class="vc-swatch" style="background:#f9a8d4"></span>
+            <span class="vc-name">Rosa</span>
+            <span class="vc-badge">4 tamanhos · R$ 89,90</span>
+            <i class="fa fa-angle-down vc-toggle open"></i>
+          </div>
+          <div class="variant-body open">
+            <div class="form-row" style="margin-bottom:12px">
+              <div class="form-group">
+                <label class="form-label">Preço <span class="req">*</span></label>
+                <input class="form-control" type="text" value="89,90">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Código SKU</label>
+                <input class="form-control" type="text" placeholder="Ex: VESTmidi-RSA">
+              </div>
+            </div>
+            <label class="form-label" style="margin-bottom:8px">Tamanhos disponíveis</label>
+            <div class="size-grid">
+              <div class="sz-pill on">PP</div>
+              <div class="sz-pill on">P</div>
+              <div class="sz-pill on">M</div>
+              <div class="sz-pill on">G</div>
+              <div class="sz-pill">GG</div>
+              <div class="sz-pill">XGG</div>
+            </div>
+            <div class="form-group" style="margin-top:12px">
+              <label class="form-label">Foto da variante <span class="webp-badge"><i class="fa fa-magic"></i> WebP</span></label>
+              <div class="upload-area" onclick="showToast('Selecionando foto...')">
+                <i class="fa fa-camera"></i>
+                <span>Foto específica desta cor</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Variant card Preto -->
+        <div class="variant-card">
+          <div class="variant-header" onclick="toggleVariant(this)">
+            <span class="vc-swatch" style="background:#111827"></span>
+            <span class="vc-name">Preto</span>
+            <span class="vc-badge">Clique para expandir</span>
+            <i class="fa fa-angle-down vc-toggle"></i>
+          </div>
+          <div class="variant-body"></div>
+        </div>
+      </div>
+
+      <!-- Step 3 (hidden) -->
+      <div id="step-3" style="display:none">
+        <div style="text-align:center;padding:20px 0">
+          <i class="fa fa-check-circle" style="font-size:48px;color:#059669;margin-bottom:12px;display:block"></i>
+          <div style="font-size:18px;font-weight:700;color:#111827">Modelo Pronto!</div>
+          <div style="font-size:13px;color:#9ca3af;margin-top:6px">Verifique o resumo abaixo antes de salvar</div>
+        </div>
+        <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:2px;padding:16px;margin-top:16px">
+          <div style="font-weight:700;color:#374151;margin-bottom:10px">Vestido Midi Floral</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;color:#6b7280">
+            <span>Categoria: <b style="color:#374151">Vestidos</b></span>
+            <span>Variantes: <b style="color:#374151">2 cores</b></span>
+            <span>Tags: <b style="color:#6d28d9">midi, floral, feminino</b></span>
+            <span>SKUs: <b style="color:#374151">8 tamanhos</b></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-secondary" id="btn-back" onclick="stepBack()" style="display:none"><i class="fa fa-chevron-left"></i> Voltar</button>
+      <button class="btn btn-secondary" onclick="fecharModal('novo-modelo')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-next" onclick="stepNext()">Próximo <i class="fa fa-chevron-right"></i></button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ MODAL: STATS ════════ -->
+<div class="overlay hide" id="ov-stats">
+  <div class="modal">
+    <div class="mh">
+      <div class="mh-info">
+        <div class="mt"><i class="fa fa-bar-chart"></i> Estatísticas — Vestido Midi Floral</div>
+        <div class="ms">Desempenho no Catálogo IA</div>
+      </div>
+      <button class="mh-close" onclick="fecharModal('stats')"><i class="fa fa-times"></i></button>
+    </div>
+    <div class="mb">
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="sv">312</div>
+          <div class="sl">Solicitações IA</div>
+        </div>
+        <div class="stat-box">
+          <div class="sv">47</div>
+          <div class="sl">Vendas Geradas</div>
+        </div>
+        <div class="stat-box">
+          <div class="sv">15,1%</div>
+          <div class="sl">Taxa de Conversão</div>
+        </div>
+        <div class="stat-box">
+          <div class="sv">R$ 94,20</div>
+          <div class="sl">Ticket Médio</div>
+        </div>
+      </div>
+      <div style="font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px">Solicitações — últimos 7 dias</div>
+      <div class="mini-chart">
+        <div style="display:flex;flex-direction:column;align-items:center;flex:1">
+          <div class="bar-item" style="height:35%"></div>
+          <div class="bar-label">Seg</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;flex:1">
+          <div class="bar-item" style="height:50%"></div>
+          <div class="bar-label">Ter</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;flex:1">
+          <div class="bar-item" style="height:45%"></div>
+          <div class="bar-label">Qua</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;flex:1">
+          <div class="bar-item" style="height:80%"></div>
+          <div class="bar-label">Qui</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;flex:1">
+          <div class="bar-item" style="height:60%"></div>
+          <div class="bar-label">Sex</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;flex:1">
+          <div class="bar-item" style="height:90%"></div>
+          <div class="bar-label">Sáb</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;flex:1">
+          <div class="bar-item today" style="height:100%"></div>
+          <div class="bar-label">Hoj</div>
+        </div>
+      </div>
+      <div style="margin-top:16px;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Variantes mais solicitadas</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="swatch" style="background:#f9a8d4;width:14px;height:14px"></span>
+          <span style="font-size:12px;color:#374151;flex:1;font-weight:600">Rosa · M</span>
+          <div style="flex:2;height:8px;background:#ede9fe;border-radius:4px"><div style="height:100%;background:#7c3aed;border-radius:4px;width:82%"></div></div>
+          <span style="font-size:12px;font-weight:700;color:#4c1d95;width:30px;text-align:right">82%</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="swatch" style="background:#111827;width:14px;height:14px"></span>
+          <span style="font-size:12px;color:#374151;flex:1;font-weight:600">Preto · P</span>
+          <div style="flex:2;height:8px;background:#ede9fe;border-radius:4px"><div style="height:100%;background:#7c3aed;border-radius:4px;width:64%"></div></div>
+          <span style="font-size:12px;font-weight:700;color:#4c1d95;width:30px;text-align:right">64%</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="swatch" style="background:#f9fafb;border:1.5px solid #d1d5db;width:14px;height:14px"></span>
+          <span style="font-size:12px;color:#374151;flex:1;font-weight:600">Off-White · G</span>
+          <div style="flex:2;height:8px;background:#ede9fe;border-radius:4px"><div style="height:100%;background:#7c3aed;border-radius:4px;width:38%"></div></div>
+          <span style="font-size:12px;font-weight:700;color:#4c1d95;width:30px;text-align:right">38%</span>
+        </div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-secondary" onclick="fecharModal('stats')">Fechar</button>
+      <button class="btn btn-primary" onclick="showToast('Exportando estatísticas...')"><i class="fa fa-download"></i> Exportar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ TOAST ════════ -->
+<div class="toast" id="toast"><i class="fa fa-magic"></i> <span id="toast-msg">Operação concluída</span></div>
+
+<script>
+// ─── Modal ───
+function abrirModal(id){document.getElementById('ov-'+id).classList.remove('hide')}
+function fecharModal(id){document.getElementById('ov-'+id).classList.add('hide')}
+document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',function(e){if(e.target===this)this.classList.add('hide')}))
+
+// ─── Toast ───
+let _tt;
+function showToast(msg){const t=document.getElementById('toast');document.getElementById('toast-msg').textContent=msg;t.classList.add('show');clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('show'),2800)}
+
+// ─── Filter chips ───
+function filtrar(el){document.querySelectorAll('.fb-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on')}
+
+// ─── Step wizard ───
+let step=1;
+function stepNext(){
+  if(step===1){step=2;document.getElementById('step-1').style.display='none';document.getElementById('step-2').style.display='block';document.getElementById('si1').innerHTML='<i class="fa fa-check"></i>';document.getElementById('si1').className='step-indicator done';document.getElementById('sl1').className='step-line done';document.getElementById('si2').className='step-indicator active';document.getElementById('btn-back').style.display='inline-flex';}
+  else if(step===2){step=3;document.getElementById('step-2').style.display='none';document.getElementById('step-3').style.display='block';document.getElementById('si2').innerHTML='<i class="fa fa-check"></i>';document.getElementById('si2').className='step-indicator done';document.getElementById('sl2').className='step-line done';document.getElementById('si3').className='step-indicator active';document.getElementById('btn-next').textContent='Salvar Modelo';document.getElementById('btn-next').innerHTML='<i class="fa fa-check"></i> Salvar Modelo';}
+  else if(step===3){showToast('Modelo salvo com sucesso!');fecharModal('novo-modelo');step=1;}}
+function stepBack(){
+  if(step===2){step=1;document.getElementById('step-2').style.display='none';document.getElementById('step-1').style.display='block';document.getElementById('si1').textContent='1';document.getElementById('si1').className='step-indicator active';document.getElementById('sl1').className='step-line';document.getElementById('si2').textContent='2';document.getElementById('si2').className='step-indicator pending';document.getElementById('btn-back').style.display='none';}
+  else if(step===3){step=2;document.getElementById('step-3').style.display='none';document.getElementById('step-2').style.display='block';document.getElementById('si2').textContent='2';document.getElementById('si2').className='step-indicator active';document.getElementById('sl2').className='step-line';document.getElementById('si3').textContent='3';document.getElementById('si3').className='step-indicator pending';document.getElementById('btn-next').innerHTML='Próximo <i class="fa fa-chevron-right"></i>';}}
+
+// ─── Tags ───
+function addTag(e,el){if(e.key==='Enter'&&el.value.trim()){const chip=document.createElement('span');chip.className='tag-chip';chip.innerHTML=el.value.trim()+' <button onclick="removeTag(this)">×</button>';el.parentNode.insertBefore(chip,el);el.value='';e.preventDefault()}}
+function removeTag(btn){btn.parentNode.remove()}
+
+// ─── Variant toggle ───
+function toggleVariant(hdr){const body=hdr.nextElementSibling;const icon=hdr.querySelector('.vc-toggle');body.classList.toggle('open');icon.classList.toggle('open');body.style.display=body.classList.contains('open')?'block':'none'}
+
+// ─── Size pills ───
+document.querySelectorAll('.sz-pill').forEach(p=>p.addEventListener('click',function(){this.classList.toggle('on')}))
+
+// ─── Sidebar nav ───
+document.querySelectorAll('.mi,.mi-pro').forEach(m=>m.addEventListener('click',function(){document.querySelectorAll('.mi.act').forEach(x=>x.classList.remove('act'));this.classList.add('act')}))
+</script>
+</body>
+</html>

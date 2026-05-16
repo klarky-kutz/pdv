@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Pedidos · Moda IA · ModernPOS</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<style>
+/* ─── RESET ─── */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Source Sans Pro','Helvetica Neue',Helvetica,Arial,sans-serif;font-size:14px;background:#ecf0f5;overflow:hidden;color:#333}
+button{cursor:pointer;font-family:inherit}
+/* ─── SHELL ─── */
+.shell{display:flex;height:100vh;overflow:hidden}
+/* ─── SIDEBAR ─── */
+.sb{width:230px;background:#222d32;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden}
+.sb-logo{height:50px;background:#2c3b41;display:flex;align-items:center;padding:0 15px;gap:10px;border-bottom:1px solid #1a2226;flex-shrink:0}
+.sb-logo-text{font-size:16px;font-weight:700;color:#fff}
+.sb-logo-badge{background:#6d28d9;color:#fff;font-size:9px;font-weight:700;padding:2px 5px;border-radius:2px}
+.sb-user{background:#1a2226;padding:10px 15px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.sb-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#6d28d9,#a78bfa);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;flex-shrink:0}
+.sb-user-name{color:#fff;font-weight:600;font-size:13px}
+.sb-user-role{color:#8aa4af;font-size:11px;display:flex;align-items:center;gap:4px}
+.sb-user-dot{width:7px;height:7px;border-radius:50%;background:#00a65a}
+.sb-scroll{flex:1;overflow-y:auto;overflow-x:hidden}
+.sb-scroll::-webkit-scrollbar{width:4px}
+.sb-scroll::-webkit-scrollbar-thumb{background:#3d4e54;border-radius:2px}
+.sb-hdr{font-size:10px;font-weight:700;color:#4b646f;text-transform:uppercase;letter-spacing:.5px;padding:14px 15px 5px}
+.mi{display:flex;align-items:center;gap:10px;padding:9px 12px 9px 15px;color:#b8c7ce;border-left:3px solid transparent;cursor:pointer;font-size:13.5px;transition:all .15s}
+.mi:hover,.mi.act{background:#1e282c;color:#fff;border-left-color:#6d28d9}
+.mi i{width:16px;text-align:center;font-size:13px;opacity:.85}
+.sb-pro{background:linear-gradient(180deg,#160a2e,#1a0f35);border-top:1px solid #2d1b5e;flex-shrink:0}
+.sb-pro-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 15px 5px}
+.sb-pro-label{font-size:10px;font-weight:700;color:#7c4aed;text-transform:uppercase;letter-spacing:.5px}
+.pro-badge{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px}
+.mi-pro{display:flex;align-items:center;gap:10px;padding:9px 12px 9px 15px;color:#9f6ae3;border-left:3px solid transparent;cursor:pointer;font-size:13px;transition:all .15s;text-decoration:none}
+.mi-pro:hover,.mi-pro.act{background:rgba(109,40,217,.2);color:#ddd6fe;border-left-color:#a78bfa}
+.mi-pro i{width:16px;text-align:center;font-size:12px}
+/* ─── MAIN ─── */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+/* ─── TOPBAR ─── */
+.tb{height:50px;background:#222d32;display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0;border-bottom:1px solid #1a2226}
+.tb-toggle{color:#b8c7ce;font-size:18px;cursor:pointer}
+.tb-spacer{flex:1}
+.tb-ai-status{display:flex;align-items:center;gap:6px;background:rgba(109,40,217,.15);border:1px solid rgba(109,40,217,.35);border-radius:20px;padding:4px 10px}
+.tb-ai-dot{width:8px;height:8px;border-radius:50%;background:#a78bfa;animation:blink 1.4s infinite}
+.tb-ai-text{color:#c4b5fd;font-size:11px;font-weight:600}
+@keyframes blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.7)}}
+.tb-sep{width:1px;height:20px;background:#3d4e54}
+.tb-icon{width:34px;height:34px;display:flex;align-items:center;justify-content:center;color:#b8c7ce;font-size:16px;cursor:pointer;border-radius:2px;position:relative}
+.tb-icon:hover{color:#fff;background:#1e282c}
+.tb-notif-badge{position:absolute;top:4px;right:4px;width:8px;height:8px;background:#dd4b39;border-radius:50%;border:2px solid #222d32}
+.tb-user{display:flex;align-items:center;gap:8px;padding:4px 8px;border-radius:2px;cursor:pointer}
+.tb-user:hover{background:#1e282c}
+.tb-user-av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#6d28d9,#a78bfa);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:11px}
+.tb-user-name{color:#b8c7ce;font-size:12px;font-weight:600}
+/* ─── CONTENT ─── */
+.ct{flex:1;padding:16px;overflow:hidden;display:flex;flex-direction:column;gap:14px}
+/* ─── CONTENT HEADER ─── */
+.ch{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-shrink:0}
+.ch-left h1{font-size:20px;font-weight:700;color:#333}
+.ch-left .breadcrumb{display:flex;align-items:center;gap:6px;margin-top:3px;font-size:12px;color:#9ca3af}
+.ch-left .breadcrumb span{color:#6d28d9;font-weight:600}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:2px;font-size:13px;font-weight:600;border:none;transition:all .18s;cursor:pointer}
+.btn-primary{background:linear-gradient(135deg,#6d28d9,#7c3aed);color:#fff;box-shadow:0 2px 8px rgba(109,40,217,.35)}
+.btn-primary:hover{transform:translateY(-1px)}
+.btn-secondary{background:#fff;border:1px solid #d1d5db;color:#374151}
+.btn-secondary:hover{border-color:#a78bfa;color:#6d28d9}
+.btn-sm{padding:5px 10px;font-size:12px}
+/* ─── STATUS BAR ─── */
+.status-bar{display:flex;gap:10px;flex-shrink:0}
+.sb-item{background:#fff;border:1px solid #e5e7eb;border-radius:2px;padding:10px 16px;display:flex;align-items:center;gap:10px;flex:1;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.sb-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.sb-dot.pix-pend{background:#d97706}
+.sb-dot.sep{background:#2563eb}
+.sb-dot.rota{background:#7c3aed}
+.sb-dot.done{background:#059669}
+.sb-label{font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.3px}
+.sb-count{font-size:24px;font-weight:900;color:#111827}
+.sb-sub{font-size:11px;color:#9ca3af;margin-top:1px}
+/* ─── KANBAN ─── */
+.kanban{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;flex:1;overflow:hidden}
+.col{display:flex;flex-direction:column;overflow:hidden;border:1px solid #e5e7eb;border-radius:2px}
+.col.pedido{background:#fef9e7}
+.col.separacao{background:#eff6ff}
+.col.rota{background:#f5f3ff}
+.col.entregue{background:#f0fdf4}
+.col-header{padding:10px 12px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;border-bottom:3px solid transparent}
+.col-header.pedido{border-color:#d97706;background:linear-gradient(135deg,#fffbeb,#fef3c7)}
+.col-header.separacao{border-color:#2563eb;background:linear-gradient(135deg,#eff6ff,#dbeafe)}
+.col-header.rota{border-color:#7c3aed;background:linear-gradient(135deg,#f5f3ff,#ede9fe)}
+.col-header.entregue{border-color:#059669;background:linear-gradient(135deg,#f0fdf4,#dcfce7)}
+.col-title{font-size:12px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.4px;display:flex;align-items:center;gap:7px}
+.col-badge{font-size:10px;font-weight:900;padding:2px 8px;border-radius:20px}
+.col-badge.pedido{background:#fef3c7;color:#92400e}
+.col-badge.separacao{background:#dbeafe;color:#1e40af}
+.col-badge.rota{background:#ede9fe;color:#4c1d95}
+.col-badge.entregue{background:#d1fae5;color:#065f46}
+.col-cards{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:8px}
+.col-cards::-webkit-scrollbar{width:3px}
+.col-cards::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:2px}
+/* ─── ORDER CARD ─── */
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:2px;padding:12px;cursor:pointer;transition:all .15s;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.card:hover{border-color:#a78bfa;box-shadow:0 4px 12px rgba(109,40,217,.12);transform:translateY(-1px)}
+.card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.card-id{font-size:11px;font-weight:700;color:#6b7280}
+.card-time{font-size:10px;color:#9ca3af;display:flex;align-items:center;gap:3px}
+.card-client{font-weight:700;color:#111827;font-size:13px;margin-bottom:2px}
+.card-phone{font-size:11px;color:#9ca3af;margin-bottom:8px;display:flex;align-items:center;gap:4px;transition:all .3s cubic-bezier(.34,1.56,.64,1)}
+.card-phone:hover{color:#25d366;transform:translateX(4px);font-weight:600}
+.card-items{border-top:1px solid #f3f4f6;padding-top:8px;margin-top:4px}
+.card-item-row{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.card-item-thumb{width:32px;height:32px;border-radius:2px;background:linear-gradient(135deg,#fce7f3,#fdf2f8);display:flex;align-items:center;justify-content:center;font-size:12px;color:#f9a8d4;flex-shrink:0}
+.card-item-info{flex:1;min-width:0}
+.card-item-name{font-size:11px;font-weight:700;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-item-var{font-size:10px;color:#9ca3af}
+.card-total{display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:6px;border-top:1px solid #f3f4f6}
+.card-price{font-size:14px;font-weight:900;color:#111827}
+.pix-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;display:flex;align-items:center;gap:3px}
+.pix-badge.confirmed{background:#d1fae5;color:#065f46}
+.pix-badge.pending{background:#fef3c7;color:#92400e}
+.pix-badge.waiting{background:#ede9fe;color:#4c1d95}
+/* ─── IA STATUS BADGE ─── */
+.ia-status{font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;display:inline-flex;align-items:center;gap:3px}
+.ia-status.active{background:linear-gradient(135deg,#ddd6fe,#c4b5fd);color:#4c1d95}
+.ia-status.human{background:#f3f4f6;color:#6b7280}
+/* ─── DRAWER ─── */
+.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:none}
+.drawer-overlay.open{display:block}
+.drawer{position:fixed;top:0;right:-440px;width:440px;height:100vh;background:#fff;z-index:201;display:flex;flex-direction:column;transition:right .3s cubic-bezier(.4,0,.2,1);box-shadow:-4px 0 30px rgba(0,0,0,.15)}
+.drawer.open{right:0}
+.dh{background:linear-gradient(135deg,#4c1d95,#7c3aed);padding:18px 20px;display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0}
+.dh-info .dt{font-size:16px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px}
+.dh-info .ds{font-size:12px;color:#c4b5fd;margin-top:3px}
+.dh-close{background:none;border:none;color:#c4b5fd;font-size:18px;cursor:pointer;padding:2px 6px;border-radius:2px;line-height:1}
+.dh-close:hover{color:#fff}
+.db{flex:1;overflow-y:auto;padding:16px}
+.db::-webkit-scrollbar{width:4px}
+.db::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:2px}
+.df{background:#faf5ff;border-top:1px solid #ede9fe;padding:12px 16px;display:flex;gap:8px;flex-shrink:0}
+/* ─── DRAWER CONTENT ─── */
+.d-section{margin-bottom:16px}
+.d-section-title{font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px}
+.d-client-block{background:#f9fafb;border:1px solid #e5e7eb;border-radius:2px;padding:12px;display:flex;align-items:center;gap:12px}
+.d-client-av{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#fce7f3,#f9a8d4);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;color:#db2777;flex-shrink:0}
+.d-client-name{font-weight:700;color:#111827;font-size:14px}
+.d-client-info{font-size:12px;color:#6b7280;margin-top:2px}
+.d-pref-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.d-pref{background:#ede9fe;color:#4c1d95;border:1px solid #c4b5fd;border-radius:20px;font-size:11px;font-weight:600;padding:2px 8px}
+/* ─── ITEMS ─── */
+.d-item{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid #f3f4f6}
+.d-item:last-child{border-bottom:none}
+.d-item-img{width:50px;height:50px;border-radius:2px;background:linear-gradient(135deg,#fce7f3,#fdf2f8);display:flex;align-items:center;justify-content:center;font-size:20px;color:#f9a8d4;flex-shrink:0}
+.d-item-name{font-weight:700;color:#111827;font-size:13px}
+.d-item-var{font-size:12px;color:#9ca3af;margin-top:2px}
+.d-item-price{font-weight:700;color:#6d28d9;font-size:13px;margin-top:4px}
+/* ─── TIMELINE ─── */
+.timeline{position:relative;padding-left:22px}
+.timeline::before{content:'';position:absolute;left:7px;top:8px;bottom:8px;width:2px;background:#e5e7eb}
+.tl-item{position:relative;margin-bottom:14px}
+.tl-item:last-child{margin-bottom:0}
+.tl-dot{position:absolute;left:-22px;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;top:0;z-index:1}
+.tl-dot.done{background:#059669;color:#fff}
+.tl-dot.active{background:linear-gradient(135deg,#6d28d9,#7c3aed);color:#fff;box-shadow:0 0 0 3px rgba(109,40,217,.2)}
+.tl-dot.pend{background:#e5e7eb;color:#9ca3af}
+.tl-label{font-weight:700;font-size:12px;color:#374151}
+.tl-sub{font-size:11px;color:#9ca3af;margin-top:2px}
+/* ─── UBER PROOF ─── */
+.uber-proof{background:#f9fafb;border:1px solid #e5e7eb;border-radius:2px;padding:12px;display:flex;align-items:center;gap:10px}
+.uber-icon{width:40px;height:40px;background:#111827;border-radius:2px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;flex-shrink:0}
+.uber-label{font-weight:700;font-size:12px;color:#374151}
+.uber-sub{font-size:11px;color:#9ca3af;margin-top:2px}
+/* ─── TOTAL ─── */
+.d-total{background:#f9fafb;border:1px solid #e5e7eb;border-radius:2px;padding:12px;display:flex;justify-content:space-between;align-items:center}
+.d-total-label{font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase}
+.d-total-val{font-size:22px;font-weight:900;color:#111827}
+/* ─── TOAST ─── */
+.toast{position:fixed;bottom:20px;right:20px;background:#222d32;color:#fff;border-left:3px solid #6d28d9;padding:10px 16px;border-radius:2px;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;z-index:9999;transform:translateX(120%);transition:transform .3s cubic-bezier(.34,1.56,.64,1);min-width:260px}
+.toast.show{transform:translateX(0)}
+.toast i{color:#a78bfa}
+/* ─── IA CONTROL BAR ─── */
+.ia-ctrl{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:2px;margin-bottom:12px}
+.ia-ctrl.on{background:linear-gradient(135deg,#f5f3ff,#ede9fe);border:1px solid #c4b5fd}
+.ia-ctrl.off{background:#fff8f0;border:1px solid #fed7aa}
+.ia-ctrl-left{display:flex;align-items:center;gap:8px}
+.ia-robot{width:34px;height:34px;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;transition:all .3s}
+.ia-robot.on{background:linear-gradient(135deg,#6d28d9,#7c3aed);color:#fff;animation:ia-glow 2s infinite}
+.ia-robot.off{background:#f3f4f6;color:#9ca3af}
+@keyframes ia-glow{0%,100%{box-shadow:0 0 8px rgba(109,40,217,.35)}50%{box-shadow:0 0 16px rgba(109,40,217,.6)}}
+.ia-ctrl-title{font-size:12px;font-weight:700}
+.ia-ctrl.on .ia-ctrl-title{color:#4c1d95}
+.ia-ctrl.off .ia-ctrl-title{color:#d97706}
+.ia-ctrl-sub{font-size:10px;color:#9ca3af;margin-top:1px}
+.btn-pause{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:2px;font-size:11px;font-weight:700;background:#fff;border:1px solid #fca5a5;color:#dc2626;cursor:pointer;flex-shrink:0;transition:background .15s}
+.btn-pause:hover{background:#fee2e2}
+.btn-resume{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:2px;font-size:11px;font-weight:700;background:linear-gradient(135deg,#6d28d9,#7c3aed);border:none;color:#fff;cursor:pointer;flex-shrink:0}
+/* ─── CHAT LOG ─── */
+.chat-log{display:flex;flex-direction:column;gap:8px}
+.cb{display:flex;gap:7px;align-items:flex-start}
+.cb.cl{flex-direction:row-reverse}
+.cb-av{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.cb.ia .cb-av{background:linear-gradient(135deg,#6d28d9,#7c3aed);color:#fff}
+.cb.cl .cb-av{background:#fce7f3;color:#db2777}
+.cb-wrap{max-width:82%}
+.cb-sender{font-size:10px;font-weight:700;color:#9ca3af;margin-bottom:2px}
+.cb.cl .cb-sender{text-align:right}
+.cb-text{font-size:12px;padding:7px 10px;border-radius:2px;line-height:1.5;color:#374151}
+.cb.ia .cb-text{background:#ede9fe;border:1px solid #c4b5fd;border-top-left-radius:0}
+.cb.cl .cb-text{background:#f9fafb;border:1px solid #e5e7eb;border-top-right-radius:0}
+.cb-time{font-size:10px;color:#d1d5db;margin-top:2px}
+.cb.cl .cb-time{text-align:right}
+/* ─── PIX VIEWER ─── */
+.pix-blk{background:#f9fafb;border:1px solid #e5e7eb;border-radius:2px;padding:12px}
+.pix-qr{width:64px;height:64px;background:#ede9fe;border:2px dashed #c4b5fd;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:26px;color:#a78bfa;margin:6px auto 10px}
+.pix-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;font-size:12px}
+.pix-row:last-child{margin-bottom:0}
+.pix-lbl{font-weight:700;color:#9ca3af}
+.pix-val{font-weight:700;color:#374151}
+/* ─── CARD IA INDICATOR ─── */
+.card-ia{display:flex;align-items:center;gap:5px;margin-top:7px;padding-top:6px;border-top:1px solid #f3f4f6}
+.card-ia-dot{width:16px;height:16px;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:8px;flex-shrink:0}
+.card-ia-dot.on{background:linear-gradient(135deg,#6d28d9,#7c3aed);color:#fff}
+.card-ia-dot.off{background:#f3f4f6;color:#9ca3af}
+.card-ia-dot.done{background:#d1fae5;color:#065f46}
+.card-ia-lbl{font-size:10px;font-weight:700}
+.card-ia-lbl.on{color:#6d28d9}
+.card-ia-lbl.off{color:#9ca3af}
+.card-ia-lbl.done{color:#059669}
+/* ─── RECEIPT (COMPROVANTE AMARELO) ─── */
+.receipt{background:linear-gradient(135deg,#fffef0,#fef9e7);border:2px dashed #f59e0b;border-radius:2px;padding:12px;font-family:'Courier New',monospace;font-size:11px}
+.receipt-header{font-weight:900;text-align:center;margin-bottom:8px;color:#92400e}
+.receipt-divider{height:1px;background:dashed #d97706;margin:6px 0}
+.receipt-item-row{display:flex;justify-content:space-between;align-items:center;font-weight:700;color:#111827;margin-bottom:2px}
+.receipt-item-name{flex:1}
+.receipt-item-qty{flex-shrink:0;margin-left:8px}
+.receipt-item-var{font-size:10px;color:#9ca3af;margin-bottom:4px;font-style:italic}
+.receipt-item-price{font-weight:900;color:#d97706;margin-bottom:6px;font-size:12px}
+.receipt-info{font-size:10px;color:#6b7280;margin-bottom:2px}
+.receipt-total{text-align:center;font-weight:900;color:#d97706;font-size:12px;margin-top:6px}
+/* ─── CONVERSATION SUMMARY ─── */
+.conversation-summary{background:#f9fafb;border:1px solid #e5e7eb;border-radius:2px;padding:12px;font-size:12px;line-height:1.6}
+.conversation-summary p{margin-bottom:8px;color:#374151}
+.conversation-summary p:last-child{margin-bottom:0}
+.conversation-summary strong{color:#111827;font-weight:700}
+/* ─── PIX CONFIRMATION ─── */
+.pix-confirm-box{display:grid;grid-template-columns:140px 1fr;gap:12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:2px;padding:12px}
+.pix-proof-area{display:flex;flex-direction:column;align-items:center}
+.proof-preview{background:linear-gradient(135deg,#f3f4f6,#e5e7eb);border:1px solid #e5e7eb;border-radius:2px;width:100%;padding:12px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:120px;color:#9ca3af}
+.pix-data-area{display:flex;flex-direction:column;gap:8px}
+.pix-data-block{background:#fff;border:1px solid #e5e7eb;border-radius:2px;padding:8px}
+.pix-data-title{font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid #f3f4f6}
+.pix-data-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-size:11px}
+.pix-data-row:last-child{margin-bottom:0}
+.pix-data-label{color:#9ca3af;font-weight:600}
+.pix-data-value{color:#374151;font-weight:600}
+.pix-badge-status{font-size:10px;font-weight:700;padding:2px 6px;border-radius:20px;display:inline-flex;align-items:center;gap:3px}
+.pix-badge-status.confirmed{background:#d1fae5;color:#065f46}
+/* ─── PIX LAYOUT REORGANIZADO ─── */
+.pix-confirm-full{display:flex;flex-direction:column;gap:12px}
+.pix-proof-box{background:#f9fafb;border:1px solid #e5e7eb;border-radius:2px;padding:12px;text-align:center}
+.proof-preview-large{background:linear-gradient(135deg,#f3f4f6,#e5e7eb);border:1px solid #e5e7eb;border-radius:2px;padding:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:160px;color:#9ca3af}
+.pix-data-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pix-data-col{flex:1}
+.pix-actions{display:flex;gap:8px;justify-content:space-between;margin-top:8px}
+/* ─── PIX PREMIUM DESIGN ─── */
+.pix-proof-container{background:linear-gradient(135deg,#f5f3ff,#ede9fe);border:2px solid #ddd6fe;border-radius:4px;padding:12px;text-align:center;position:relative;overflow:hidden}
+.proof-glow{position:absolute;top:-40%;right:-40%;width:120px;height:120px;background:radial-gradient(circle,rgba(109,40,217,.1),transparent);border-radius:50%;animation:float 6s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0px)}50%{transform:translateY(-10px)}}
+.proof-preview-premium{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100px;padding:8px 0}
+.proof-text-main{font-size:12px;font-weight:700;color:#4c1d95;margin-bottom:2px}
+.proof-text-sub{font-size:10px;color:#7c3aed;font-weight:600;letter-spacing:.5px;margin-bottom:6px}
+.proof-status{font-size:11px;color:#059669;font-weight:700;background:#d1fae5;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:4px}
+.btn-view-proof{display:flex;align-items:center;gap:6px;width:100%;padding:7px 10px;margin-top:8px;background:#fff;border:1.5px solid #c4b5fd;border-radius:2px;color:#6d28d9;font-weight:700;font-size:11px;cursor:pointer;transition:all .2s;justify-content:center}
+.btn-view-proof:hover{background:#ede9fe;border-color:#a78bfa;transform:translateY(-1px);box-shadow:0 2px 8px rgba(109,40,217,.15)}
+.pix-card-premium{background:#fff;border:1px solid #e5e7eb;border-radius:4px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.pix-card-header{padding:12px;display:flex;align-items:center;gap:8px;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.3px}
+.pix-card-header.recebedor{background:linear-gradient(135deg,#f5f3ff,#ede9fe);color:#4c1d95;border-bottom:2px solid #ddd6fe}
+.pix-card-header.cliente{background:linear-gradient(135deg,#fef9e7,#fef3c7);color:#92400e;border-bottom:2px solid #fde68a}
+.pix-card-body{padding:12px}
+.pix-row{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid #f3f4f6}
+.pix-row:last-child{border-bottom:none}
+.pix-row.status-row{background:#f9fafb;margin:0 -12px -12px;padding:10px 12px;border-radius:0 0 4px 4px}
+.pix-label{font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.2px;flex:0 0 35%}
+.pix-value{font-size:12px;font-weight:600;color:#374151;flex:1;text-align:right;word-break:break-word}
+.pix-value.amount{color:#6d28d9;font-weight:900;font-size:13px}
+.pix-value.font-mono{font-family:'Courier New',monospace;font-size:11px;letter-spacing:.5px}
+.pix-badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
+.pix-badge.pending{background:#fef3c7;color:#92400e}
+.pix-action-buttons{display:flex;gap:8px;margin-top:10px}
+.btn-action{display:flex;align-items:center;justify-content:center;gap:4px;flex:1;padding:10px;border-radius:2px;font-weight:700;font-size:11px;border:none;cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.2px}
+.btn-action.reject{background:#fff;border:2px solid #fca5a5;color:#dc2626}
+.btn-action.reject:hover{background:#fee2e2;border-color:#dc2626;transform:translateY(-1px);box-shadow:0 2px 8px rgba(220,38,38,.15)}
+.btn-action.approve{background:linear-gradient(135deg,#059669,#10b981);color:#fff;border:none;box-shadow:0 2px 8px rgba(5,150,105,.25)}
+.btn-action.approve:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(5,150,105,.4)}
+.pix-confirm-compact{display:flex;flex-direction:column;gap:12px}
+</style>
+</head>
+<body>
+<!--
+  ╔═══════════════════════════════════════════════════╗
+  ║  SAAS PLAN GATE — /painel/adicionar               ║
+  ║  PHP: $plan['ai_concierge_enabled']               ║
+  ║  PHP: $ai_orders (from ai_orders WHERE tenant_id) ║
+  ║  Webhook: confirmar_pagamento.php → status=pago   ║
+  ╚═══════════════════════════════════════════════════╝
+-->
+<div class="shell">
+  <!-- SIDEBAR -->
+  <aside class="sb">
+    <div class="sb-logo">
+      <i class="fa fa-bolt" style="color:#a78bfa;font-size:18px"></i>
+      <span class="sb-logo-text">ModernPOS</span>
+      <span class="sb-logo-badge">SaaS</span>
+    </div>
+    <div class="sb-user">
+      <div class="sb-avatar">M</div>
+      <div>
+        <div class="sb-user-name">Moda Feminina</div>
+        <div class="sb-user-role"><span class="sb-user-dot"></span>Gerente</div>
+      </div>
+    </div>
+    <div class="sb-scroll">
+      <div class="sb-hdr">Menu Principal</div>
+      <div class="mi"><i class="fa fa-th-large"></i> Dashboard</div>
+      <div class="mi"><i class="fa fa-desktop"></i> PDV</div>
+      <div class="mi"><i class="fa fa-shopping-cart"></i> Vendas</div>
+      <div class="mi"><i class="fa fa-truck"></i> Compras</div>
+      <div class="mi"><i class="fa fa-tag"></i> Produtos</div>
+      <div class="mi"><i class="fa fa-users"></i> Clientes</div>
+      <div class="mi"><i class="fa fa-bar-chart"></i> Relatórios</div>
+      <div class="mi"><i class="fa fa-cog"></i> Configurações</div>
+      <div class="sb-pro">
+        <div class="sb-pro-hdr">
+          <span class="sb-pro-label"><i class="fa fa-magic" style="margin-right:4px"></i>Moda IA</span>
+          <span class="pro-badge">PRO</span>
+        </div>
+        <a class="mi-pro" href="concierge_catalogo.html"><i class="fa fa-tag"></i> Catálogo IA</a>
+        <a class="mi-pro act" href="concierge_pedidos.html"><i class="fa fa-trello"></i> Pedidos</a>
+        <div class="mi-pro"><i class="fa fa-comments"></i> Conversas</div>
+        <a class="mi-pro" href="concierge_pix.html"><i class="fa fa-qrcode"></i> Comprovantes Pix</a>
+        <a class="mi-pro" href="concierge_estoque.html"><i class="fa fa-cubes"></i> Estoque IA</a>
+        <div class="mi-pro"><i class="fa fa-line-chart"></i> Performance</div>
+        <a class="mi-pro" href="concierge_config.html"><i class="fa fa-cog"></i> Configurações IA</a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="tb">
+      <div class="tb-toggle"><i class="fa fa-bars"></i></div>
+      <div class="tb-spacer"></div>
+      <div class="tb-ai-status">
+        <div class="tb-ai-dot"></div>
+        <span class="tb-ai-text">IA Online</span>
+      </div>
+      <div class="tb-sep"></div>
+      <div class="tb-icon"><i class="fa fa-bell-o"></i><span class="tb-notif-badge"></span></div>
+      <div class="tb-user">
+        <div class="tb-user-av">M</div>
+        <span class="tb-user-name">Moda Fem.</span>
+        <i class="fa fa-angle-down" style="color:#8aa4af;font-size:11px;margin-left:4px"></i>
+      </div>
+    </div>
+
+    <div class="ct">
+      <!-- Header -->
+      <div class="ch">
+        <div class="ch-left">
+          <h1><i class="fa fa-trello" style="color:#6d28d9;margin-right:8px"></i>Pedidos WhatsApp</h1>
+          <div class="breadcrumb">
+            <i class="fa fa-home"></i> Home
+            <i class="fa fa-angle-right"></i> Moda IA
+            <i class="fa fa-angle-right"></i> <span>Pedidos</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary btn-sm"><i class="fa fa-calendar"></i> Hoje</button>
+          <button class="btn btn-secondary btn-sm"><i class="fa fa-search"></i> Buscar pedido</button>
+          <button class="btn btn-primary btn-sm"><i class="fa fa-refresh"></i> Atualizar</button>
+        </div>
+      </div>
+
+      <!-- Status Bar -->
+      <div class="status-bar">
+        <div class="sb-item"><span class="sb-dot pix-pend"></span><div><div class="sb-count">4</div><div class="sb-label">Aguardando Pix</div></div></div>
+        <div class="sb-item"><span class="sb-dot sep"></span><div><div class="sb-count">2</div><div class="sb-label">Em Separação</div></div></div>
+        <div class="sb-item"><span class="sb-dot rota"></span><div><div class="sb-count">3</div><div class="sb-label">Em Rota</div></div></div>
+        <div class="sb-item"><span class="sb-dot done"></span><div><div class="sb-count">18</div><div class="sb-label">Entregues Hoje</div></div></div>
+      </div>
+
+      <!-- KANBAN -->
+      <div class="kanban">
+
+        <!-- COLUNA: PEDIDO -->
+        <div class="col pedido">
+          <div class="col-header pedido">
+            <span class="col-title"><i class="fa fa-clock-o" style="color:#d97706"></i> Pedido</span>
+            <span class="col-badge pedido">4</span>
+          </div>
+          <div class="col-cards">
+            <!-- Card 1 -->
+            <div class="card" onclick="abrirDrawer()">
+              <div class="card-top">
+                <span class="ia-status active"><i class="fa fa-magic"></i> IA Ativa</span>
+                <span class="card-time"><i class="fa fa-clock-o"></i> há 5min</span>
+              </div>
+              <div class="card-client">Maria Souza</div>
+              <div class="card-phone" style="cursor:pointer;color:#25d366;font-weight:600" onclick="abrirWhatsApp('11 98765-4321')"><i class="fa fa-whatsapp"></i> 11 98765-4321</div>
+              <div class="card-items">
+                <div class="card-item-row">
+                  <div class="card-item-thumb"><i class="fa fa-camera"></i></div>
+                  <div class="card-item-info">
+                    <div class="card-item-name">Vestido Midi Floral</div>
+                    <div class="card-item-var">Rosa · M · 1x</div>
+                  </div>
+                </div>
+              </div>
+              <div class="card-total">
+                <span class="card-price">R$ 89,90</span>
+                <span class="pix-badge pending"><i class="fa fa-qrcode"></i> Pix Pendente</span>
+              </div>
+            </div>
+            <!-- Card 2 -->
+            <div class="card" onclick="abrirDrawer()">
+              <div class="card-top">
+                <span class="ia-status active"><i class="fa fa-magic"></i> IA Ativa</span>
+                <span class="card-time"><i class="fa fa-clock-o"></i> há 12min</span>
+              </div>
+              <div class="card-client">Fernanda Lima</div>
+              <div class="card-phone" style="cursor:pointer;color:#25d366;font-weight:600" onclick="abrirWhatsApp('11 91234-5678')"><i class="fa fa-whatsapp"></i> 11 91234-5678</div>
+              <div class="card-items">
+                <div class="card-item-row">
+                  <div class="card-item-thumb" style="background:linear-gradient(135deg,#eff6ff,#dbeafe)"><i class="fa fa-camera" style="color:#93c5fd"></i></div>
+                  <div class="card-item-info">
+                    <div class="card-item-name">Calça Wide Leg Premium</div>
+                    <div class="card-item-var">Caramelo · P · 1x</div>
+                  </div>
+                </div>
+              </div>
+              <div class="card-total">
+                <span class="card-price">R$ 149,90</span>
+                <span class="pix-badge pending"><i class="fa fa-qrcode"></i> Pix Pendente</span>
+              </div>
+            </div>
+            <!-- Card 3 -->
+            <div class="card" onclick="abrirDrawer()">
+              <div class="card-top">
+                <span class="ia-status active"><i class="fa fa-magic"></i> IA Ativa</span>
+                <span class="card-time"><i class="fa fa-clock-o"></i> há 28min</span>
+              </div>
+              <div class="card-client">Carla Mendes</div>
+              <div class="card-phone" style="cursor:pointer;color:#25d366;font-weight:600" onclick="abrirWhatsApp('11 97777-1234')"><i class="fa fa-whatsapp"></i> 11 97777-1234</div>
+              <div class="card-items">
+                <div class="card-item-row">
+                  <div class="card-item-thumb" style="background:linear-gradient(135deg,#f5f3ff,#ede9fe)"><i class="fa fa-camera" style="color:#c4b5fd"></i></div>
+                  <div class="card-item-info">
+                    <div class="card-item-name">Blusa Cropped Ribana</div>
+                    <div class="card-item-var">Branca · G · 2x</div>
+                  </div>
+                </div>
+              </div>
+              <div class="card-total">
+                <span class="card-price">R$ 79,80</span>
+                <span class="pix-badge waiting"><i class="fa fa-magic"></i> IA Aguarda</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- COLUNA: SEPARÇÃO -->
+        <div class="col separacao">
+          <div class="col-header separacao">
+            <span class="col-title"><i class="fa fa-check-circle" style="color:#2563eb"></i> Separação</span>
+            <span class="col-badge separacao">2</span>
+          </div>
+          <div class="col-cards">
+            <div class="card" onclick="abrirDrawer()">
+              <div class="card-top">
+                <span class="ia-status human"><i class="fa fa-user"></i> Humano</span>
+                <span class="card-time"><i class="fa fa-clock-o"></i> há 42min</span>
+              </div>
+              <div class="card-client">Juliana Costa</div>
+              <div class="card-phone" style="cursor:pointer;color:#25d366;font-weight:600" onclick="abrirWhatsApp('11 95432-8765')"><i class="fa fa-whatsapp"></i> 11 95432-8765</div>
+              <div class="card-items">
+                <div class="card-item-row">
+                  <div class="card-item-thumb"><i class="fa fa-camera"></i></div>
+                  <div class="card-item-info">
+                    <div class="card-item-name">Conjunto Tule Saia+Blusa</div>
+                    <div class="card-item-var">Lilás · M · 1x</div>
+                  </div>
+                </div>
+              </div>
+              <div class="card-total">
+                <span class="card-price">R$ 219,90</span>
+                <span class="pix-badge confirmed"><i class="fa fa-check"></i> Pix Confirmado</span>
+              </div>
+            </div>
+            <div class="card" onclick="abrirDrawer()">
+              <div class="card-top">
+                <span class="ia-status human"><i class="fa fa-user"></i> Humano</span>
+                <span class="card-time"><i class="fa fa-clock-o"></i> há 58min</span>
+              </div>
+              <div class="card-client">Amanda Rocha</div>
+              <div class="card-phone" style="cursor:pointer;color:#25d366;font-weight:600" onclick="abrirWhatsApp('11 99876-5432')"><i class="fa fa-whatsapp"></i> 11 99876-5432</div>
+              <div class="card-items">
+                <div class="card-item-row">
+                  <div class="card-item-thumb" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7)"><i class="fa fa-camera" style="color:#6ee7b7"></i></div>
+                  <div class="card-item-info">
+                    <div class="card-item-name">Saia Midi Plissada</div>
+                    <div class="card-item-var">Verde · P · 1x</div>
+                  </div>
+                </div>
+              </div>
+              <div class="card-total">
+                <span class="card-price">R$ 129,90</span>
+                <span class="pix-badge confirmed"><i class="fa fa-check"></i> Pix Confirmado</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- COLUNA: ROTA -->
+        <div class="col rota">
+          <div class="col-header rota">
+            <span class="col-title"><i class="fa fa-motorcycle" style="color:#7c3aed"></i> Rota</span>
+            <span class="col-badge rota">3</span>
+          </div>
+          <div class="col-cards">
+            <div class="card" onclick="abrirDrawer()">
+              <div class="card-top">
+                <span class="ia-status human"><i class="fa fa-user"></i> Humano</span>
+                <span class="card-time"><i class="fa fa-clock-o"></i> há 1h12</span>
+              </div>
+              <div class="card-client">Tatiane Ferreira</div>
+              <div class="card-phone" style="cursor:pointer;color:#25d366;font-weight:600" onclick="abrirWhatsApp('11 93344-5678')"><i class="fa fa-whatsapp"></i> 11 93344-5678</div>
+              <div class="card-items">
+                <div class="card-item-row">
+                  <div class="card-item-thumb"><i class="fa fa-camera"></i></div>
+                  <div class="card-item-info">
+                    <div class="card-item-name">Vestido Midi Floral</div>
+                    <div class="card-item-var">Preto · GG · 1x</div>
+                  </div>
+                </div>
+              </div>
+              <div class="card-total">
+                <span class="card-price">R$ 89,90</span>
+                <span class="pix-badge confirmed"><i class="fa fa-check"></i> Pago · Uber</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- COLUNA: ENTREGUE -->
+        <div class="col entregue">
+          <div class="col-header entregue">
+            <span class="col-title"><i class="fa fa-check-circle" style="color:#059669"></i> Entregue</span>
+            <span class="col-badge entregue">18</span>
+          </div>
+          <div class="col-cards">
+            <div class="card" onclick="abrirDrawer()">
+              <div class="card-top">
+                <span class="ia-status human"><i class="fa fa-user"></i> Humano</span>
+                <span class="card-time"><i class="fa fa-check" style="color:#059669"></i> 14h30</span>
+              </div>
+              <div class="card-client">Bruna Alves</div>
+              <div class="card-phone" style="cursor:pointer;color:#25d366;font-weight:600" onclick="abrirWhatsApp('11 98800-1122')"><i class="fa fa-whatsapp"></i> 11 98800-1122</div>
+              <div class="card-items">
+                <div class="card-item-row">
+                  <div class="card-item-thumb" style="background:linear-gradient(135deg,#eff6ff,#dbeafe)"><i class="fa fa-camera" style="color:#93c5fd"></i></div>
+                  <div class="card-item-info">
+                    <div class="card-item-name">Blusa Cropped Ribana</div>
+                    <div class="card-item-var">Rose · M · 1x</div>
+                  </div>
+                </div>
+              </div>
+              <div class="card-total">
+                <span class="card-price">R$ 39,90</span>
+                <span class="pix-badge confirmed"><i class="fa fa-check-circle"></i> Entregue</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /kanban -->
+    </div><!-- /ct -->
+  </div><!-- /main -->
+</div><!-- /shell -->
+
+<!-- DRAWER OVERLAY -->
+<div class="drawer-overlay" id="drawer-ov" onclick="fecharDrawer()"></div>
+
+<!-- DRAWER -->
+<div class="drawer" id="drawer">
+  <div class="dh">
+    <div class="dh-info">
+      <div class="dt"><i class="fa fa-shopping-cart"></i> Pedido #1042</div>
+      <div class="ds">há 5 minutos · Pedido Recebido</div>
+    </div>
+    <button class="dh-close" onclick="fecharDrawer()"><i class="fa fa-times"></i></button>
+  </div>
+  <div class="db">
+
+    <!-- IA Control -->
+    <div class="ia-ctrl on" style="margin-bottom:16px">
+      <div class="ia-ctrl-left">
+        <div class="ia-robot on"><i class="fa fa-magic"></i></div>
+        <div>
+          <div class="ia-ctrl-title">IA Ativa</div>
+          <div class="ia-ctrl-sub">Conversando com cliente</div>
+        </div>
+      </div>
+      <button class="btn-pause" onclick="pausarIA()"><i class="fa fa-pause"></i> Pausar</button>
+    </div>
+
+    <!-- Cliente -->
+    <div class="d-section">
+      <div class="d-section-title">Perfil do Cliente</div>
+      <div class="d-client-block">
+        <div class="d-client-av">M</div>
+        <div>
+          <div class="d-client-name">Maria Souza</div>
+          <div class="d-client-info" style="cursor:pointer;color:#25d366;font-weight:600" onclick="abrirWhatsApp('11 98765-4321')"><i class="fa fa-whatsapp"></i> 11 98765-4321 · 7 compras anteriores</div>
+          <div class="d-pref-chips">
+            <span class="d-pref">Veste M</span>
+            <span class="d-pref">Pastéis</span>
+            <span class="d-pref">Florais</span>
+            <span class="d-pref">Cliente VIP</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Itens -->
+    <div class="d-section">
+      <div class="d-section-title">Itens do Pedido</div>
+      <div class="d-item">
+        <div class="d-item-img"><i class="fa fa-camera"></i></div>
+        <div>
+          <div class="d-item-name">Vestido Midi Floral</div>
+          <div class="d-item-var">Rosa · Tamanho M · Qtd: 1</div>
+          <div class="d-item-price">R$ 89,90</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Total -->
+    <div class="d-total" style="margin-bottom:16px">
+      <span class="d-total-label">Total do Pedido</span>
+      <span class="d-total-val">R$ 89,90</span>
+    </div>
+
+    <!-- Confirmação PIX -->
+    <div class="d-section">
+      <div class="d-section-title"><i class="fa fa-qrcode" style="margin-right:5px;color:#6d28d9"></i>Confirmação de Pix</div>
+      <div class="pix-confirm-compact">
+        <!-- Foto do Comprovante -->
+        <div class="pix-proof-container">
+          <div class="proof-preview-premium">
+            <div class="proof-glow"></div>
+            <i class="fa fa-qrcode" style="font-size:44px;color:#6d28d9;margin-bottom:10px;display:block"></i>
+            <div class="proof-text-main">Comprovante PIX</div>
+            <div class="proof-text-sub">11 98765-4321</div>
+            <div class="proof-status"><i class="fa fa-check-circle" style="color:#059669"></i> Recebido</div>
+          </div>
+          <button class="btn-view-proof" onclick="ampliarComprovante()"><i class="fa fa-expand"></i> Ampliar Imagem</button>
+        </div>
+        
+        <!-- Botões de Ação -->
+        <div class="pix-action-buttons">
+          <button class="btn-action reject" onclick="recusarPIX()">
+            <i class="fa fa-times-circle"></i>
+            <span>Recusar</span>
+          </button>
+          <button class="btn-action approve" onclick="confirmarPIX()">
+            <i class="fa fa-check-circle"></i>
+            <span>Confirmar Pagamento</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Resumo da Conversa -->
+    <div class="d-section">
+      <div class="d-section-title">Resumo da Conversa</div>
+      <div class="conversation-summary">
+        <p>Cliente tirou dúvidas sobre o tecido (algodão puro 100%), confirmou que veste tamanho M e solicitou entrega via Uber para as 18h. Possui preferência por cores vibrantes. Primeira compra, recomendado acompanhamento.</p>
+      </div>
+    </div>
+
+    <!-- Uber Proof (quando existir) -->
+    <div class="d-section" style="display:none" id="uber-proof">
+      <div class="d-section-title">Comprovante Uber Flash</div>
+      <div class="uber-proof">
+        <div class="uber-icon"><i class="fa fa-car"></i></div>
+        <div>
+          <div class="uber-label">Comprovante recebido via WhatsApp</div>
+          <div class="uber-sub">Enviado às 16h45 · Clique para visualizar</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" style="margin-left:auto"><i class="fa fa-eye"></i> Ver</button>
+      </div>
+    </div>
+
+  </div>
+  <div class="df">
+    <button class="btn btn-secondary" onclick="fecharDrawer()"><i class="fa fa-times"></i> Fechar</button>
+    <button class="btn btn-primary" style="flex:1" onclick="showToast('Status atualizado!')"><i class="fa fa-check"></i> Marcar como Separado</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"><i class="fa fa-magic"></i> <span id="toast-msg">Operação concluída</span></div>
+
+<script>
+function abrirDrawer(){document.getElementById('drawer-ov').classList.add('open');document.getElementById('drawer').classList.add('open')}
+function fecharDrawer(){document.getElementById('drawer-ov').classList.remove('open');document.getElementById('drawer').classList.remove('open')}
+let _tt;
+function showToast(msg){const t=document.getElementById('toast');document.getElementById('toast-msg').textContent=msg;t.classList.add('show');clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('show'),2800)}
+function abrirWhatsApp(telefone){
+  const numero=telefone.replace(/\\D/g,'');
+  window.open(`https://wa.me/55${numero}?text=Olá!%20Gostaria%20de%20mais%20informações%20sobre%20o%20pedido.`,'_blank');
+}
+function ampliarComprovante(){
+  showToast('Comprovante ampliado (seria aberto em modal)');
+}
+function confirmarPIX(){
+  showToast('✓ Pix confirmado - Pedido marcado como pago!');
+  document.querySelector('.badge-pend').classList.remove('badge-pend');
+  document.querySelector('.badge').classList.add('badge-auto');
+  document.querySelector('.badge').innerHTML='<i class="fa fa-check-circle"></i> Confirmado';
+}
+function recusarPIX(){
+  if(confirm('⚠️ Tem certeza que deseja recusar este Pix?')){
+    showToast('✗ Pix recusado - Cliente será notificado');
+  }
+}
+function pausarIA(){
+  const iaCtrl=document.querySelector('.ia-ctrl');
+  const iaRobot=document.querySelector('.ia-robot');
+  const iaCtrTitle=document.querySelector('.ia-ctrl-title');
+  const iaCtrSub=document.querySelector('.ia-ctrl-sub');
+  const btnPause=document.querySelector('.btn-pause');
+  if(iaCtrl.classList.contains('on')){
+    iaCtrl.classList.remove('on');iaCtrl.classList.add('off');
+    iaRobot.classList.remove('on');iaRobot.classList.add('off');
+    iaRobot.innerHTML='<i class="fa fa-user"></i>';
+    iaCtrTitle.textContent='Humano Assumiu';
+    iaCtrSub.textContent='Lojista respondendo';
+    btnPause.textContent='<i class="fa fa-play"></i> Retomar';
+    btnPause.classList.remove('btn-pause');btnPause.classList.add('btn-resume');
+    showToast('IA pausada - modo manual ativado');
+  }
+}
+document.querySelectorAll('.mi,.mi-pro').forEach(m=>m.addEventListener('click',function(){document.querySelectorAll('.mi.act').forEach(x=>x.classList.remove('act'));this.classList.add('act')}))
+</script>
+</body>
+</html>

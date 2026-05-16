@@ -1,0 +1,526 @@
+/* =================================================== */
+/* ARQUIVO: assets/itsolution24/css/dashboard.css      */
+/* =================================================== */
+
+/* Importa as cores do seu login para manter a consistência */
+:root {
+    --brand-color: #10b981;
+    --brand-color-dark: #0d9468;
+    --brand-color-light: rgba(16, 185, 129, 0.1);
+    --sidebar-bg: #1A202C; /* Um cinza/preto escuro para a barra lateral */
+    --sidebar-text: #A0AEC0; /* Cor do texto inativo da barra */
+    --sidebar-text-active: #FFFFFF; /* Cor do texto ativo */
+    --page-bg: #f7fafc; /* Fundo cinza claro para o conteúdo */
+    --card-border: #e2e8f0; /* Borda suave dos cards */
+    --text-color: #2d3748; /* Cor principal do texto */
+    --text-muted: #718096; /* Cor do texto secundário */
+}
+
+body {
+    background-color: var(--page-bg);
+    color: var(--text-color);
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* ============================================= */
+/* 1. Layout Principal (Sidebar + Conteúdo)    */
+/* ============================================= */
+.dashboard-wrapper {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* A barra lateral (coluna verde) */
+.sidebar {
+    width: 260px; /* Largura da barra lateral */
+    flex-shrink: 0; /* Impede que a barra encolha */
+    background-color: var(--brand-color-dark); /* Fundo verde escuro */
+    color: var(--sidebar-text);
+    display: flex;
+    flex-direction: column;
+    padding: 0.5rem;
+    position: fixed; /* Fixa na tela */
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 100;
+}
+
+/* O conteúdo principal (coluna da direita) */
+.main-content {
+    flex-grow: 1; /* Faz o conteúdo ocupar o resto da tela */
+    padding: 2rem;
+    margin-left: 250px; /* IMPORTANTE: Empurra o conteúdo para depois da barra lateral */
+}
+
+/* ============================================= */
+/* 2. Estilos da Barra Lateral (Sidebar)       */
+/* ============================================= */
+.sidebar-logo {
+    padding: 0.5rem;
+    background-color: #fff;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+.sidebar-logo img {
+    max-width: 100%;
+    height: auto;
+}
+
+.sidebar-nav {
+    flex-grow: 1; /* Empurra o perfil/logout para baixo */
+}
+.sidebar-nav .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1rem;
+    font-weight: 500;
+    padding: 0.8rem 1rem;
+    border-radius: 8px;
+    color: var(--sidebar-text);
+    margin-bottom: 0.5rem;
+    transition: all 0.2s ease;
+}
+.sidebar-nav .nav-link i {
+    font-size: 1.2rem;
+}
+.sidebar-nav .nav-link:hover {
+    color: var(--sidebar-text-active);
+    background-color: rgba(255, 255, 255, 0.05);
+}
+.sidebar-nav .nav-link.active {
+    color: var(--sidebar-text-active);
+    background-color: var(--brand-color); /* Fundo verde mais claro */
+    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
+}
+
+.sidebar-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 1rem;
+}
+.sidebar-footer .user-profile {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+.sidebar-footer .user-profile:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+.sidebar-footer .user-profile img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+.sidebar-footer .user-profile span {
+    font-weight: 600;
+    color: var(--sidebar-text-active);
+}
+.sidebar-footer .logout-btn {
+    display: block;
+    width: 100%;
+    background-color: rgba(0,0,0,0.2);
+    color: var(--sidebar-text);
+    font-weight: 500;
+    border: none;
+    margin-top: 1rem;
+}
+.sidebar-footer .logout-btn:hover {
+    background-color: rgba(0,0,0,0.4);
+    color: #fff;
+}
+
+/* ============================================= */
+/* 3. Estilos do Conteúdo Principal            */
+/* ============================================= */
+.page-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+}
+.page-header .welcome-text h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-color);
+    margin-bottom: 0.25rem;
+}
+.page-header .welcome-text p {
+    font-size: 1rem;
+    color: var(--text-muted);
+    margin-bottom: 0;
+}
+.page-header .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.page-header .header-actions .user-avatar-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+/* Cards de Métricas (Superiores) */
+.stat-card {
+    background-color: #fff;
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.2s ease;
+}
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.07);
+}
+.stat-card .stat-icon {
+    font-size: 1.75rem;
+    width: 50px;
+    height: 50px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: var(--brand-color);
+    background-color: var(--brand-color-light);
+}
+.stat-card .stat-info span {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+.stat-card .stat-info strong {
+    display: block;
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-color);
+}
+
+/* Cards de Loja (Inferiores) */
+.store-card {
+    background-color: #fff;
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    overflow: hidden; /* Para a barra verde */
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    transition: all 0.2s ease;
+}
+.store-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.07);
+    border-color: var(--brand-color);
+}
+
+.store-card .card-body {
+    padding: 1.5rem;
+    border-left: 5px solid var(--brand-color); /* A barra verde lateral */
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+.store-card .store-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+.store-card .store-icon {
+    font-size: 1.5rem;
+    width: 45px;
+    height: 45px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: var(--brand-color);
+    background-color: var(--brand-color-light);
+}
+.store-card .store-header h5 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 0;
+}
+.store-card .store-metrics {
+    flex-grow: 1; /* Empurra os botões para baixo */
+}
+.store-card .store-metrics p {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+}
+.store-card .store-metrics p strong {
+    color: var(--text-color);
+    font-weight: 600;
+}
+.store-card .card-footer {
+    background-color: #fff;
+    border-top: 1px solid var(--card-border);
+    padding: 1rem 1.5rem;
+    display: flex;
+    gap: 0.5rem;
+}
+/* Botão de contorno */
+.btn-outline-brand {
+    color: var(--brand-color);
+    border-color: var(--brand-color);
+}
+.btn-outline-brand:hover {
+    background-color: var(--brand-color);
+    color: #fff;
+}
+
+/* Footer da Página */
+.main-footer {
+    text-align: center;
+    padding: 1.5rem 0 0 0;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    border-top: 1px solid var(--card-border);
+    margin-top: 2rem;
+}
+/* ============================================= */
+/* ESTILOS DE LOADING PARA BOTÕES (AJAX/HTMX)  */
+/* ============================================= */
+
+/* Esconde o spinner por padrão */
+.btn-spinner {
+    display: none; 
+}
+
+/* ============================================= */
+/* ESTILOS DOS BOTÕES (Verde e Contorno)         */
+/* ============================================= */
+
+/* --- Botão Principal (Verde) --- */
+/* (Usado no "Adicionar Nova Loja") */
+.btn-brand {
+    background-color: var(--brand-color);
+    border-color: var(--brand-color);
+    color: #fff;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem; /* Borda padrão do Bootstrap 5 */
+    
+    /* --- A MELHORIA "MODERNA" --- */
+    transition: all 0.2s ease-out;
+    /* Sombra/Brilho verde sutil, como na imagem */
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); 
+}
+
+.btn-brand:hover {
+    background-color: var(--brand-color-dark);
+    border-color: var(--brand-color-dark);
+    color: #fff;
+    transform: translateY(-2px); /* Efeito de "levantar" ao passar o mouse */
+    box-shadow: 0 6px 18px rgba(16, 185, 129, 0.4); /* Sombra mais forte */
+}
+
+/* --- Botão Secundário (Contorno) --- */
+/* (Usado no "Abrir PDV") */
+.btn-outline-brand {
+    color: var(--brand-color);
+    border-color: var(--brand-color);
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    transition: all 0.2s ease-out;
+}
+
+.btn-outline-brand:hover {
+    background-color: var(--brand-color);
+    color: #fff;
+    transform: translateY(-2px); /* Efeito de "levantar" */
+    box-shadow: 0 6px 15px rgba(16, 185, 129, 0.2);
+}
+
+/* --- Botão Cinza (Secundário) --- */
+/* (Usado no "Acessar Gestão") */
+.btn-secondary {
+    font-weight: 600;
+    transition: all 0.2s ease-out;
+}
+.btn-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+}
+
+
+/* =================================================== */
+/* CSS PARA A PÁGINA DE CRIAÇÃO/EDIÇÃO DE LOJA         */
+/* (store_create.php)                                  */
+/* =================================================== */
+
+/* 1. Estiliza as Abas (Tabs) para o tema verde */
+.card .nav-tabs {
+    padding: 0.5rem 1rem 0 1rem;
+    border-bottom: 2px solid #dee2e6; /* Borda inferior da base das abas */
+}
+
+.card .nav-tabs .nav-link {
+    font-weight: 600;
+    color: var(--text-muted); /* Cor do texto cinza inativo */
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px; /* Alinha a borda ativa com a borda da base */
+}
+
+/* Cor da aba ativa ou ao passar o mouse */
+.card .nav-tabs .nav-link.active,
+.card .nav-tabs .nav-link:hover {
+    color: var(--brand-color); /* Verde */
+    border-bottom: 2px solid var(--brand-color); /* Linha verde */
+}
+
+/* 2. Estiliza as caixas de seleção (Produtos, Moedas, etc.) */
+/* O Bootstrap 5 não tem a classe "well", então recriamos ela */
+.well-sm.overflow-auto {
+    background-color: #f8f9fa; /* Um cinza bem claro (bg-light) */
+    border: 1px solid #dee2e6; /* Borda cinza */
+    border-radius: 0.5rem;
+    padding: 1rem;
+    height: 200px; /* Altura fixa com barra de rolagem */
+    overflow-y: auto;
+}
+
+/* 3. Estiliza a caixa de busca (filtro) dentro das abas */
+.filter-searchbox {
+    margin-bottom: 1rem;
+}
+
+/* 4. Ajuste fino nos labels do formulário dentro das abas */
+.tab-content .form-label {
+    font-weight: 500; /* Deixa os labels com um pouco mais de destaque */
+    color: var(--text-color);
+}
+
+/* 5. Garante que os selects de Hierarquia (como o de país) ocupem 100% */
+/* (Seu script 'countrySelector' pode não estar adicionando a classe 'form-select') */
+select#store-country,
+select#cashier_id {
+    display: block;
+    width: 100%;
+    padding: 0.375rem 2.25rem 0.375rem 0.75rem;
+    -moz-padding-start: calc(0.75rem - 3px);
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #212529;
+    background-color: #fff;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+select#store-country:focus,
+select#cashier_id:focus {
+    border-color: var(--brand-color); 
+    box-shadow: 0 0 0 0.25rem var(--brand-color-light);
+    outline: 0;
+}
+
+/* ============================================= */
+/* ESTILOS PARA O SUB-MENU (SLIDE DOWN)        */
+/* ============================================= */
+
+/* ... (O código que você já colou antes) ... */
+.sidebar-nav .sub-link:hover {
+    color: var(--sidebar-text-active);
+    background-color: transparent; 
+    box-shadow: none; 
+}
+
+/* ==================================================
+CORREÇÃO: Adicionada a regra para o sub-link ATIVO
+==================================================
+*/
+.sidebar-nav .sub-link.active-child {
+    color: #fff; /* Texto branco */
+    font-weight: 600; /* Negrito */
+}
+
+/* ============================================= */
+/* ============================================= */
+/* CSS PARA O CARD DE COMPARAÇÃO (HOJE/ONTEM)    */
+/* (Com setas em CÍRCULOS)                     */
+/* ============================================= */
+.stat-card .stat-comparison {
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-top: 4px;
+    color: var(--text-muted);
+    /* Alinha o texto "vs. ontem" com o número */
+    display: flex;
+    align-items: center; 
+    gap: 0.5rem; /* Espaço entre o número e o texto "vs. ontem" */
+}
+
+/* O <span> que segura o número e a seta */
+.stat-card .stat-comparison .comparison-value {
+    font-weight: 700; /* Deixa o número em negrito */
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem; /* Espaço entre a seta e o número */
+}
+
+/* * A MÁGICA: O CÍRCULO DA SETA
+ * (Estiliza o ícone <i>)
+ */
+.stat-card .stat-comparison .bi {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;  /* 20px */
+    height: 1.25rem; /* 20px */
+    border-radius: 50%; /* Faz o círculo */
+    font-size: 1rem;
+    font-weight: bold;
+}
+
+/* Se for SUCESSO (verde) */
+.stat-card .stat-comparison .comparison-value.text-success {
+    color: var(--brand-color-dark); /* Cor do número */
+}
+.stat-card .stat-comparison .comparison-value.text-success .bi {
+    background-color: var(--brand-color-light); /* Fundo do círculo */
+    color: var(--brand-color-dark); /* Cor da seta */
+}
+
+/* Se for PERDA (vermelho) */
+.stat-card .stat-comparison .comparison-value.text-danger {
+    color: #C53030; /* Cor do número */
+}
+.stat-card .stat-comparison .comparison-value.text-danger .bi {
+    background-color: #FFF5F5; /* Fundo do círculo */
+    color: #C53030; /* Cor da seta */
+}
+
+/* Se for NEUTRO (cinza) */
+.stat-card .stat-comparison .comparison-value.text-muted {
+    color: var(--text-muted); /* Cor do número */
+}
+.stat-card .stat-comparison .comparison-value.text-muted .bi {
+    background-color: #f1f5f9; /* Fundo do círculo */
+    color: var(--text-muted); /* Cor da seta */
+}

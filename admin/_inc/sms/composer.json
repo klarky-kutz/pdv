@@ -1,0 +1,24 @@
+{
+    "name": "najmulhn/sms",
+    "autoload": {
+        "psr-4": {
+            "Najmulhn\\Sms\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "ITsolution-24",
+            "email": "itsolution24bd@gmail.com"
+        }
+    ],
+    "require": {},
+    "autoload": {
+        "classmap": [
+        	"src/"
+        ],
+        "psr-4": {
+            "Sms\\Gateway\\": "src/gateway/"
+        },
+        "files": []
+    }
+}

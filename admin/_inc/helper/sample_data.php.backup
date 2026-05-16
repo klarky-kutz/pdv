@@ -1,0 +1,330 @@
+<?php
+/**
+ * Sample Data Helper
+ * Creates example data when a new store is created
+ */
+
+if (!function_exists('link_global_templates_to_store')) {
+    /**
+     * Link all global receipt templates to a new store
+     * 
+     * @param int $store_id The ID of the store
+     * @return bool Success status
+     */
+    function link_global_templates_to_store($store_id) {
+        try {
+            // Buscar todos os templates globais (sem marcador de personalização)
+            $stmt = db()->prepare("
+                SELECT template_id, template_name 
+                FROM pos_templates 
+                WHERE template_name NOT LIKE '%(Personalizado)%'
+                ORDER BY template_id ASC
+            ");
+            $stmt->execute();
+            $global_templates = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            if (empty($global_templates)) {
+                return true; // Nenhum template global para vincular
+            }
+            
+            $sort_order = 1;
+            $first_template_id = null;
+            
+            foreach ($global_templates as $template) {
+                $template_id = (int)$template['template_id'];
+                
+                if ($first_template_id === null) {
+                    $first_template_id = $template_id;
+                }
+                
+                // Verificar se já existe vínculo
+                $check = db()->prepare("
+                    SELECT pt2s 
+                    FROM pos_template_to_store 
+                    WHERE store_id = ? AND ttemplate_id = ? 
+                    LIMIT 1
+                ");
+                $check->execute([$store_id, $template_id]);
+                $exists = $check->fetch(PDO::FETCH_ASSOC);
+                
+                if (!$exists) {
+                    // Criar vínculo
+                    $insert = db()->prepare("
+                        INSERT INTO pos_template_to_store 
+                        (store_id, ttemplate_id, is_active, status, sort_order) 
+                        VALUES (?, ?, ?, ?, ?)
+                    ");
+                    
+                    // Primeiro template será ativo, outros inativos
+                    $is_active = ($template_id === $first_template_id) ? 1 : 0;
+                    
+                    $insert->execute([
+                        $store_id,
+                        $template_id,
+                        $is_active,
+                        1, // status ativo
+                        $sort_order
+                    ]);
+                    
+                    $sort_order++;
+                }
+            }
+            
+            // Definir o primeiro template como padrão na preferência da loja
+            if ($first_template_id) {
+                $store_model = registry()->get('loader')->model('store');
+                $store_data = $store_model->getStore($store_id);
+                
+                if ($store_data) {
+                    $pref = valid_unserialize($store_data['preference']);
+                    if (!is_array($pref)) {
+                        $pref = [];
+                    }
+                    
+                    // Só define se ainda não existe
+                    if (!isset($pref['receipt_template'])) {
+                        $pref['receipt_template'] = $first_template_id;
+                        
+                        $update = db()->prepare("
+                            UPDATE stores 
+                            SET preference = ? 
+                            WHERE store_id = ?
+                        ");
+                        $update->execute([serialize($pref), $store_id]);
+                    }
+                }
+            }
+            
+            return true;
+        } catch (Exception $e) {
+            error_log('Error linking global templates: ' . $e->getMessage());
+            return false;
+        }
+    }
+}
+
+if (!function_exists('create_sample_data_for_store')) {
+    /**
+     * Create sample data for a new store
+     * 
+     * @param int $store_id The ID of the newly created store
+     * @return bool Success status
+     */
+    function create_sample_data_for_store($store_id) {
+        try {
+            // 0. Link global receipt templates to this store
+            link_global_templates_to_store($store_id);
+            
+            // 1. Create sample category
+            $category_id = create_sample_category($store_id);
+            
+            // 2. Create sample supplier
+            $supplier_id = create_sample_supplier($store_id);
+            
+            // 3. Create sample brand
+            $brand_id = create_sample_brand($store_id);
+            
+            // 4. Create sample bank account
+            $bank_account_id = create_sample_bank_account($store_id);
+            
+            // 5. Create sample products (4 products)
+            create_sample_products($store_id, $category_id, $supplier_id, $brand_id);
+            
+            return true;
+        } catch (Exception $e) {
+            error_log('Error creating sample data: ' . $e->getMessage());
+            return false;
+        }
+    }
+}
+
+if (!function_exists('create_sample_category')) {
+    function create_sample_category($store_id) {
+        // Inserir categoria
+        $statement = db()->prepare("
+            INSERT INTO `categorys` (category_name, category_slug, parent_id, category_details, category_image, created_at) 
+            VALUES (?, ?, ?, ?, ?, ?)
+        ");
+        $statement->execute([
+            'Exemplo - Eletrônicos',
+            'exemplo-eletronicos',
+            0, // parent_id
+            'Categoria de exemplo - Produtos eletrônicos diversos',
+            '', // category_image
+            date('Y-m-d H:i:s')
+        ]);
+        
+        $category_id = db()->lastInsertId();
+        
+        // Vincular categoria à loja
+        $link = db()->prepare("
+            INSERT INTO `category_to_store` (ccategory_id, store_id) 
+            VALUES (?, ?)
+        ");
+        $link->execute([$category_id, $store_id]);
+        
+        return $category_id;
+    }
+}
+
+if (!function_exists('create_sample_supplier')) {
+    function create_sample_supplier($store_id) {
+        $statement = db()->prepare("
+            INSERT INTO `suppliers` (supplier_name, supplier_mobile, supplier_email, supplier_address, store_id, status, created_at) 
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ");
+        $statement->execute([
+            'Fornecedor Exemplo LTDA',
+            '(11) 98765-4321',
+            'contato@fornecedorexemplo.com.br',
+            'Rua Exemplo, 123 - São Paulo, SP',
+            $store_id,
+            1,
+            date('Y-m-d H:i:s')
+        ]);
+        
+        return db()->lastInsertId();
+    }
+}
+
+if (!function_exists('create_sample_brand')) {
+    function create_sample_brand($store_id) {
+        $statement = db()->prepare("
+            INSERT INTO `brands` (brand_name, brand_description, store_id, status, created_at) 
+            VALUES (?, ?, ?, ?, ?)
+        ");
+        $statement->execute([
+            'Marca Exemplo',
+            'Marca de exemplo para demonstração',
+            $store_id,
+            1,
+            date('Y-m-d H:i:s')
+        ]);
+        
+        return db()->lastInsertId();
+    }
+}
+
+if (!function_exists('create_sample_bank_account')) {
+    function create_sample_bank_account($store_id) {
+        $statement = db()->prepare("
+            INSERT INTO `bank_accounts` (
+                account_name, 
+                account_number, 
+                bank_name, 
+                branch_name, 
+                balance, 
+                store_id, 
+                status, 
+                created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+        $statement->execute([
+            'Conta Corrente Exemplo',
+            '12345-6',
+            'Banco Exemplo S.A.',
+            'Agência Central - 001',
+            0.00, // Saldo inicial zero
+            $store_id,
+            1,
+            date('Y-m-d H:i:s')
+        ]);
+        
+        return db()->lastInsertId();
+    }
+}
+
+if (!function_exists('create_sample_products')) {
+    function create_sample_products($store_id, $category_id, $supplier_id, $brand_id) {
+        $products = [
+            [
+                'name' => 'Mouse Sem Fio Exemplo',
+                'code' => '7898000000018', // EAN-13 válido
+                'unit' => 'Peça',
+                'cost' => 35.00,
+                'price' => 59.90,
+                'stock' => 50,
+                'alert_quantity' => 10,
+                'description' => 'Mouse sem fio ergonômico - Produto de exemplo'
+            ],
+            [
+                'name' => 'Teclado USB Exemplo',
+                'code' => '7898000000025',
+                'unit' => 'Peça',
+                'cost' => 45.00,
+                'price' => 79.90,
+                'stock' => 30,
+                'alert_quantity' => 5,
+                'description' => 'Teclado USB padrão ABNT2 - Produto de exemplo'
+            ],
+            [
+                'name' => 'Webcam HD Exemplo',
+                'code' => '7898000000032',
+                'unit' => 'Peça',
+                'cost' => 85.00,
+                'price' => 149.90,
+                'stock' => 20,
+                'alert_quantity' => 5,
+                'description' => 'Webcam HD 720p com microfone - Produto de exemplo'
+            ],
+            [
+                'name' => 'Headset com Microfone Exemplo',
+                'code' => '7898000000049',
+                'unit' => 'Peça',
+                'cost' => 55.00,
+                'price' => 99.90,
+                'stock' => 40,
+                'alert_quantity' => 8,
+                'description' => 'Headset estéreo com microfone ajustável - Produto de exemplo'
+            ]
+        ];
+        
+        foreach ($products as $product) {
+            // Insert product
+            $stmt = db()->prepare("
+                INSERT INTO `products` (
+                    p_name,
+                    p_code,
+                    p_category,
+                    p_brand,
+                    p_unit,
+                    p_cost,
+                    p_price,
+                    p_stock,
+                    p_stock_alert_quantity,
+                    p_description,
+                    store_id,
+                    status,
+                    created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+            
+            $stmt->execute([
+                $product['name'],
+                $product['code'],
+                $category_id,
+                $brand_id,
+                $product['unit'],
+                $product['cost'],
+                $product['price'],
+                $product['stock'],
+                $product['alert_quantity'],
+                $product['description'],
+                $store_id,
+                1,
+                date('Y-m-d H:i:s')
+            ]);
+            
+            $product_id = db()->lastInsertId();
+            
+            // Link product to supplier
+            $stmt = db()->prepare("
+                INSERT INTO `product_to_supplier` (p_id, supplier_id) 
+                VALUES (?, ?)
+            ");
+            $stmt->execute([$product_id, $supplier_id]);
+        }
+        
+        return true;
+    }
+}

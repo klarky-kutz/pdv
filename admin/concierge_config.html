@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Configurações IA · Moda IA · ModernPOS</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<style>
+/* ─── RESET ─── */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Source Sans Pro','Helvetica Neue',Helvetica,Arial,sans-serif;font-size:14px;background:#ecf0f5;overflow:hidden;color:#333}
+a{text-decoration:none;color:inherit}
+button{cursor:pointer;font-family:inherit}
+input,select,textarea{font-family:inherit}
+
+/* ─── SHELL ─── */
+.shell{display:flex;height:100vh;overflow:hidden}
+
+/* ─── SIDEBAR ─── */
+.sb{width:230px;background:#222d32;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden}
+.sb-logo{height:50px;background:#2c3b41;display:flex;align-items:center;padding:0 15px;gap:10px;border-bottom:1px solid #1a2226;flex-shrink:0}
+.sb-logo-text{font-size:16px;font-weight:700;color:#fff;letter-spacing:.3px}
+.sb-logo-badge{background:#6d28d9;color:#fff;font-size:9px;font-weight:700;padding:2px 5px;border-radius:2px;letter-spacing:.5px}
+.sb-user{background:#1a2226;padding:10px 15px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.sb-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#6d28d9,#a78bfa);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;flex-shrink:0}
+.sb-user-info{min-width:0}
+.sb-user-name{color:#fff;font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-user-role{color:#8aa4af;font-size:11px;display:flex;align-items:center;gap:4px}
+.sb-user-dot{width:7px;height:7px;border-radius:50%;background:#00a65a;flex-shrink:0}
+.sb-scroll{flex:1;overflow-y:auto;overflow-x:hidden}
+.sb-scroll::-webkit-scrollbar{width:4px}
+.sb-scroll::-webkit-scrollbar-track{background:#1a2226}
+.sb-scroll::-webkit-scrollbar-thumb{background:#3d4e54;border-radius:2px}
+.sb-hdr{font-size:10px;font-weight:700;color:#4b646f;text-transform:uppercase;letter-spacing:.5px;padding:14px 15px 5px}
+.mi{display:flex;align-items:center;gap:10px;padding:9px 12px 9px 15px;color:#b8c7ce;border-left:3px solid transparent;transition:all .15s;cursor:pointer;font-size:13.5px}
+.mi:hover{background:#1e282c;color:#ddd6fe;border-left-color:#6d28d9}
+.mi.act{background:#1e282c;color:#fff;border-left-color:#6d28d9}
+.mi i{width:16px;text-align:center;font-size:13px;opacity:.85}
+.sb-pro{background:linear-gradient(180deg,#160a2e,#1a0f35);border-top:1px solid #2d1b5e;flex-shrink:0}
+.sb-pro-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 15px 5px}
+.sb-pro-label{font-size:10px;font-weight:700;color:#7c4aed;text-transform:uppercase;letter-spacing:.5px}
+.pro-badge{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px}
+.mi-pro{display:flex;align-items:center;gap:10px;padding:9px 12px 9px 15px;color:#9f6ae3;border-left:3px solid transparent;cursor:pointer;font-size:13px;transition:all .15s;text-decoration:none}
+.mi-pro:hover{background:rgba(109,40,217,.15);color:#ddd6fe;border-left-color:#a78bfa}
+.mi-pro.act{background:rgba(109,40,217,.2);color:#ddd6fe;border-left-color:#a78bfa}
+.mi-pro i{width:16px;text-align:center;font-size:12px;opacity:.9}
+
+/* ─── MAIN ─── */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+
+/* ─── TOPBAR ─── */
+.tb{height:50px;background:#222d32;display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0;border-bottom:1px solid #1a2226}
+.tb-toggle{color:#b8c7ce;font-size:18px;cursor:pointer;padding:4px 8px;border-radius:2px;transition:color .15s}
+.tb-toggle:hover{color:#fff}
+.tb-spacer{flex:1}
+.tb-ai-status{display:flex;align-items:center;gap:6px;background:rgba(109,40,217,.15);border:1px solid rgba(109,40,217,.35);border-radius:20px;padding:4px 10px;cursor:default}
+.tb-ai-dot{width:8px;height:8px;border-radius:50%;background:#a78bfa;animation:blink 1.4s infinite}
+.tb-ai-text{color:#c4b5fd;font-size:11px;font-weight:600;letter-spacing:.3px}
+@keyframes blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.7)}}
+.tb-sep{width:1px;height:20px;background:#3d4e54}
+.tb-icon{width:34px;height:34px;display:flex;align-items:center;justify-content:center;color:#b8c7ce;font-size:16px;cursor:pointer;border-radius:2px;position:relative;transition:color .15s}
+.tb-icon:hover{color:#fff;background:#1e282c}
+.tb-notif-badge{position:absolute;top:4px;right:4px;width:8px;height:8px;background:#dd4b39;border-radius:50%;border:2px solid #222d32}
+.tb-user{display:flex;align-items:center;gap:8px;padding:4px 8px;border-radius:2px;cursor:pointer;transition:background .15s}
+.tb-user:hover{background:#1e282c}
+.tb-user-av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#6d28d9,#a78bfa);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:11px}
+.tb-user-name{color:#b8c7ce;font-size:12px;font-weight:600}
+
+/* ─── CONTENT ─── */
+.ct{flex:1;padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
+.ct::-webkit-scrollbar{width:6px}
+.ct::-webkit-scrollbar-track{background:#e5e7eb}
+.ct::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:3px}
+
+/* ─── CONTENT HEADER ─── */
+.ch{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.ch-left h1{font-size:20px;font-weight:700;color:#333;line-height:1}
+.ch-left .breadcrumb{display:flex;align-items:center;gap:6px;margin-top:3px;font-size:12px;color:#9ca3af}
+.ch-left .breadcrumb span{color:#6d28d9;font-weight:600}
+.ch-left .breadcrumb i{font-size:9px}
+
+/* ─── BOTÕES ─── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:2px;font-size:13px;font-weight:600;border:none;transition:all .18s;cursor:pointer}
+.btn-primary{background:linear-gradient(135deg,#6d28d9,#7c3aed);color:#fff;box-shadow:0 2px 8px rgba(109,40,217,.35)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(109,40,217,.45)}
+.btn-secondary{background:#fff;border:1px solid #d1d5db;color:#374151}
+.btn-secondary:hover{border-color:#a78bfa;color:#6d28d9}
+.btn-danger{background:#fff;border:1px solid #fca5a5;color:#dc2626}
+.btn-danger:hover{background:#fee2e2}
+.btn-ghost{background:transparent;border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.85);font-size:12px;padding:6px 12px}
+.btn-ghost:hover{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.5);color:#fff}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-copy{background:#f5f3ff;border:1px solid #c4b5fd;color:#6d28d9;padding:4px 10px;font-size:11px;font-weight:700;border-radius:2px}
+.btn-copy:hover{background:#ede9fe}
+
+/* ─── AI HERO CARD ─── */
+.ai-hero{border-radius:2px;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;transition:all .3s;box-shadow:0 2px 12px rgba(0,0,0,.1)}
+.ai-hero.off{background:#fff;border:1px solid #e5e7eb}
+.ai-hero.on{background:linear-gradient(135deg,#3b0d8a,#5b21b6,#7c3aed);border:1px solid #6d28d9}
+.ai-hero-left{display:flex;align-items:center;gap:14px}
+.ai-hero-icon{width:52px;height:52px;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.ai-hero.off .ai-hero-icon{background:#f5f3ff;color:#6d28d9}
+.ai-hero.on .ai-hero-icon{background:rgba(255,255,255,.15);color:#fff}
+.ai-hero-title{font-size:16px;font-weight:700}
+.ai-hero.off .ai-hero-title{color:#111827}
+.ai-hero.on .ai-hero-title{color:#fff}
+.ai-hero-sub{font-size:12px;margin-top:3px}
+.ai-hero.off .ai-hero-sub{color:#6b7280}
+.ai-hero.on .ai-hero-sub{color:#c4b5fd}
+.ai-hero-right{display:flex;align-items:center;gap:14px;flex-shrink:0}
+.ai-hero-status{font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px}
+.ai-hero.off .ai-hero-status{background:#f3f4f6;color:#6b7280}
+.ai-hero.on .ai-hero-status{background:rgba(255,255,255,.2);color:#fff}
+
+/* ─── TOGGLE (reutilizado de outras páginas) ─── */
+.toggle-track{width:44px;height:24px;border-radius:20px;background:#d1d5db;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
+.toggle-track.on{background:linear-gradient(135deg,#6d28d9,#7c3aed)}
+.toggle-track.on-white{background:linear-gradient(135deg,#fff,rgba(255,255,255,.8))}
+.toggle-thumb{width:20px;height:20px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+.toggle-track.on .toggle-thumb,.toggle-track.on-white .toggle-thumb{left:22px}
+.toggle-track.on-white .toggle-thumb{background:#6d28d9}
+
+/* ─── TABS ─── */
+.box{background:#fff;border:1px solid #e5e7eb;border-radius:2px;box-shadow:0 1px 8px rgba(0,0,0,.06);overflow:hidden}
+.bh{border-top:3px solid #6d28d9;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f3f4f6}
+.bt{font-size:14px;font-weight:700;color:#374151;display:flex;align-items:center;gap:8px}
+.bt i{color:#6d28d9}
+.tabs-bar{display:flex;border-bottom:1px solid #e5e7eb;background:#fff;padding:0 16px;overflow-x:auto;flex-shrink:0}
+.tabs-bar::-webkit-scrollbar{height:0}
+.tab-btn{display:flex;align-items:center;gap:6px;padding:12px 14px;font-size:13px;font-weight:600;color:#6b7280;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;transition:all .15s}
+.tab-btn:hover{color:#6d28d9}
+.tab-btn.act{color:#6d28d9;border-bottom-color:#6d28d9}
+.tab-btn i{font-size:12px}
+.tab-panel{padding:20px;display:none}
+.tab-panel.act{display:block}
+
+/* ─── FORM ─── */
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.form-group{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+.form-group:last-child{margin-bottom:0}
+.form-label{font-size:12px;font-weight:600;color:#555;display:flex;align-items:center;gap:4px}
+.form-label .req{color:#f9264c}
+.form-control{border:1px solid #d1d5db;border-radius:2px;padding:8px 10px;font-size:13.5px;color:#374151;background:#fff;transition:all .15s;outline:none;width:100%}
+.form-control:focus{border-color:#7c3aed;box-shadow:0 0 0 2px rgba(124,58,237,.12)}
+.form-control:disabled{background:#f9fafb;color:#9ca3af;cursor:not-allowed}
+.form-hint{font-size:11px;color:#9ca3af}
+.form-control-copy{display:flex;gap:6px;align-items:center}
+.form-control-copy .form-control{flex:1}
+textarea.form-control{resize:vertical;min-height:90px}
+.char-count{font-size:11px;color:#9ca3af;text-align:right;margin-top:3px}
+
+/* ─── SECTION GROUPS WITHIN TABS ─── */
+.cfg-section{margin-bottom:24px}
+.cfg-section:last-child{margin-bottom:0}
+.cfg-section-title{font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;gap:6px}
+.cfg-section-title i{color:#a78bfa}
+
+/* ─── SETTING ROW (label esquerda, controle direita) ─── */
+.setting-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f9fafb}
+.setting-row:last-child{border-bottom:none}
+.sr-info{flex:1;padding-right:24px}
+.sr-label{font-size:13px;font-weight:600;color:#374151}
+.sr-desc{font-size:11px;color:#9ca3af;margin-top:2px}
+.sr-ctrl{flex-shrink:0;display:flex;align-items:center;gap:8px}
+
+/* ─── HORÁRIO DE ATENDIMENTO ─── */
+.schedule-grid{display:flex;flex-direction:column;gap:0;border:1px solid #e5e7eb;border-radius:2px;overflow:hidden}
+.schedule-row{display:grid;grid-template-columns:90px 60px 1fr 16px 1fr;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid #f3f4f6;background:#fff;transition:background .12s}
+.schedule-row:last-child{border-bottom:none}
+.schedule-row.inactive{background:#fafafa}
+.schedule-row.inactive .sched-time{opacity:.4;pointer-events:none}
+.sched-day{font-size:13px;font-weight:700;color:#374151}
+.schedule-row.inactive .sched-day{color:#9ca3af}
+.sched-time{border:1px solid #d1d5db;border-radius:2px;padding:5px 8px;font-size:12px;font-weight:600;color:#374151;outline:none;width:80px;background:#fff;transition:border-color .15s}
+.sched-time:focus{border-color:#7c3aed}
+.sched-sep{font-size:11px;color:#9ca3af;text-align:center}
+.sched-closed{font-size:11px;color:#9ca3af;font-weight:600;grid-column:3/6}
+
+/* ─── PIX KEY LIST ─── */
+.pix-list{display:flex;flex-direction:column;gap:8px}
+.pix-key-row{display:grid;grid-template-columns:140px 1fr 36px;gap:8px;align-items:center;background:#f9fafb;border:1px solid #e5e7eb;border-radius:2px;padding:8px 12px}
+.pix-key-row select,.pix-key-row input{border:1px solid #d1d5db;border-radius:2px;padding:6px 8px;font-size:12.5px;background:#fff;outline:none;width:100%;color:#374151;transition:border-color .15s}
+.pix-key-row select:focus,.pix-key-row input:focus{border-color:#7c3aed}
+.pix-key-remove{width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid #fca5a5;border-radius:2px;color:#dc2626;font-size:13px;cursor:pointer;flex-shrink:0;transition:background .15s}
+.pix-key-remove:hover{background:#fee2e2}
+
+/* ─── GATEWAY RADIO ─── */
+.gateway-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.gw-card{border:1.5px solid #d1d5db;border-radius:2px;padding:12px;cursor:pointer;transition:all .15s;text-align:center;position:relative}
+.gw-card:hover{border-color:#a78bfa}
+.gw-card.sel{border-color:#6d28d9;background:#f5f3ff}
+.gw-card input[type=radio]{position:absolute;opacity:0;width:0;height:0}
+.gw-icon{font-size:20px;margin-bottom:6px}
+.gw-name{font-size:12px;font-weight:700;color:#374151}
+.gw-card.sel .gw-name{color:#6d28d9}
+.gw-badge{font-size:9px;font-weight:700;padding:1px 6px;border-radius:20px;margin-top:4px;display:inline-block}
+.gw-badge.free{background:#d1fae5;color:#065f46}
+.gw-badge.paid{background:#f3f4f6;color:#6b7280}
+
+/* ─── RANGE SLIDER ─── */
+.range-wrap{display:flex;align-items:center;gap:12px}
+input[type=range]{flex:1;accent-color:#6d28d9;height:6px}
+.range-val{font-size:13px;font-weight:700;color:#4c1d95;min-width:32px;text-align:center;background:#ede9fe;border-radius:2px;padding:3px 6px}
+
+/* ─── MODAL ─── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100;display:flex;align-items:center;justify-content:center;animation:fadeIn .2s}
+.overlay.hide{display:none}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{background:#fff;border-radius:2px;box-shadow:0 10px 40px rgba(0,0,0,.3);animation:slideUp .2s;width:500px;max-width:calc(100vw - 32px)}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.mh{background:linear-gradient(135deg,#4c1d95,#7c3aed);padding:20px;display:flex;align-items:flex-start;justify-content:space-between}
+.mh-info .mt{font-size:16px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px}
+.mh-info .ms{font-size:12px;color:#c4b5fd;margin-top:3px}
+.mh-close{background:none;border:none;color:#c4b5fd;font-size:18px;cursor:pointer;padding:2px 6px;border-radius:2px;transition:color .15s;line-height:1}
+.mh-close:hover{color:#fff}
+.mb{padding:18px}
+.mf{background:#faf5ff;border-top:1px solid #ede9fe;padding:12px 18px;display:flex;justify-content:flex-end;gap:8px}
+
+/* ─── TOAST ─── */
+.toast{position:fixed;bottom:20px;right:20px;background:#222d32;color:#fff;border-left:3px solid #6d28d9;padding:10px 16px;border-radius:2px;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;z-index:9999;transform:translateX(120%);transition:transform .3s cubic-bezier(.34,1.56,.64,1);min-width:260px;box-shadow:0 4px 20px rgba(0,0,0,.3)}
+.toast.show{transform:translateX(0)}
+.toast i{color:#a78bfa}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ════════ SIDEBAR ════════ -->
+  <aside class="sb">
+    <div class="sb-logo">
+      <i class="fa fa-bolt" style="color:#a78bfa;font-size:18px"></i>
+      <span class="sb-logo-text">ModernPOS</span>
+      <span class="sb-logo-badge">SaaS</span>
+    </div>
+    <div class="sb-user">
+      <div class="sb-avatar">M</div>
+      <div class="sb-user-info">
+        <div class="sb-user-name">Moda Feminina</div>
+        <div class="sb-user-role"><span class="sb-user-dot"></span>Gerente</div>
+      </div>
+    </div>
+    <div class="sb-scroll">
+      <div class="sb-hdr">Menu Principal</div>
+      <div class="mi"><i class="fa fa-th-large"></i> Dashboard</div>
+      <div class="mi"><i class="fa fa-desktop"></i> PDV</div>
+      <div class="mi"><i class="fa fa-shopping-cart"></i> Vendas</div>
+      <div class="mi"><i class="fa fa-truck"></i> Compras</div>
+      <div class="mi"><i class="fa fa-tag"></i> Produtos</div>
+      <div class="mi"><i class="fa fa-users"></i> Clientes</div>
+      <div class="mi"><i class="fa fa-bar-chart"></i> Relatórios</div>
+      <div class="mi"><i class="fa fa-cog"></i> Configurações</div>
+
+      <!-- PRO BLOCK -->
+      <div class="sb-pro">
+        <div class="sb-pro-hdr">
+          <span class="sb-pro-label"><i class="fa fa-magic" style="margin-right:4px"></i>Moda IA</span>
+          <span class="pro-badge">PRO</span>
+        </div>
+        <a class="mi-pro" href="concierge_catalogo.html"><i class="fa fa-tag"></i> Catálogo IA</a>
+        <a class="mi-pro" href="concierge_pedidos.html"><i class="fa fa-trello"></i> Pedidos</a>
+        <div class="mi-pro"><i class="fa fa-comments"></i> Conversas</div>
+        <a class="mi-pro" href="concierge_pix.html"><i class="fa fa-qrcode"></i> Comprovantes Pix</a>
+        <a class="mi-pro" href="concierge_estoque.html"><i class="fa fa-cubes"></i> Estoque IA</a>
+        <div class="mi-pro"><i class="fa fa-line-chart"></i> Performance</div>
+        <a class="mi-pro act" href="concierge_config.html"><i class="fa fa-cog"></i> Configurações IA</a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ════════ MAIN ════════ -->
+  <div class="main">
+
+    <!-- TOPBAR -->
+    <div class="tb">
+      <div class="tb-toggle"><i class="fa fa-bars"></i></div>
+      <div class="tb-spacer"></div>
+      <div class="tb-ai-status">
+        <div class="tb-ai-dot"></div>
+        <span class="tb-ai-text">IA Online</span>
+      </div>
+      <div class="tb-sep"></div>
+      <div class="tb-icon" title="Notificações">
+        <i class="fa fa-bell-o"></i>
+        <span class="tb-notif-badge"></span>
+      </div>
+      <div class="tb-icon" title="Ajuda"><i class="fa fa-question-circle-o"></i></div>
+      <div class="tb-user">
+        <div class="tb-user-av">M</div>
+        <span class="tb-user-name">Moda Fem.</span>
+        <i class="fa fa-angle-down" style="color:#8aa4af;font-size:11px"></i>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="ct">
+
+      <!-- Content Header -->
+      <div class="ch">
+        <div class="ch-left">
+          <h1><i class="fa fa-cog" style="color:#6d28d9;margin-right:8px"></i>Configurações do Moda IA</h1>
+          <div class="breadcrumb">
+            <i class="fa fa-home"></i> Home
+            <i class="fa fa-angle-right"></i> Moda IA
+            <i class="fa fa-angle-right"></i> <span>Configurações</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary" onclick="showToast('Alterações descartadas.')"><i class="fa fa-undo"></i> Descartar</button>
+          <button class="btn btn-primary" onclick="salvarConfig()"><i class="fa fa-check"></i> Salvar Alterações</button>
+        </div>
+      </div>
+
+      <!-- ─── AI HERO STATUS CARD ─── -->
+      <div class="ai-hero on" id="ai-hero">
+        <div class="ai-hero-left">
+          <div class="ai-hero-icon">
+            <i class="fa fa-magic"></i>
+          </div>
+          <div>
+            <div class="ai-hero-title">Moda IA — Atendimento Automático</div>
+            <div class="ai-hero-sub" id="ai-hero-sub">A IA está ativa e atendendo clientes via WhatsApp agora mesmo</div>
+          </div>
+        </div>
+        <div class="ai-hero-right">
+          <span class="ai-hero-status" id="ai-hero-status">● ATIVO</span>
+          <div class="toggle-track on-white" id="ai-main-toggle" onclick="toggleMainIA(this)" title="Ativar / Desativar atendimento automático">
+            <div class="toggle-thumb"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── TABS BOX ─── -->
+      <div class="box">
+        <div class="tabs-bar">
+          <button class="tab-btn act" onclick="switchTab('geral',this)"><i class="fa fa-sliders"></i> Geral</button>
+          <button class="tab-btn" onclick="switchTab('whatsapp',this)"><i class="fa fa-whatsapp"></i> WhatsApp</button>
+          <button class="tab-btn" onclick="switchTab('respostas',this)"><i class="fa fa-comments-o"></i> Respostas</button>
+          <button class="tab-btn" onclick="switchTab('pix',this)"><i class="fa fa-qrcode"></i> Pix</button>
+          <button class="tab-btn" onclick="switchTab('limites',this)"><i class="fa fa-tachometer"></i> Limites</button>
+        </div>
+
+        <!-- ════ TAB: GERAL ════ -->
+        <div class="tab-panel act" id="tab-geral">
+
+          <div class="form-row" style="margin-bottom:14px">
+            <div class="cfg-section">
+              <div class="cfg-section-title"><i class="fa fa-magic"></i> Identidade da IA</div>
+              <div class="form-group">
+                <label class="form-label">Nome da IA <span class="req">*</span></label>
+                <input class="form-control" type="text" value="Sofia" placeholder="Ex: Sofia, Maya, Bia...">
+                <span class="form-hint">Este nome será usado nas mensagens de atendimento</span>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Saudação padrão</label>
+                <select class="form-control">
+                  <option>Olá, [nome]! 😊</option>
+                  <option>Oi, [nome]! Tudo bem?</option>
+                  <option>Bem-vinda, [nome]! ✨</option>
+                  <option>Personalizada</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Idioma</label>
+                <select class="form-control">
+                  <option selected>Português Brasileiro</option>
+                  <option>Inglês</option>
+                  <option>Espanhol</option>
+                </select>
+              </div>
+            </div>
+            <div class="cfg-section">
+              <div class="cfg-section-title"><i class="fa fa-comment"></i> Mensagem de Boas-vindas</div>
+              <div class="form-group" style="height:calc(100% - 30px)">
+                <label class="form-label">Texto da mensagem inicial</label>
+                <textarea class="form-control" rows="6" id="welcome-msg" oninput="countChars(this,'wc')">Olá! 👋 Eu sou a Sofia, assistente virtual da {{nome_loja}}. 
+
+Posso te ajudar a encontrar peças incríveis do nosso catálogo, verificar disponibilidade e fechar seu pedido direto pelo WhatsApp!
+
+Como posso te ajudar hoje?</textarea>
+                <div class="char-count"><span id="wc">0</span>/600 caracteres</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="cfg-section">
+            <div class="cfg-section-title"><i class="fa fa-clock-o"></i> Horário de Atendimento</div>
+            <div class="setting-row" style="margin-bottom:12px">
+              <div class="sr-info">
+                <div class="sr-label">Atender fora do horário configurado</div>
+                <div class="sr-desc">Quando desativado, a IA enviará mensagem de ausência fora dos horários</div>
+              </div>
+              <div class="sr-ctrl">
+                <div class="toggle-track on" id="toggle-afterhours" onclick="toggleSetting(this)">
+                  <div class="toggle-thumb"></div>
+                </div>
+              </div>
+            </div>
+            <div class="schedule-grid">
+              <div class="schedule-row">
+                <span class="sched-day">Segunda</span>
+                <div class="toggle-track on" style="width:36px;height:20px" onclick="toggleDay(this)"><div class="toggle-thumb" style="width:16px;height:16px;top:2px;left:18px"></div></div>
+                <input class="sched-time" type="time" value="09:00">
+                <span class="sched-sep">às</span>
+                <input class="sched-time" type="time" value="18:00">
+              </div>
+              <div class="schedule-row">
+                <span class="sched-day">Terça</span>
+                <div class="toggle-track on" style="width:36px;height:20px" onclick="toggleDay(this)"><div class="toggle-thumb" style="width:16px;height:16px;top:2px;left:18px"></div></div>
+                <input class="sched-time" type="time" value="09:00">
+                <span class="sched-sep">às</span>
+                <input class="sched-time" type="time" value="18:00">
+              </div>
+              <div class="schedule-row">
+                <span class="sched-day">Quarta</span>
+                <div class="toggle-track on" style="width:36px;height:20px" onclick="toggleDay(this)"><div class="toggle-thumb" style="width:16px;height:16px;top:2px;left:18px"></div></div>
+                <input class="sched-time" type="time" value="09:00">
+                <span class="sched-sep">às</span>
+                <input class="sched-time" type="time" value="18:00">
+              </div>
+              <div class="schedule-row">
+                <span class="sched-day">Quinta</span>
+                <div class="toggle-track on" style="width:36px;height:20px" onclick="toggleDay(this)"><div class="toggle-thumb" style="width:16px;height:16px;top:2px;left:18px"></div></div>
+                <input class="sched-time" type="time" value="09:00">
+                <span class="sched-sep">às</span>
+                <input class="sched-time" type="time" value="18:00">
+              </div>
+              <div class="schedule-row">
+                <span class="sched-day">Sexta</span>
+                <div class="toggle-track on" style="width:36px;height:20px" onclick="toggleDay(this)"><div class="toggle-thumb" style="width:16px;height:16px;top:2px;left:18px"></div></div>
+                <input class="sched-time" type="time" value="09:00">
+                <span class="sched-sep">às</span>
+                <input class="sched-time" type="time" value="17:00">
+              </div>
+              <div class="schedule-row inactive" id="row-sab">
+                <span class="sched-day" style="color:#9ca3af">Sábado</span>
+                <div class="toggle-track" style="width:36px;height:20px" onclick="toggleDay(this)"><div class="toggle-thumb" style="width:16px;height:16px;top:2px;left:2px"></div></div>
+                <span class="sched-closed">Fechado</span>
+              </div>
+              <div class="schedule-row inactive" id="row-dom">
+                <span class="sched-day" style="color:#9ca3af">Domingo</span>
+                <div class="toggle-track" style="width:36px;height:20px" onclick="toggleDay(this)"><div class="toggle-thumb" style="width:16px;height:16px;top:2px;left:2px"></div></div>
+                <span class="sched-closed">Fechado</span>
+              </div>
+            </div>
+            <div class="form-group" style="margin-top:14px">
+              <label class="form-label">Mensagem de ausência</label>
+              <textarea class="form-control" rows="2" placeholder="Ex: Olá! No momento estamos fora do horário de atendimento. Retornaremos em breve! 🌙"></textarea>
+            </div>
+          </div>
+
+        </div><!-- /tab-geral -->
+
+        <!-- ════ TAB: WHATSAPP ════ -->
+        <div class="tab-panel" id="tab-whatsapp">
+
+          <div class="cfg-section">
+            <div class="cfg-section-title"><i class="fa fa-plug"></i> Conexão com a API</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Provedor WhatsApp <span class="req">*</span></label>
+                <select class="form-control">
+                  <option>Evolution API (self-hosted)</option>
+                  <option>360dialog</option>
+                  <option>Twilio</option>
+                  <option>Meta Business API</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">URL da Instância <span class="req">*</span></label>
+                <input class="form-control" type="url" placeholder="https://evolution.seudominio.com">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Nome da Instância <span class="req">*</span></label>
+                <input class="form-control" type="text" placeholder="Ex: moda-feminina-loja">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Número WhatsApp Business</label>
+                <input class="form-control" type="tel" placeholder="+55 11 99999-9999" value="+55 11 98765-4321">
+              </div>
+            </div>
+          </div>
+
+          <div class="cfg-section">
+            <div class="cfg-section-title"><i class="fa fa-lock"></i> Autenticação</div>
+            <div class="form-group">
+              <label class="form-label">API Key / Token da instância <span class="req">*</span></label>
+              <div class="form-control-copy">
+                <input class="form-control" type="password" id="api-key-input" value="evok_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" placeholder="Cole seu token aqui">
+                <button class="btn-copy" onclick="toggleVisible('api-key-input',this)"><i class="fa fa-eye"></i></button>
+              </div>
+              <span class="form-hint">Nunca compartilhe este token. Ele autentica todas as chamadas da IA.</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Webhook Token ModernPOS <span class="form-hint" style="font-size:11px;margin-left:4px">(gerado automaticamente)</span></label>
+              <div class="form-control-copy">
+                <input class="form-control" type="text" id="webhook-token" value="mpos_wh_4f3a2b1c9d8e7f6a5b4c3d2e1f0a9b8c" readonly style="font-family:monospace;font-size:12px">
+                <button class="btn-copy" onclick="copyText('webhook-token')"><i class="fa fa-copy"></i> Copiar</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="cfg-section">
+            <div class="cfg-section-title"><i class="fa fa-link"></i> URL do Webhook n8n</div>
+            <div class="form-group">
+              <label class="form-label">Endpoint de entrada (copie para o n8n)</label>
+              <div class="form-control-copy">
+                <input class="form-control" type="text" id="n8n-url" value="https://pdv.seudominio.com/api/concierge/webhook.php?loja_id=12" readonly style="font-family:monospace;font-size:12px">
+                <button class="btn-copy" onclick="copyText('n8n-url')"><i class="fa fa-copy"></i> Copiar</button>
+              </div>
+              <span class="form-hint">Configure este endpoint no seu fluxo n8n como Webhook Trigger</span>
+            </div>
+          </div>
+
+          <div style="padding:14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:2px;display:flex;align-items:center;gap:12px">
+            <i class="fa fa-check-circle" style="color:#059669;font-size:18px"></i>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:#065f46">Conexão testada com sucesso</div>
+              <div style="font-size:11px;color:#047857;margin-top:2px">Última verificação: hoje às 21:02 · Latência: 142ms</div>
+            </div>
+            <button class="btn btn-secondary btn-sm" style="margin-left:auto"><i class="fa fa-refresh"></i> Testar Conexão</button>
+          </div>
+
+        </div><!-- /tab-whatsapp -->
+
+        <!-- ════ TAB: RESPOSTAS ════ -->
+        <div class="tab-panel" id="tab-respostas">
+
+          <div class="cfg-section">
+            <div class="cfg-section-title"><i class="fa fa-magic"></i> Prompt do Sistema</div>
+            <div class="form-group">
+              <label class="form-label">Instruções para a IA <span class="req">*</span></label>
+              <textarea class="form-control" rows="8" id="system-prompt" oninput="countChars(this,'spc')" style="font-size:12.5px;line-height:1.6">Você é a vendedora virtual da loja {{nome_loja}}. Seu nome é {{nome_ia}}.
+Você é especialista em moda feminina e conhece cada peça do catálogo.
+Seja calorosa, consultiva e use emojis com moderação.
+
+Regras:
+- Nunca invente preços ou disponibilidade; consulte sempre a API.
+- Se uma peça estiver esgotada, sugira similares imediatamente.
+- Lembre das preferências da cliente e use-as nas sugestões.
+- Ao fechar pedido, confirme os itens antes de gerar o link.
+- Máximo de 3 produtos por mensagem para não sobrecarregar.
+- Use linguagem natural e feminina, como uma amiga consultiva.</textarea>
+              <div class="char-count"><span id="spc">0</span>/2000 caracteres</div>
+              <span class="form-hint">Variáveis disponíveis: {{nome_loja}} · {{nome_ia}} · {{cidade}} · {{horario}}</span>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="showToast('Prompt restaurado para o padrão.')"><i class="fa fa-refresh"></i> Restaurar padrão</button>
+          </div>
+
+          <div class="cfg-section">
+            <div class="cfg-section-title"><i class="fa fa-sliders"></i> Comportamento</div>
+            <div class="setting-row">
+              <div class="sr-info">
+                <div class="sr-label">Delay de resposta</div>
+                <div class="sr-desc">Simula digitação humana (recomendado: 2–4s)</div>
+              </div>
+              <div class="sr-ctrl" style="width:220px">
+                <div class="range-wrap">
+                  <input type="range" min="0" max="10" value="3" oninput="document.getElementById('delay-val').textContent=this.value+'s'">
+                  <span class="range-val" id="delay-val">3s</span>
+                </div>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="sr-info">
+                <div class="sr-label">Máx. produtos por mensagem</div>
+                <div class="sr-desc">Limita quantos produtos a IA envia de uma vez</div>
+              </div>
+              <div class="sr-ctrl">
+                <input class="form-control" type="number" value="3" min="1" max="10" style="width:70px;text-align:center">
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="sr-info">
+                <div class="sr-label">Máx. fotos por produto</div>
+                <div class="sr-desc">Número de imagens enviadas ao apresentar um item</div>
+              </div>
+              <div class="sr-ctrl">
+                <input class="form-control" type="number" value="2" min="1" max="5" style="width:70px;text-align:center">
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="sr-info">
+                <div class="sr-label">Enviar fotos em alta resolução</div>
+                <div class="sr-desc">Usa WebP otimizado (recomendado para economia de dados)</div>
+              </div>
+              <div class="sr-ctrl">
+                <div class="toggle-track on" onclick="toggleSetting(this)"><div class="toggle-thumb"></div></div>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="sr-info">
+                <div class="sr-label">Lembrar histórico de preferências</div>
+                <div class="sr-desc">Usa o perfil da cliente para personalizar sugestões</div>
+              </div>
+              <div class="sr-ctrl">
+                <div class="toggle-track on" onclick="toggleSetting(this)"><div class="toggle-thumb"></div></div>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="sr-info">
+                <div class="sr-label">Sugerir peças complementares</div>
+                <div class="sr-desc">A IA oferece "look completo" (upsell automático)</div>
+              </div>
+              <div class="sr-ctrl">
+                <div class="toggle-track on" onclick="toggleSetting(this)"><div class="toggle-thumb"></div></div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /tab-respostas -->
+
+        <!-- ════ TAB: PIX ════ -->
+        <div class="tab-panel" id="tab-pix">
+
+          <div class="cfg-section">
+            <div class="cfg-section-title"><i class="fa fa-qrcode"></i> Chaves Pix</div>
+            <div class="pix-list" id="pix-list">
+              <div class="pix-key-row">
+                <select>
+                  <option>CNPJ</option>
+                  <option>CPF</option>
+                  <option>E-mail</option>
+                  <option>Telefone</option>
+                  <option>Aleatória</option>
+                </select>
+                <input type="text" value="12.345.678/0001-90" placeholder="Digite a chave Pix">
+                <button class="pix-key-remove" onclick="removePix(this)"><i class="fa fa-times"></i></button>
+              </div>
+              <div class="pix-key-row">
+                <select>
+                  <option>CPF</option>
+                  <option>CNPJ</option>
+                  <option>E-mail</option>
+                  <option>Telefone</option>
+                  <option>Aleatória</option>
+                </select>
+                <input type="text" value="modafeminina@gmail.com" placeholder="Digite a chave Pix">
+                <button class="pix-key-remove" onclick="removePix(this)"><i class="fa fa-times"></i></button>
+              </div>
+            </div>
+            <button class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="addPixKey()"><i class="fa fa-plus"></i> Adicionar Chave Pix</button>
+          </div>
+
+          <div class="cfg-section">
+            <div class="cfg-section-title"><i class="fa fa-credit-card"></i> Gateway de Pagamento</div>
+            <div class="gateway-grid" id="gw-grid">
+              <label class="gw-card sel" onclick="selectGW(this)">
+                <input type="radio" name="gateway" checked>
+                <div class="gw-icon">💳</div>
+                <div class="gw-name">Mercado Pago</div>
+                <span class="gw-badge paid">Popular</span>
+              </label>
+              <label class="gw-card" onclick="selectGW(this)">
+                <input type="radio" name="gateway">
+                <div class="gw-icon">⚡</div>
+                <div class="gw-name">Asaas</div>
+                <span class="gw-badge free">BR</span>
+              </label>
+              <label class="gw-card" onclick="selectGW(this)">
+                <input type="radio" name="gateway">
+                <div class="gw-icon">🌐</div>
+                <div class="gw-name">Stripe</div>
+                <span class="gw-badge paid">Global</span>
+              </label>
+              <label class="gw-card" onclick="selectGW(this)">
+                <input type="radio" name="gateway">
+                <div class="gw-icon">📲</div>
+                <div class="gw-name">Manual</div>
+                <span class="gw-badge free">Grátis</span>
+              </label>
+            </div>
+            <div style="margin-top:14px;padding:14px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:2px">
+              <div class="form-row">
+                <div class="form-group" style="margin-bottom:0">
+                  <label class="form-label">Access Token (MP) <span class="req">*</span></label>
+                  <div class="form-control-copy">
+                    <input class="form-control" type="password" id="mp-token" value="APP_USR-xxxxxxxxxxxx" placeholder="Cole seu token do Mercado Pago">
+                    <button class="btn-copy" onclick="toggleVisible('mp-token',this)"><i class="fa fa-eye"></i></button>
+                  </div>
+                </div>
+                <div class="form-group" style="margin-bottom:0">
+                  <label class="form-label">Webhook de confirmação</label>
+                  <div class="form-control-copy">
+                    <input class="form-control" type="text" id="mp-webhook" value="https://pdv.seudominio.com/api/concierge/confirmar_pagamento.php" readonly style="font-size:11px;font-family:monospace">
+                    <button class="btn-copy" onclick="copyText('mp-webhook')"><i class="fa fa-copy"></i></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="cfg-section">
+            <div class="cfg-section-title"><i class="fa fa-clock-o"></i> Configurações do QR Code</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Validade do QR Code</label>
+                <select class="form-control">
+                  <option>15 minutos</option>
+                  <option selected>30 minutos</option>
+                  <option>1 hora</option>
+                  <option>2 horas</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Reenviar cobrança após</label>
+                <select class="form-control">
+                  <option>Nunca</option>
+                  <option selected>30 minutos sem pagamento</option>
+                  <option>1 hora</option>
+                  <option>2 horas</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Mensagem após confirmação do Pix</label>
+              <textarea class="form-control" rows="2">✅ Pagamento confirmado! Seu pedido entrou em preparação. Em breve você receberá atualizações sobre a entrega. Obrigada pela compra! 🛍️</textarea>
+            </div>
+          </div>
+
+        </div><!-- /tab-pix -->
+
+        <!-- ════ TAB: LIMITES ════ -->
+        <div class="tab-panel" id="tab-limites">
+
+          <div class="cfg-section">
+            <div class="cfg-section-title"><i class="fa fa-tachometer"></i> Limites de Atendimento</div>
+            <div class="setting-row">
+              <div class="sr-info">
+                <div class="sr-label">Conversas simultâneas</div>
+                <div class="sr-desc">Máx. de clientes sendo atendidos ao mesmo tempo</div>
+              </div>
+              <div class="sr-ctrl">
+                <input class="form-control" type="number" value="20" min="1" max="500" style="width:80px;text-align:center">
+                <span class="form-hint" style="white-space:nowrap">0 = ilimitado</span>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="sr-info">
+                <div class="sr-label">Produtos por pedido</div>
+                <div class="sr-desc">Limite de itens que a IA permite em um único pedido</div>
+              </div>
+              <div class="sr-ctrl">
+                <input class="form-control" type="number" value="10" min="1" max="50" style="width:80px;text-align:center">
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="sr-info">
+                <div class="sr-label">Tentativas de pagamento</div>
+                <div class="sr-desc">Quantas vezes a IA reenvia o link antes de encerrar</div>
+              </div>
+              <div class="sr-ctrl">
+                <input class="form-control" type="number" value="3" min="1" max="10" style="width:80px;text-align:center">
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="sr-info">
+                <div class="sr-label">Timeout de inatividade</div>
+                <div class="sr-desc">Encerra a conversa após este período sem resposta do cliente</div>
+              </div>
+              <div class="sr-ctrl">
+                <select class="form-control" style="width:160px">
+                  <option>5 minutos</option>
+                  <option>10 minutos</option>
+                  <option selected>20 minutos</option>
+                  <option>30 minutos</option>
+                  <option>1 hora</option>
+                </select>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="sr-info">
+                <div class="sr-label">Limite diário de conversas</div>
+                <div class="sr-desc">Teto máximo de atendimentos por dia (0 = sem limite)</div>
+              </div>
+              <div class="sr-ctrl">
+                <input class="form-control" type="number" value="0" min="0" style="width:80px;text-align:center">
+                <span class="form-hint" style="white-space:nowrap">0 = ilimitado</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="cfg-section">
+            <div class="cfg-section-title"><i class="fa fa-bell-o"></i> Notificações do Lojista</div>
+            <div class="setting-row">
+              <div class="sr-info">
+                <div class="sr-label">Alerta de novo pedido</div>
+                <div class="sr-desc">Notifica quando um pedido é criado via WhatsApp</div>
+              </div>
+              <div class="sr-ctrl">
+                <div class="toggle-track on" onclick="toggleSetting(this)"><div class="toggle-thumb"></div></div>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="sr-info">
+                <div class="sr-label">Alerta de pagamento confirmado</div>
+                <div class="sr-desc">Notifica ao receber confirmação do gateway</div>
+              </div>
+              <div class="sr-ctrl">
+                <div class="toggle-track on" onclick="toggleSetting(this)"><div class="toggle-thumb"></div></div>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="sr-info">
+                <div class="sr-label">Alerta de estoque crítico</div>
+                <div class="sr-desc">Avisa quando um SKU cai abaixo de 3 unidades</div>
+              </div>
+              <div class="sr-ctrl">
+                <div class="toggle-track on" onclick="toggleSetting(this)"><div class="toggle-thumb"></div></div>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="sr-info">
+                <div class="sr-label">Alerta de uso de chamadas IA</div>
+                <div class="sr-desc">Avisa ao atingir 80% do limite mensal de chamadas</div>
+              </div>
+              <div class="sr-ctrl">
+                <div class="toggle-track on" onclick="toggleSetting(this)"><div class="toggle-thumb"></div></div>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="sr-info">
+                <div class="sr-label">Relatório semanal por e-mail</div>
+                <div class="sr-desc">Resumo de conversas, vendas e performance toda segunda-feira</div>
+              </div>
+              <div class="sr-ctrl">
+                <div class="toggle-track" onclick="toggleSetting(this)"><div class="toggle-thumb"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <div style="padding:14px;background:#fff8f0;border:1px solid #fed7aa;border-radius:2px;display:flex;gap:12px;align-items:flex-start">
+            <i class="fa fa-exclamation-triangle" style="color:#d97706;font-size:16px;margin-top:2px;flex-shrink:0"></i>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:#92400e">Plano Profissional — 500 chamadas/mês</div>
+              <div style="font-size:12px;color:#b45309;margin-top:3px">Você utilizou <strong>361 chamadas</strong> neste mês (72%). Ao atingir o limite, o atendimento automático será pausado até o próximo ciclo.</div>
+            </div>
+            <button class="btn btn-sm" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;font-weight:700;flex-shrink:0;margin-left:auto"><i class="fa fa-arrow-circle-up"></i> Fazer Upgrade</button>
+          </div>
+
+        </div><!-- /tab-limites -->
+
+      </div><!-- /box -->
+
+    </div><!-- /ct -->
+  </div><!-- /main -->
+</div><!-- /shell -->
+
+<!-- ════════ TOAST ════════ -->
+<div class="toast" id="toast"><i class="fa fa-magic"></i> <span id="toast-msg">Operação concluída</span></div>
+
+<script>
+// ─── Toast ───
+let _tt;
+function showToast(msg){const t=document.getElementById('toast');document.getElementById('toast-msg').textContent=msg;t.classList.add('show');clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('show'),2800)}
+
+// ─── Tabs ───
+function switchTab(name,btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('act'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('act'));
+  document.getElementById('tab-'+name).classList.add('act');
+  btn.classList.add('act');
+}
+
+// ─── Toggle main IA ───
+function toggleMainIA(t){
+  t.classList.toggle('on');
+  t.classList.toggle('on-white');
+  const hero=document.getElementById('ai-hero');
+  const sub=document.getElementById('ai-hero-sub');
+  const status=document.getElementById('ai-hero-status');
+  const isOn=t.classList.contains('on-white');
+  hero.className='ai-hero '+(isOn?'on':'off');
+  sub.textContent=isOn?'A IA está ativa e atendendo clientes via WhatsApp agora mesmo':'O atendimento automático está pausado. Ative para começar a atender.';
+  status.textContent=isOn?'● ATIVO':'○ INATIVO';
+  showToast(isOn?'Concierge IA ativado com sucesso!':'Concierge IA desativado.');
+}
+
+// ─── Toggle setting ───
+function toggleSetting(t){t.classList.toggle('on');showToast('Configuração atualizada.')}
+
+// ─── Toggle day ───
+function toggleDay(t){
+  t.classList.toggle('on');
+  const row=t.closest('.schedule-row');
+  const isOn=t.classList.contains('on');
+  t.querySelector('.toggle-thumb').style.left=isOn?'18px':'2px';
+  if(isOn){
+    row.classList.remove('inactive');
+    const closed=row.querySelector('.sched-closed');
+    if(closed){
+      const frag=`<input class="sched-time" type="time" value="09:00"><span class="sched-sep">às</span><input class="sched-time" type="time" value="18:00">`;
+      closed.outerHTML=frag;
+    }
+  } else {
+    row.classList.add('inactive');
+    const times=row.querySelectorAll('.sched-time,.sched-sep');
+    if(times.length){
+      times.forEach(e=>e.remove());
+      const grid=row.querySelector('.toggle-track');
+      const span=document.createElement('span');
+      span.className='sched-closed';
+      span.textContent='Fechado';
+      row.appendChild(span);
+    }
+  }
+}
+
+// ─── Char count ───
+function countChars(el,id){document.getElementById(id).textContent=el.value.length}
+document.addEventListener('DOMContentLoaded',()=>{
+  countChars(document.getElementById('welcome-msg'),'wc');
+  countChars(document.getElementById('system-prompt'),'spc');
+});
+
+// ─── Pix key ───
+function addPixKey(){
+  const list=document.getElementById('pix-list');
+  const row=document.createElement('div');
+  row.className='pix-key-row';
+  row.innerHTML=`<select><option>Aleatória</option><option>CPF</option><option>CNPJ</option><option>E-mail</option><option>Telefone</option></select><input type="text" placeholder="Digite a chave Pix"><button class="pix-key-remove" onclick="removePix(this)"><i class="fa fa-times"></i></button>`;
+  list.appendChild(row);
+  row.querySelector('input').focus();
+}
+function removePix(btn){
+  const list=document.getElementById('pix-list');
+  if(list.children.length>1){btn.closest('.pix-key-row').remove();showToast('Chave Pix removida.')}
+  else showToast('É necessário manter ao menos uma chave Pix.')
+}
+
+// ─── Gateway select ───
+function selectGW(label){document.querySelectorAll('.gw-card').forEach(c=>c.classList.remove('sel'));label.classList.add('sel')}
+
+// ─── Clipboard ───
+function copyText(id){
+  const el=document.getElementById(id);
+  navigator.clipboard.writeText(el.value).then(()=>showToast('Copiado para a área de transferência!'));
+}
+function toggleVisible(id,btn){
+  const el=document.getElementById(id);
+  const show=el.type==='password';
+  el.type=show?'text':'password';
+  btn.innerHTML=show?'<i class="fa fa-eye-slash"></i>':'<i class="fa fa-eye"></i>';
+}
+
+// ─── Salvar ───
+function salvarConfig(){showToast('Configurações salvas com sucesso!')}
+
+// ─── Sidebar nav ───
+document.querySelectorAll('.mi,.mi-pro').forEach(m=>m.addEventListener('click',function(){document.querySelectorAll('.mi.act,.mi-pro.act').forEach(x=>x.classList.remove('act'));this.classList.add('act')}));
+</script>
+</body>
+</html>

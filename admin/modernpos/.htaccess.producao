@@ -1,0 +1,56 @@
+Options -Indexes
+AddType application/x-font-ttf .ttf
+
+# ==============================
+# URLs amigáveis para o painel da Conta
+# VERSÃO PRODUÇÃO (pdv.easysaascloud.com)
+# ==============================
+
+RewriteEngine On
+RewriteBase /
+
+# Permitir acesso direto a arquivos PHP existentes na pasta /conta/
+RewriteRule ^conta/.*\.php$ - [L]
+
+# Não reescreve se for arquivo ou diretório físico
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# ==============================
+# ROTAS DO PAINEL /conta/
+# ==============================
+
+# Painel da conta (visão geral)
+# /conta -> store_select.php?section=overview
+RewriteRule ^conta/?$ store_select.php?section=overview [L,QSA]
+
+# Gerenciar lojas
+# /conta/lojas -> store_select.php?section=stores
+RewriteRule ^conta/lojas/?$ store_select.php?section=stores [L,QSA]
+
+# Configurações da loja (UI)
+# /conta/lojas/configuracoes -> store_select.php?section=store_settings
+RewriteRule ^conta/lojas/configuracoes/?$ store_select.php?section=store_settings [L,QSA]
+
+# Assinatura & Planos
+# /conta/planos -> section=plans
+RewriteRule ^conta/planos/?$ store_select.php?section=plans&tab=plano_atual [L,QSA]
+# /conta/planos/historico, /conta/planos/upgrade, etc.
+RewriteRule ^conta/planos/([^/]+)/?$ store_select.php?section=plans&tab=$1 [L,QSA]
+
+# Usuários da conta
+# /conta/usuarios -> section=users
+RewriteRule ^conta/usuarios/?$ store_select.php?section=users&tab=usuarios [L,QSA]
+RewriteRule ^conta/usuarios/([^/]+)/?$ store_select.php?section=users&tab=$1 [L,QSA]
+
+# Relatórios consolidados
+# /conta/relatorios -> section=reports
+RewriteRule ^conta/relatorios/?$ store_select.php?section=reports&tab=vendas [L,QSA]
+RewriteRule ^conta/relatorios/([^/]+)/?$ store_select.php?section=reports&tab=$1 [L,QSA]
+
+# Suporte (Tickets)
+# /conta/suporte -> section=support
+RewriteRule ^conta/suporte/?$ store_select.php?section=support [L,QSA]
+# /conta/suporte/ticket?id=X -> section=support_ticket
+RewriteRule ^conta/suporte/ticket/?$ store_select.php?section=support_ticket [L,QSA]

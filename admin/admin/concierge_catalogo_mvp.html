@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Catálogo IA · Concierge IA · ModernPOS</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Source Sans Pro','Helvetica Neue',sans-serif;font-size:14px;background:#ecf0f5;color:#333}
+.shell{display:flex;height:100vh;overflow:hidden}
+.sb{width:230px;background:#222d32;flex-shrink:0;display:flex;flex-direction:column}
+.sb-logo{height:50px;background:#2c3b41;display:flex;align-items:center;padding:0 15px;gap:10px;border-bottom:1px solid #1a2226;flex-shrink:0}
+.sb-logo-text{font-size:16px;font-weight:700;color:#fff}
+.sb-logo-badge{background:#6d28d9;color:#fff;font-size:9px;font-weight:700;padding:2px 5px;border-radius:2px}
+.sb-user{background:#1a2226;padding:10px 15px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.sb-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#6d28d9,#a78bfa);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px}
+.sb-user-name{color:#fff;font-weight:600;font-size:13px}
+.sb-user-role{color:#8aa4af;font-size:11px}
+.sb-scroll{flex:1;overflow-y:auto}
+.sb-scroll::-webkit-scrollbar{width:4px}
+.sb-scroll::-webkit-scrollbar-thumb{background:#3d4e54;border-radius:2px}
+.sb-hdr{font-size:10px;font-weight:700;color:#4b646f;text-transform:uppercase;letter-spacing:.5px;padding:14px 15px 5px}
+.mi{display:flex;align-items:center;gap:10px;padding:9px 12px 9px 15px;color:#b8c7ce;border-left:3px solid transparent;cursor:pointer;font-size:13.5px}
+.mi:hover,.mi.act{background:#1e282c;color:#fff;border-left-color:#6d28d9}
+.mi i{width:16px;text-align:center;font-size:13px}
+.sb-pro{background:linear-gradient(180deg,#160a2e,#1a0f35);border-top:1px solid #2d1b5e;flex-shrink:0}
+.sb-pro-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 15px 5px}
+.sb-pro-label{font-size:10px;font-weight:700;color:#7c4aed;text-transform:uppercase}
+.pro-badge{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px}
+.mi-pro{display:flex;align-items:center;gap:10px;padding:9px 12px 9px 15px;color:#9f6ae3;border-left:3px solid transparent;cursor:pointer;font-size:13px}
+.mi-pro:hover,.mi-pro.act{background:rgba(109,40,217,.2);color:#ddd6fe;border-left-color:#a78bfa}
+.mi-pro i{width:16px;text-align:center;font-size:12px}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.tb{height:50px;background:#222d32;display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0;border-bottom:1px solid #1a2226}
+.tb-spacer{flex:1}
+.tb-ai-status{display:flex;align-items:center;gap:6px;background:rgba(109,40,217,.15);border:1px solid rgba(109,40,217,.35);border-radius:20px;padding:4px 10px}
+.tb-ai-dot{width:8px;height:8px;border-radius:50%;background:#a78bfa;animation:blink 1.4s infinite}
+.tb-ai-text{color:#c4b5fd;font-size:11px;font-weight:600}
+@keyframes blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.7)}}
+.tb-icon{width:34px;height:34px;display:flex;align-items:center;justify-content:center;color:#b8c7ce;font-size:16px;cursor:pointer;border-radius:2px;position:relative}
+.tb-icon:hover{color:#fff;background:#1e282c}
+.tb-user{display:flex;align-items:center;gap:8px;padding:4px 8px;border-radius:2px;cursor:pointer}
+.tb-user-av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#6d28d9,#a78bfa);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:11px}
+.tb-user-name{color:#b8c7ce;font-size:12px;font-weight:600}
+.ct{flex:1;padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
+.ct::-webkit-scrollbar{width:6px}
+.ct::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:3px}
+.ch{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;flex-shrink:0}
+.ch-left h1{font-size:20px;font-weight:700;color:#333;line-height:1}
+.ch-left .breadcrumb{display:flex;align-items:center;gap:6px;margin-top:3px;font-size:12px;color:#9ca3af}
+.ch-left .breadcrumb span{color:#6d28d9;font-weight:600}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:2px;font-size:13px;font-weight:600;border:none;cursor:pointer}
+.btn-primary{background:linear-gradient(135deg,#6d28d9,#7c3aed);color:#fff;box-shadow:0 2px 8px rgba(109,40,217,.35)}
+.btn-primary:hover{transform:translateY(-1px)}
+.btn-secondary{background:#fff;border:1px solid #d1d5db;color:#374151}
+.btn-secondary:hover{border-color:#a78bfa;color:#6d28d9}
+.btn-sm{padding:5px 10px;font-size:12px}
+.filter-bar{background:#fff;border:1px solid #e5e7eb;border-radius:2px;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.fb-label{font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase}
+.fb-chips{display:flex;gap:6px;flex-wrap:wrap}
+.fb-chip{padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid #d1d5db;color:#6b7280;cursor:pointer;background:#fff}
+.fb-chip:hover{border-color:#a78bfa;color:#6d28d9;background:#f5f3ff}
+.fb-chip.on{background:#ede9fe;border-color:#c4b5fd;color:#4c1d95}
+.fb-spacer{flex:1}
+.fb-search{display:flex;align-items:center;gap:7px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:2px;padding:5px 10px}
+.fb-search:focus-within{border-color:#7c3aed;box-shadow:0 0 0 2px rgba(124,58,237,.12)}
+.fb-search i{color:#9ca3af;font-size:13px}
+.fb-search input{border:none;background:transparent;outline:none;font-size:13px;color:#374151;width:180px}
+.box{background:#fff;border:1px solid #e5e7eb;border-radius:2px;overflow:hidden}
+.bh{border-top:3px solid #6d28d9;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f3f4f6}
+.bt{font-size:14px;font-weight:700;color:#374151;display:flex;align-items:center;gap:8px}
+.bt i{color:#6d28d9}
+.bt .count{background:#ede9fe;color:#4c1d95;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px}
+table{width:100%;border-collapse:collapse}
+thead th{background:#f9fafb;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;padding:10px 14px;text-align:left;border-bottom:1px solid #e5e7eb}
+tbody tr{border-bottom:1px solid #f3f4f6}
+tbody tr:hover{background:#faf5ff}
+td{padding:10px 14px;vertical-align:middle}
+.td-foto .thumb{width:48px;height:48px;border-radius:2px;object-fit:cover;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-size:18px;color:#c4b5fd;border:1px solid #e5e7eb}
+.td-produto .pname{font-weight:700;color:#111827;font-size:13.5px}
+.td-produto .pid{font-size:11px;color:#9ca3af;margin-top:2px}
+.td-produto .pcat{display:inline-block;background:#f3f4f6;color:#6b7280;font-size:10px;padding:2px 6px;border-radius:10px;margin-top:3px;font-weight:600}
+.swatches{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:4px}
+.swatch{width:16px;height:16px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.15);flex-shrink:0}
+.vinfo{font-size:11px;color:#6b7280;font-weight:600}
+.demand-num{font-size:20px;font-weight:900;color:#4c1d95;line-height:1}
+.demand-num.hot{color:#7c3aed}
+.demand-sub{font-size:10px;color:#9ca3af;font-weight:600;margin-top:1px}
+.demand-bar{height:5px;background:#ede9fe;border-radius:3px;margin-top:6px;overflow:hidden}
+.demand-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#a78bfa);border-radius:3px}
+.demand-fill.hot{background:linear-gradient(90deg,#4c1d95,#7c3aed);box-shadow:0 0 6px rgba(109,40,217,.4)}
+.stock-bar{height:5px;background:#fef3c7;border-radius:3px;margin-top:4px;overflow:hidden}
+.stock-fill{height:100%;background:#d97706;border-radius:3px}
+.toggle-track{width:36px;height:20px;border-radius:20px;background:#e5e7eb;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
+.toggle-track.on{background:linear-gradient(135deg,#6d28d9,#7c3aed)}
+.toggle-thumb{width:16px;height:16px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.toggle-track.on .toggle-thumb{left:18px}
+.status-lbl{font-size:11px;font-weight:700;color:#6b7280}
+.status-lbl.on{color:#059669}
+.bf{background:#f9fafb;border-top:1px solid #f3f4f6;padding:10px 16px;display:flex;align-items:center;justify-content:space-between}
+.bf-info{font-size:12px;color:#9ca3af;font-weight:600}
+.pagination{display:flex;gap:4px}
+.pg-btn{width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:2px;border:1px solid #d1d5db;background:#fff;color:#6b7280;font-size:12px;font-weight:600;cursor:pointer}
+.pg-btn:hover{border-color:#a78bfa;color:#6d28d9}
+.pg-btn.act{background:linear-gradient(135deg,#6d28d9,#7c3aed);border-color:#6d28d9;color:#fff}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100;display:flex;align-items:center;justify-content:center}
+.overlay.hide{display:none}
+.modal{background:#fff;border-radius:2px;box-shadow:0 10px 40px rgba(0,0,0,.3);width:740px;max-width:calc(100vw - 32px);max-height:90vh;display:flex;flex-direction:column;overflow:auto}
+.mh{background:linear-gradient(135deg,#4c1d95,#7c3aed);padding:20px;display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0}
+.mh-info .mt{font-size:16px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px}
+.mh-info .ms{font-size:12px;color:#c4b5fd;margin-top:3px}
+.mh-close{background:none;border:none;color:#c4b5fd;font-size:18px;cursor:pointer;line-height:1}
+.mh-close:hover{color:#fff}
+.mb{padding:18px;flex:1}
+.mb::-webkit-scrollbar{width:4px}
+.mb::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:2px}
+.mf{background:#faf5ff;border-top:1px solid #ede9fe;padding:12px 18px;display:flex;justify-content:flex-end;gap:8px;flex-shrink:0}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-group{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+.form-group:last-child{margin-bottom:0}
+.form-label{font-size:12px;font-weight:600;color:#555;display:flex;align-items:center;gap:4px}
+.form-label .req{color:#f9264c}
+.form-control{border:1px solid #d1d5db;border-radius:2px;padding:8px 10px;font-size:13.5px;color:#374151;background:#fff;outline:none;width:100%}
+.form-control:focus{border-color:#7c3aed;box-shadow:0 0 0 2px rgba(124,58,237,.12)}
+.tags-input{border:1px solid #d1d5db;border-radius:2px;padding:6px 8px;display:flex;flex-wrap:wrap;gap:5px;background:#fff;cursor:text}
+.tags-input:focus-within{border-color:#7c3aed;box-shadow:0 0 0 2px rgba(124,58,237,.12)}
+.tag-chip{background:#ede9fe;color:#4c1d95;border:1px solid #c4b5fd;border-radius:20px;padding:2px 8px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px}
+.tag-chip button{background:none;border:none;color:#7c3aed;font-size:14px;cursor:pointer;padding:0}
+.tags-input input{border:none;outline:none;font-size:13px;color:#374151;min-width:80px;flex:1;background:transparent;padding:2px 0}
+.variant-card{border:1px solid #e5e7eb;border-radius:2px;margin-bottom:10px}
+.variant-header{background:#f9fafb;padding:10px 14px;display:flex;align-items:center;gap:10px;cursor:pointer}
+.variant-header:hover{background:#f5f3ff}
+.vc-swatch{width:22px;height:22px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1.5px rgba(0,0,0,.2)}
+.vc-name{font-weight:700;font-size:13px;color:#374151;flex:1}
+.vc-badge{background:#ede9fe;color:#4c1d95;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px}
+.vc-toggle{color:#9ca3af;transition:transform .2s}
+.vc-toggle.open{transform:rotate(-90deg)}
+.variant-body{padding:14px;border-top:1px solid #f3f4f6;display:none}
+.variant-body.open{display:block}
+.size-grid{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.sz-pill{padding:5px 10px;border-radius:2px;border:1.5px solid #d1d5db;font-size:12px;font-weight:700;color:#6b7280;cursor:pointer;background:#fff}
+.sz-pill.on{background:#ede9fe;border-color:#7c3aed;color:#4c1d95}
+.sz-pill:hover{border-color:#a78bfa;color:#6d28d9}
+.upload-area{border:2px dashed #d1d5db;border-radius:2px;padding:14px;text-align:center;cursor:pointer;transition:all .15s}
+.upload-area:hover{border-color:#a78bfa;background:#faf5ff}
+.upload-area i{font-size:22px;color:#c4b5fd;margin-bottom:6px;display:block}
+.upload-area span{font-size:12px;color:#9ca3af}
+.toast{position:fixed;bottom:20px;right:20px;background:#222d32;color:#fff;border-left:3px solid #6d28d9;padding:10px 16px;border-radius:2px;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;z-index:9999;transform:translateX(120%);transition:transform .3s}
+.toast.show{transform:translateX(0)}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sb">
+    <div class="sb-logo">
+      <i class="fa fa-bolt" style="color:#a78bfa;font-size:18px"></i>
+      <span class="sb-logo-text">ModernPOS</span>
+      <span class="sb-logo-badge">SaaS</span>
+    </div>
+    <div class="sb-user">
+      <div class="sb-avatar">M</div>
+      <div>
+        <div class="sb-user-name">Moda Feminina</div>
+        <div class="sb-user-role"><i class="fa fa-circle" style="font-size:6px;color:#00a65a"></i> Gerente</div>
+      </div>
+    </div>
+    <div class="sb-scroll">
+      <div class="sb-hdr">Menu Principal</div>
+      <div class="mi"><i class="fa fa-th-large"></i> Dashboard</div>
+      <div class="mi"><i class="fa fa-shopping-cart"></i> Vendas</div>
+      <div class="mi"><i class="fa fa-tag"></i> Produtos</div>
+      <div class="mi"><i class="fa fa-cog"></i> Configurações</div>
+      <div class="sb-pro">
+        <div class="sb-pro-hdr">
+          <span class="sb-pro-label"><i class="fa fa-magic" style="margin-right:4px"></i>Concierge IA</span>
+          <span class="pro-badge">PRO</span>
+        </div>
+        <div class="mi-pro act"><i class="fa fa-tag"></i> Catálogo IA</div>
+        <div class="mi-pro"><i class="fa fa-trello"></i> Pedidos</div>
+        <div class="mi-pro"><i class="fa fa-cog"></i> Configurações</div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="tb">
+      <div style="color:#b8c7ce;font-size:18px;cursor:pointer"><i class="fa fa-bars"></i></div>
+      <div class="tb-spacer"></div>
+      <div class="tb-ai-status">
+        <div class="tb-ai-dot"></div>
+        <span class="tb-ai-text">IA Online</span>
+      </div>
+      <div style="width:1px;height:20px;background:#3d4e54"></div>
+      <div class="tb-icon"><i class="fa fa-bell-o"></i></div>
+      <div class="tb-user">
+        <div class="tb-user-av">M</div>
+        <span class="tb-user-name">Moda</span>
+      </div>
+    </div>
+
+    <div class="ct">
+      <div class="ch">
+        <div class="ch-left">
+          <h1><i class="fa fa-tag" style="color:#6d28d9;margin-right:8px"></i>Catálogo IA</h1>
+          <div class="breadcrumb">
+            <i class="fa fa-home"></i> Home <i class="fa fa-angle-right"></i> <span>Catálogo IA</span>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="abrirModal()">
+          <i class="fa fa-plus"></i> Novo Modelo
+        </button>
+      </div>
+
+      <div class="filter-bar">
+        <span class="fb-label"><i class="fa fa-filter"></i> Filtrar</span>
+        <div class="fb-chips">
+          <div class="fb-chip on" onclick="filtrar(this)">Todos</div>
+          <div class="fb-chip" onclick="filtrar(this)"><i class="fa fa-check-circle" style="color:#059669"></i> Ativos</div>
+          <div class="fb-chip" onclick="filtrar(this)">🔥 Hot</div>
+        </div>
+        <div class="fb-spacer"></div>
+        <div class="fb-search">
+          <i class="fa fa-search"></i>
+          <input type="text" placeholder="Buscar modelo...">
+        </div>
+      </div>
+
+      <div class="box">
+        <div class="bh">
+          <span class="bt"><i class="fa fa-tag"></i> Modelos <span class="count">47</span></span>
+          <div>
+            <button class="btn btn-secondary btn-sm"><i class="fa fa-refresh"></i> Atualizar</button>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Foto</th>
+              <th>Produto</th>
+              <th>Variantes</th>
+              <th style="color:#6d28d9">Demanda IA</th>
+              <th style="color:#d97706">Estoque</th>
+              <th>Status</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="td-foto"><div class="thumb"><i class="fa fa-camera" style="color:#f9a8d4"></i></div></td>
+              <td class="td-produto">
+                <div class="pname">Vestido Midi Floral</div>
+                <div class="pid">#MOD-001</div>
+                <span class="pcat">Vestidos</span>
+              </td>
+              <td><div class="swatches"><span class="swatch" style="background:#f9a8d4"></span><span class="swatch" style="background:#111827"></span><span class="swatch" style="background:#f9fafb;border:1.5px solid #d1d5db"></span></div><div class="vinfo">3 cores · 5 tamanhos · 14 SKUs</div></td>
+              <td>
+                <div class="demand-num hot">312</div>
+                <div class="demand-sub">Solicitações</div>
+                <div class="demand-bar"><div class="demand-fill hot" style="width:100%"></div></div>
+              </td>
+              <td>
+                <div style="font-size:16px;font-weight:900;color:#d97706">72</div>
+                <div class="demand-sub">unidades</div>
+                <div class="stock-bar"><div class="stock-fill" style="width:72%"></div></div>
+              </td>
+              <td>
+                <div style="display:flex;align-items:center;gap:7px">
+                  <div class="toggle-track on">
+                    <div class="toggle-thumb"></div>
+                  </div>
+                  <span class="status-lbl on">Ativo</span>
+                </div>
+              </td>
+              <td><button class="btn btn-secondary btn-sm" onclick="showToast('Editar...')"><i class="fa fa-pencil"></i> Editar</button></td>
+            </tr>
+            <tr>
+              <td class="td-foto"><div class="thumb" style="background:#eff6ff"><i class="fa fa-camera" style="color:#93c5fd"></i></div></td>
+              <td class="td-produto">
+                <div class="pname">Blusa Cropped Ribana</div>
+                <div class="pid">#MOD-002</div>
+                <span class="pcat">Blusas</span>
+              </td>
+              <td><div class="swatches"><span class="swatch" style="background:#fff;border:1.5px solid #d1d5db"></span><span class="swatch" style="background:#111827"></span><span class="swatch" style="background:#d6b896"></span><span class="swatch" style="background:#fda4af"></span></div><div class="vinfo">4 cores · 3 tamanhos · 12 SKUs</div></td>
+              <td>
+                <div class="demand-num hot">187</div>
+                <div class="demand-sub">Solicitações</div>
+                <div class="demand-bar"><div class="demand-fill hot" style="width:60%"></div></div>
+              </td>
+              <td>
+                <div style="font-size:16px;font-weight:900;color:#d97706">34</div>
+                <div class="demand-sub">unidades</div>
+                <div class="stock-bar"><div class="stock-fill" style="width:34%"></div></div>
+              </td>
+              <td>
+                <div style="display:flex;align-items:center;gap:7px">
+                  <div class="toggle-track on">
+                    <div class="toggle-thumb"></div>
+                  </div>
+                  <span class="status-lbl on">Ativo</span>
+                </div>
+              </td>
+              <td><button class="btn btn-secondary btn-sm" onclick="showToast('Editar...')"><i class="fa fa-pencil"></i> Editar</button></td>
+            </tr>
+            <tr>
+              <td class="td-foto"><div class="thumb" style="background:#fefce8"><i class="fa fa-camera" style="color:#fde047"></i></div></td>
+              <td class="td-produto">
+                <div class="pname">Calça Wide Leg Premium</div>
+                <div class="pid">#MOD-003</div>
+                <span class="pcat">Calças</span>
+              </td>
+              <td><div class="swatches"><span class="swatch" style="background:#92400e"></span><span class="swatch" style="background:#111827"></span></div><div class="vinfo">2 cores · 6 tamanhos · 12 SKUs</div></td>
+              <td>
+                <div class="demand-num">143</div>
+                <div class="demand-sub">Solicitações</div>
+                <div class="demand-bar"><div class="demand-fill" style="width:46%"></div></div>
+              </td>
+              <td>
+                <div style="font-size:16px;font-weight:900;color:#d97706">5</div>
+                <div class="demand-sub">unidades</div>
+                <div class="stock-bar"><div class="stock-fill" style="width:5%"></div></div>
+              </td>
+              <td>
+                <div style="display:flex;align-items:center;gap:7px">
+                  <div class="toggle-track on">
+                    <div class="toggle-thumb"></div>
+                  </div>
+                  <span class="status-lbl on">Ativo</span>
+                </div>
+              </td>
+              <td><button class="btn btn-secondary btn-sm" onclick="showToast('Editar...')"><i class="fa fa-pencil"></i> Editar</button></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="bf">
+          <span class="bf-info">Exibindo 1–3 de 47 modelos</span>
+          <div class="pagination">
+            <div class="pg-btn"><i class="fa fa-chevron-left"></i></div>
+            <div class="pg-btn act">1</div>
+            <div class="pg-btn">2</div>
+            <div class="pg-btn">3</div>
+            <div class="pg-btn"><i class="fa fa-chevron-right"></i></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: NOVO MODELO -->
+<div class="overlay hide" id="overlay-modal">
+  <div class="modal">
+    <div class="mh">
+      <div class="mh-info">
+        <div class="mt"><i class="fa fa-tag"></i> Novo Modelo</div>
+        <div class="ms">Cadastre produto para Catálogo IA</div>
+      </div>
+      <button class="mh-close" onclick="fecharModal()"><i class="fa fa-times"></i></button>
+    </div>
+    <div class="mb">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Nome do Modelo <span class="req">*</span></label>
+          <input class="form-control" type="text" placeholder="Ex: Vestido Midi Floral">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Categoria <span class="req">*</span></label>
+          <select class="form-control">
+            <option>Vestidos</option>
+            <option>Blusas</option>
+            <option>Calças</option>
+            <option>Saias</option>
+            <option>Conjuntos</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descrição</label>
+        <textarea class="form-control" rows="2" placeholder="Descreva o modelo..."></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tags</label>
+        <div class="tags-input">
+          <span class="tag-chip">midi <button onclick="removeTag(this)">×</button></span>
+          <span class="tag-chip">feminino <button onclick="removeTag(this)">×</button></span>
+          <input type="text" placeholder="Adicionar tag..." onkeydown="addTag(event,this)">
+        </div>
+      </div>
+
+      <div style="margin-top:18px;padding-top:18px;border-top:1px solid #e5e7eb">
+        <div style="font-weight:700;color:#374151;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">
+          <span>Variantes por Cor</span>
+          <button class="btn btn-primary btn-sm" onclick="showToast('Cor adicionada!')"><i class="fa fa-plus"></i> Nova Cor</button>
+        </div>
+
+        <div class="variant-card">
+          <div class="variant-header" onclick="toggleVariant(this)">
+            <span class="vc-swatch" style="background:#f9a8d4"></span>
+            <span class="vc-name">Rosa</span>
+            <span class="vc-badge">4 tamanhos · R$ 89,90</span>
+            <i class="fa fa-angle-down vc-toggle open"></i>
+          </div>
+          <div class="variant-body open">
+            <div class="form-row" style="margin-bottom:12px">
+              <div class="form-group">
+                <label class="form-label">Preço <span class="req">*</span></label>
+                <input class="form-control" type="text" value="89,90">
+              </div>
+              <div class="form-group">
+                <label class="form-label">SKU</label>
+                <input class="form-control" type="text" placeholder="VESTmidi-RSA">
+              </div>
+            </div>
+            <label class="form-label" style="margin-bottom:8px">Tamanhos</label>
+            <div class="size-grid">
+              <div class="sz-pill on">PP</div>
+              <div class="sz-pill on">P</div>
+              <div class="sz-pill on">M</div>
+              <div class="sz-pill on">G</div>
+              <div class="sz-pill">GG</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="showToast('Modelo salvo!')">Salvar Modelo</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><i class="fa fa-magic"></i> <span id="toast-msg">OK</span></div>
+
+<script>
+function abrirModal(){document.getElementById('overlay-modal').classList.remove('hide')}
+function fecharModal(){document.getElementById('overlay-modal').classList.add('hide')}
+document.getElementById('overlay-modal').addEventListener('click',function(e){if(e.target===this)this.classList.add('hide')})
+function showToast(msg){const t=document.getElementById('toast');document.getElementById('toast-msg').textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800)}
+function filtrar(el){document.querySelectorAll('.fb-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on')}
+function toggleVariant(hdr){const body=hdr.nextElementSibling;const icon=hdr.querySelector('.vc-toggle');body.classList.toggle('open');icon.classList.toggle('open');body.style.display=body.classList.contains('open')?'block':'none'}
+function addTag(e,el){if(e.key==='Enter'&&el.value.trim()){const chip=document.createElement('span');chip.className='tag-chip';chip.innerHTML=el.value.trim()+' <button onclick="removeTag(this)">×</button>';el.parentNode.insertBefore(chip,el);el.value='';e.preventDefault()}}
+function removeTag(btn){btn.parentNode.remove()}
+document.querySelectorAll('.sz-pill').forEach(p=>p.addEventListener('click',function(){this.classList.toggle('on')}))
+document.querySelectorAll('.mi,.mi-pro').forEach(m=>m.addEventListener('click',function(){document.querySelectorAll('.mi.act,.mi-pro.act').forEach(x=>x.classList.remove('act'));this.classList.add('act')}))
+</script>
+</body>
+</html>

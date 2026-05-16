@@ -1,0 +1,81 @@
+/*
+ * store_create_modal.css
+ * Extra styling for the account (AdminLTE4/Bootstrap5) store creation flow.
+ */
+
+.mp-modal-header {
+  background: linear-gradient(135deg, #0d6efd, #084298);
+  color: #fff;
+}
+
+.mp-modal-icon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 .5rem 1rem rgba(0, 0, 0, 0.12);
+}
+
+.mp-modal-content {
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.mp-soft-card {
+  border-radius: .9rem;
+  background: rgba(248, 250, 252, 0.9);
+  border: 1px solid rgba(226, 232, 240, 1);
+}
+
+.mp-import-trigger {
+  border-radius: .9rem;
+  border: 1px dashed rgba(148, 163, 184, 1);
+  background: rgba(241, 245, 249, 0.65);
+  cursor: pointer;
+  transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+}
+
+.mp-import-trigger:hover {
+  background: rgba(255, 255, 255, 1);
+  transform: translateY(-1px);
+  box-shadow: 0 .75rem 1.25rem rgba(2, 6, 23, 0.08);
+}
+
+.mp-dropzone {
+  border-radius: .9rem;
+  border: 1px dashed rgba(148, 163, 184, 1);
+  background: rgba(241, 245, 249, 0.65);
+  cursor: pointer;
+  transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+}
+
+.mp-dropzone:hover {
+  background: rgba(255, 255, 255, 1);
+  transform: translateY(-1px);
+  box-shadow: 0 .75rem 1.25rem rgba(2, 6, 23, 0.08);
+}
+
+.mp-logo-preview {
+  width: 72px;
+  height: 72px;
+  border-radius: 1rem;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+}
+
+.mp-logo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Better list item look for products */
+.mp-product-list .list-group-item {
+  user-select: none;
+}

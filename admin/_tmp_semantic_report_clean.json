@@ -1,0 +1,885 @@
+﻿{
+    "tenant_id": 347,
+    "picked_exact_sku": "QA-VEST-ESTAMP-42",
+    "scenarios": [
+        {
+            "query": "vestido",
+            "tokens": [
+                "vestido"
+            ],
+            "color_terms": [],
+            "endpoint_http_code": 200,
+            "endpoint_error": "",
+            "endpoint_found": true,
+            "endpoint_top_products": [
+                {
+                    "id": 10,
+                    "name": "Vestido Indiano",
+                    "stock_qty": 3
+                },
+                {
+                    "id": 11,
+                    "name": "Vestido Com Mangas",
+                    "stock_qty": 5
+                },
+                {
+                    "id": 12,
+                    "name": "Vestido Fenda",
+                    "stock_qty": 1
+                },
+                {
+                    "id": 13,
+                    "name": "Vestido Malha",
+                    "stock_qty": 1
+                },
+                {
+                    "id": 16,
+                    "name": "Vestido Longo Estampado Ver├úo QA",
+                    "stock_qty": 5
+                }
+            ],
+            "score_top": [
+                {
+                    "model_id": 10,
+                    "name": "Vestido Indiano",
+                    "sku": "KQU-201",
+                    "demand_count": 0,
+                    "score": 55,
+                    "reasons": [
+                        "token 'vestido' em categoria (+12)",
+                        "token 'vestido' em tags (+10)",
+                        "token 'vestido' em nome (+8)",
+                        "query completa (+25)"
+                    ]
+                },
+                {
+                    "model_id": 11,
+                    "name": "Vestido Com Mangas",
+                    "sku": "PRP-595",
+                    "demand_count": 1,
+                    "score": 55,
+                    "reasons": [
+                        "token 'vestido' em categoria (+12)",
+                        "token 'vestido' em tags (+10)",
+                        "token 'vestido' em nome (+8)",
+                        "query completa (+25)"
+                    ]
+                },
+                {
+                    "model_id": 12,
+                    "name": "Vestido Fenda",
+                    "sku": "LSB-333",
+                    "demand_count": 1,
+                    "score": 55,
+                    "reasons": [
+                        "token 'vestido' em categoria (+12)",
+                        "token 'vestido' em tags (+10)",
+                        "token 'vestido' em nome (+8)",
+                        "query completa (+25)"
+                    ]
+                },
+                {
+                    "model_id": 13,
+                    "name": "Vestido Malha",
+                    "sku": "LCF-791",
+                    "demand_count": 1,
+                    "score": 55,
+                    "reasons": [
+                        "token 'vestido' em categoria (+12)",
+                        "token 'vestido' em tags (+10)",
+                        "token 'vestido' em nome (+8)",
+                        "query completa (+25)"
+                    ]
+                },
+                {
+                    "model_id": 16,
+                    "name": "Vestido Longo Estampado Ver├úo QA",
+                    "sku": "QA-VEST-ESTAMPA",
+                    "demand_count": 65,
+                    "score": 55,
+                    "reasons": [
+                        "token 'vestido' em categoria (+12)",
+                        "token 'vestido' em tags (+10)",
+                        "token 'vestido' em nome (+8)",
+                        "query completa (+25)"
+                    ]
+                }
+            ]
+        },
+        {
+            "query": "azul",
+            "tokens": [
+                "azul"
+            ],
+            "color_terms": [
+                "azul"
+            ],
+            "endpoint_http_code": 200,
+            "endpoint_error": "",
+            "endpoint_found": true,
+            "endpoint_top_products": [
+                {
+                    "id": 10,
+                    "name": "Vestido Indiano",
+                    "stock_qty": 2
+                },
+                {
+                    "id": 11,
+                    "name": "Vestido Com Mangas",
+                    "stock_qty": 1
+                },
+                {
+                    "id": 13,
+                    "name": "Vestido Malha",
+                    "stock_qty": 1
+                },
+                {
+                    "id": 14,
+                    "name": "Blusa Viscose Marinho QA",
+                    "stock_qty": 3
+                }
+            ],
+            "score_top": [
+                {
+                    "model_id": 10,
+                    "name": "Vestido Indiano",
+                    "sku": "KQU-201",
+                    "demand_count": 0,
+                    "score": 16,
+                    "reasons": [
+                        "cor normalizada 'azul' (+9)",
+                        "cor comercial 'azul' (+7)"
+                    ]
+                },
+                {
+                    "model_id": 11,
+                    "name": "Vestido Com Mangas",
+                    "sku": "PRP-595",
+                    "demand_count": 1,
+                    "score": 16,
+                    "reasons": [
+                        "cor normalizada 'azul' (+9)",
+                        "cor comercial 'azul' (+7)"
+                    ]
+                },
+                {
+                    "model_id": 13,
+                    "name": "Vestido Malha",
+                    "sku": "LCF-791",
+                    "demand_count": 1,
+                    "score": 16,
+                    "reasons": [
+                        "cor normalizada 'azul' (+9)",
+                        "cor comercial 'azul' (+7)"
+                    ]
+                },
+                {
+                    "model_id": 14,
+                    "name": "Blusa Viscose Marinho QA",
+                    "sku": "QA-BLUSA-MARINHO",
+                    "demand_count": 55,
+                    "score": 7,
+                    "reasons": [
+                        "cor comercial 'azul' (+7)"
+                    ]
+                }
+            ]
+        },
+        {
+            "query": "QA-VEST-ESTAMP-42",
+            "tokens": [
+                "qa",
+                "vest",
+                "estamp",
+                "42"
+            ],
+            "color_terms": [],
+            "endpoint_http_code": 200,
+            "endpoint_error": "",
+            "endpoint_found": true,
+            "endpoint_top_products": [
+                {
+                    "id": 16,
+                    "name": "Vestido Longo Estampado Ver├úo QA",
+                    "stock_qty": 5
+                },
+                {
+                    "id": 15,
+                    "name": "Conjunto Linho Areia QA",
+                    "stock_qty": 4
+                },
+                {
+                    "id": 10,
+                    "name": "Vestido Indiano",
+                    "stock_qty": 3
+                },
+                {
+                    "id": 11,
+                    "name": "Vestido Com Mangas",
+                    "stock_qty": 5
+                },
+                {
+                    "id": 12,
+                    "name": "Vestido Fenda",
+                    "stock_qty": 1
+                }
+            ],
+            "score_top": [
+                {
+                    "model_id": 16,
+                    "name": "Vestido Longo Estampado Ver├úo QA",
+                    "sku": "QA-VEST-ESTAMPA",
+                    "demand_count": 65,
+                    "score": 116,
+                    "reasons": [
+                        "token 'qa' em SKU (+15)",
+                        "token 'qa' em nome (+8)",
+                        "token 'vest' em SKU (+15)",
+                        "token 'vest' em categoria (+12)",
+                        "token 'vest' em tags (+10)",
+                        "token 'vest' em nome (+8)",
+                        "token 'estamp' em SKU (+15)",
+                        "token 'estamp' em tags (+10)",
+                        "token 'estamp' em nome (+8)",
+                        "token '42' em SKU (+15)"
+                    ]
+                },
+                {
+                    "model_id": 15,
+                    "name": "Conjunto Linho Areia QA",
+                    "sku": "QA-CONJ-LINHO",
+                    "demand_count": 45,
+                    "score": 38,
+                    "reasons": [
+                        "token 'qa' em SKU (+15)",
+                        "token 'qa' em nome (+8)",
+                        "token '42' em SKU (+15)"
+                    ]
+                },
+                {
+                    "model_id": 10,
+                    "name": "Vestido Indiano",
+                    "sku": "KQU-201",
+                    "demand_count": 0,
+                    "score": 30,
+                    "reasons": [
+                        "token 'vest' em categoria (+12)",
+                        "token 'vest' em tags (+10)",
+                        "token 'vest' em nome (+8)"
+                    ]
+                },
+                {
+                    "model_id": 11,
+                    "name": "Vestido Com Mangas",
+                    "sku": "PRP-595",
+                    "demand_count": 1,
+                    "score": 30,
+                    "reasons": [
+                        "token 'vest' em categoria (+12)",
+                        "token 'vest' em tags (+10)",
+                        "token 'vest' em nome (+8)"
+                    ]
+                },
+                {
+                    "model_id": 12,
+                    "name": "Vestido Fenda",
+                    "sku": "LSB-333",
+                    "demand_count": 1,
+                    "score": 30,
+                    "reasons": [
+                        "token 'vest' em categoria (+12)",
+                        "token 'vest' em tags (+10)",
+                        "token 'vest' em nome (+8)"
+                    ]
+                },
+                {
+                    "model_id": 13,
+                    "name": "Vestido Malha",
+                    "sku": "LCF-791",
+                    "demand_count": 1,
+                    "score": 30,
+                    "reasons": [
+                        "token 'vest' em categoria (+12)",
+                        "token 'vest' em tags (+10)",
+                        "token 'vest' em nome (+8)"
+                    ]
+                },
+                {
+                    "model_id": 14,
+                    "name": "Blusa Viscose Marinho QA",
+                    "sku": "QA-BLUSA-MARINHO",
+                    "demand_count": 55,
+                    "score": 23,
+                    "reasons": [
+                        "token 'qa' em SKU (+15)",
+                        "token 'qa' em nome (+8)"
+                    ]
+                }
+            ]
+        },
+        {
+            "query": "vestido farm",
+            "tokens": [
+                "vestido",
+                "farm"
+            ],
+            "color_terms": [],
+            "endpoint_http_code": 200,
+            "endpoint_error": "",
+            "endpoint_found": true,
+            "endpoint_top_products": [
+                {
+                    "id": 12,
+                    "name": "Vestido Fenda",
+                    "stock_qty": 1
+                },
+                {
+                    "id": 13,
+                    "name": "Vestido Malha",
+                    "stock_qty": 1
+                },
+                {
+                    "id": 10,
+                    "name": "Vestido Indiano",
+                    "stock_qty": 3
+                },
+                {
+                    "id": 11,
+                    "name": "Vestido Com Mangas",
+                    "stock_qty": 5
+                },
+                {
+                    "id": 16,
+                    "name": "Vestido Longo Estampado Ver├úo QA",
+                    "stock_qty": 5
+                }
+            ],
+            "score_top": [
+                {
+                    "model_id": 12,
+                    "name": "Vestido Fenda",
+                    "sku": "LSB-333",
+                    "demand_count": 1,
+                    "score": 40,
+                    "reasons": [
+                        "token 'vestido' em categoria (+12)",
+                        "token 'vestido' em tags (+10)",
+                        "token 'vestido' em nome (+8)",
+                        "token 'farm' em tags (+10)"
+                    ]
+                },
+                {
+                    "model_id": 13,
+                    "name": "Vestido Malha",
+                    "sku": "LCF-791",
+                    "demand_count": 1,
+                    "score": 40,
+                    "reasons": [
+                        "token 'vestido' em categoria (+12)",
+                        "token 'vestido' em tags (+10)",
+                        "token 'vestido' em nome (+8)",
+                        "token 'farm' em tags (+10)"
+                    ]
+                },
+                {
+                    "model_id": 10,
+                    "name": "Vestido Indiano",
+                    "sku": "KQU-201",
+                    "demand_count": 0,
+                    "score": 30,
+                    "reasons": [
+                        "token 'vestido' em categoria (+12)",
+                        "token 'vestido' em tags (+10)",
+                        "token 'vestido' em nome (+8)"
+                    ]
+                },
+                {
+                    "model_id": 11,
+                    "name": "Vestido Com Mangas",
+                    "sku": "PRP-595",
+                    "demand_count": 1,
+                    "score": 30,
+                    "reasons": [
+                        "token 'vestido' em categoria (+12)",
+                        "token 'vestido' em tags (+10)",
+                        "token 'vestido' em nome (+8)"
+                    ]
+                },
+                {
+                    "model_id": 16,
+                    "name": "Vestido Longo Estampado Ver├úo QA",
+                    "sku": "QA-VEST-ESTAMPA",
+                    "demand_count": 65,
+                    "score": 30,
+                    "reasons": [
+                        "token 'vestido' em categoria (+12)",
+                        "token 'vestido' em tags (+10)",
+                        "token 'vestido' em nome (+8)"
+                    ]
+                }
+            ]
+        },
+        {
+            "query": "blusa azul G",
+            "tokens": [
+                "blusa",
+                "azul",
+                "g"
+            ],
+            "color_terms": [
+                "azul"
+            ],
+            "endpoint_http_code": 200,
+            "endpoint_error": "",
+            "endpoint_found": true,
+            "endpoint_top_products": [
+                {
+                    "id": 14,
+                    "name": "Blusa Viscose Marinho QA",
+                    "stock_qty": 3
+                },
+                {
+                    "id": 11,
+                    "name": "Vestido Com Mangas",
+                    "stock_qty": 1
+                },
+                {
+                    "id": 10,
+                    "name": "Vestido Indiano",
+                    "stock_qty": 2
+                },
+                {
+                    "id": 13,
+                    "name": "Vestido Malha",
+                    "stock_qty": 1
+                }
+            ],
+            "score_top": [
+                {
+                    "model_id": 14,
+                    "name": "Blusa Viscose Marinho QA",
+                    "sku": "QA-BLUSA-MARINHO",
+                    "demand_count": 55,
+                    "score": 77,
+                    "reasons": [
+                        "token 'blusa' em SKU (+15)",
+                        "token 'blusa' em categoria (+12)",
+                        "token 'blusa' em tags (+10)",
+                        "token 'blusa' em nome (+8)",
+                        "token 'g' em SKU (+15)",
+                        "token 'g' em tags (+10)",
+                        "cor comercial 'azul' (+7)"
+                    ]
+                },
+                {
+                    "model_id": 11,
+                    "name": "Vestido Com Mangas",
+                    "sku": "PRP-595",
+                    "demand_count": 1,
+                    "score": 34,
+                    "reasons": [
+                        "token 'g' em tags (+10)",
+                        "token 'g' em nome (+8)",
+                        "cor normalizada 'azul' (+9)",
+                        "cor comercial 'azul' (+7)"
+                    ]
+                },
+                {
+                    "model_id": 16,
+                    "name": "Vestido Longo Estampado Ver├úo QA",
+                    "sku": "QA-VEST-ESTAMPA",
+                    "demand_count": 65,
+                    "score": 18,
+                    "reasons": [
+                        "token 'g' em tags (+10)",
+                        "token 'g' em nome (+8)"
+                    ]
+                },
+                {
+                    "model_id": 10,
+                    "name": "Vestido Indiano",
+                    "sku": "KQU-201",
+                    "demand_count": 0,
+                    "score": 16,
+                    "reasons": [
+                        "cor normalizada 'azul' (+9)",
+                        "cor comercial 'azul' (+7)"
+                    ]
+                },
+                {
+                    "model_id": 13,
+                    "name": "Vestido Malha",
+                    "sku": "LCF-791",
+                    "demand_count": 1,
+                    "score": 16,
+                    "reasons": [
+                        "cor normalizada 'azul' (+9)",
+                        "cor comercial 'azul' (+7)"
+                    ]
+                },
+                {
+                    "model_id": 12,
+                    "name": "Vestido Fenda",
+                    "sku": "LSB-333",
+                    "demand_count": 1,
+                    "score": 10,
+                    "reasons": [
+                        "token 'g' em tags (+10)"
+                    ]
+                },
+                {
+                    "model_id": 15,
+                    "name": "Conjunto Linho Areia QA",
+                    "sku": "QA-CONJ-LINHO",
+                    "demand_count": 45,
+                    "score": 10,
+                    "reasons": [
+                        "token 'g' em tags (+10)"
+                    ]
+                }
+            ]
+        },
+        {
+            "query": "conjunto linho",
+            "tokens": [
+                "conjunto",
+                "linho"
+            ],
+            "color_terms": [],
+            "endpoint_http_code": 200,
+            "endpoint_error": "",
+            "endpoint_found": true,
+            "endpoint_top_products": [
+                {
+                    "id": 15,
+                    "name": "Conjunto Linho Areia QA",
+                    "stock_qty": 4
+                }
+            ],
+            "score_top": [
+                {
+                    "model_id": 15,
+                    "name": "Conjunto Linho Areia QA",
+                    "sku": "QA-CONJ-LINHO",
+                    "demand_count": 45,
+                    "score": 88,
+                    "reasons": [
+                        "token 'conjunto' em categoria (+12)",
+                        "token 'conjunto' em tags (+10)",
+                        "token 'conjunto' em nome (+8)",
+                        "token 'linho' em SKU (+15)",
+                        "token 'linho' em tags (+10)",
+                        "token 'linho' em nome (+8)",
+                        "query completa (+25)"
+                    ]
+                }
+            ]
+        },
+        {
+            "query": "eu queria ver um vestido longo estampado para o ver├úo",
+            "tokens": [
+                "eu",
+                "queria",
+                "ver",
+                "um",
+                "vestido",
+                "longo",
+                "estampado",
+                "para",
+                "o",
+                "ver├úo"
+            ],
+            "color_terms": [
+                "estampado"
+            ],
+            "endpoint_http_code": 200,
+            "endpoint_error": "",
+            "endpoint_found": true,
+            "endpoint_top_products": [
+                {
+                    "id": 16,
+                    "name": "Vestido Longo Estampado Ver├úo QA",
+                    "stock_qty": 5
+                }
+            ],
+            "score_top": [
+                {
+                    "model_id": 16,
+                    "name": "Vestido Longo Estampado Ver├úo QA",
+                    "sku": "QA-VEST-ESTAMPA",
+                    "demand_count": 65,
+                    "score": 141,
+                    "reasons": [
+                        "token 'ver' em tags (+10)",
+                        "token 'ver' em nome (+8)",
+                        "token 'vestido' em categoria (+12)",
+                        "token 'vestido' em tags (+10)",
+                        "token 'vestido' em nome (+8)",
+                        "token 'longo' em tags (+10)",
+                        "token 'longo' em nome (+8)",
+                        "token 'estampado' em tags (+10)",
+                        "token 'estampado' em nome (+8)",
+                        "token 'o' em categoria (+12)",
+                        "token 'o' em tags (+10)",
+                        "token 'o' em nome (+8)",
+                        "token 'ver├úo' em tags (+10)",
+                        "token 'ver├úo' em nome (+8)",
+                        "cor normalizada 'estampado' (+9)"
+                    ]
+                },
+                {
+                    "model_id": 10,
+                    "name": "Vestido Indiano",
+                    "sku": "KQU-201",
+                    "demand_count": 0,
+                    "score": 60,
+                    "reasons": [
+                        "token 'vestido' em categoria (+12)",
+                        "token 'vestido' em tags (+10)",
+                        "token 'vestido' em nome (+8)",
+                        "token 'o' em categoria (+12)",
+                        "token 'o' em tags (+10)",
+                        "token 'o' em nome (+8)"
+                    ]
+                },
+                {
+                    "model_id": 11,
+                    "name": "Vestido Com Mangas",
+                    "sku": "PRP-595",
+                    "demand_count": 1,
+                    "score": 60,
+                    "reasons": [
+                        "token 'vestido' em categoria (+12)",
+                        "token 'vestido' em tags (+10)",
+                        "token 'vestido' em nome (+8)",
+                        "token 'o' em categoria (+12)",
+                        "token 'o' em tags (+10)",
+                        "token 'o' em nome (+8)"
+                    ]
+                },
+                {
+                    "model_id": 12,
+                    "name": "Vestido Fenda",
+                    "sku": "LSB-333",
+                    "demand_count": 1,
+                    "score": 60,
+                    "reasons": [
+                        "token 'vestido' em categoria (+12)",
+                        "token 'vestido' em tags (+10)",
+                        "token 'vestido' em nome (+8)",
+                        "token 'o' em categoria (+12)",
+                        "token 'o' em tags (+10)",
+                        "token 'o' em nome (+8)"
+                    ]
+                },
+                {
+                    "model_id": 13,
+                    "name": "Vestido Malha",
+                    "sku": "LCF-791",
+                    "demand_count": 1,
+                    "score": 60,
+                    "reasons": [
+                        "token 'vestido' em categoria (+12)",
+                        "token 'vestido' em tags (+10)",
+                        "token 'vestido' em nome (+8)",
+                        "token 'o' em categoria (+12)",
+                        "token 'o' em tags (+10)",
+                        "token 'o' em nome (+8)"
+                    ]
+                },
+                {
+                    "model_id": 15,
+                    "name": "Conjunto Linho Areia QA",
+                    "sku": "QA-CONJ-LINHO",
+                    "demand_count": 45,
+                    "score": 45,
+                    "reasons": [
+                        "token 'o' em SKU (+15)",
+                        "token 'o' em categoria (+12)",
+                        "token 'o' em tags (+10)",
+                        "token 'o' em nome (+8)"
+                    ]
+                },
+                {
+                    "model_id": 14,
+                    "name": "Blusa Viscose Marinho QA",
+                    "sku": "QA-BLUSA-MARINHO",
+                    "demand_count": 55,
+                    "score": 33,
+                    "reasons": [
+                        "token 'o' em SKU (+15)",
+                        "token 'o' em tags (+10)",
+                        "token 'o' em nome (+8)"
+                    ]
+                }
+            ]
+        },
+        {
+            "query": "voc├¬s tem aquela blusa azul marinho de viscose?",
+            "tokens": [
+                "voc├¬s",
+                "tem",
+                "aquela",
+                "blusa",
+                "azul",
+                "marinho",
+                "de",
+                "viscose"
+            ],
+            "color_terms": [
+                "azul",
+                "navy"
+            ],
+            "endpoint_http_code": 200,
+            "endpoint_error": "",
+            "endpoint_found": true,
+            "endpoint_top_products": [
+                {
+                    "id": 14,
+                    "name": "Blusa Viscose Marinho QA",
+                    "stock_qty": 3
+                },
+                {
+                    "id": 10,
+                    "name": "Vestido Indiano",
+                    "stock_qty": 2
+                },
+                {
+                    "id": 11,
+                    "name": "Vestido Com Mangas",
+                    "stock_qty": 1
+                },
+                {
+                    "id": 13,
+                    "name": "Vestido Malha",
+                    "stock_qty": 1
+                }
+            ],
+            "score_top": [
+                {
+                    "model_id": 14,
+                    "name": "Blusa Viscose Marinho QA",
+                    "sku": "QA-BLUSA-MARINHO",
+                    "demand_count": 55,
+                    "score": 102,
+                    "reasons": [
+                        "token 'blusa' em SKU (+15)",
+                        "token 'blusa' em categoria (+12)",
+                        "token 'blusa' em tags (+10)",
+                        "token 'blusa' em nome (+8)",
+                        "token 'marinho' em SKU (+15)",
+                        "token 'marinho' em nome (+8)",
+                        "token 'viscose' em tags (+10)",
+                        "token 'viscose' em nome (+8)",
+                        "cor comercial 'azul' (+7)",
+                        "cor normalizada 'navy' (+9)"
+                    ]
+                },
+                {
+                    "model_id": 10,
+                    "name": "Vestido Indiano",
+                    "sku": "KQU-201",
+                    "demand_count": 0,
+                    "score": 16,
+                    "reasons": [
+                        "cor normalizada 'azul' (+9)",
+                        "cor comercial 'azul' (+7)"
+                    ]
+                },
+                {
+                    "model_id": 11,
+                    "name": "Vestido Com Mangas",
+                    "sku": "PRP-595",
+                    "demand_count": 1,
+                    "score": 16,
+                    "reasons": [
+                        "cor normalizada 'azul' (+9)",
+                        "cor comercial 'azul' (+7)"
+                    ]
+                },
+                {
+                    "model_id": 13,
+                    "name": "Vestido Malha",
+                    "sku": "LCF-791",
+                    "demand_count": 1,
+                    "score": 16,
+                    "reasons": [
+                        "cor normalizada 'azul' (+9)",
+                        "cor comercial 'azul' (+7)"
+                    ]
+                }
+            ]
+        },
+        {
+            "query": "procuro algo elegante para festa tamanho 42",
+            "tokens": [
+                "procuro",
+                "algo",
+                "elegante",
+                "para",
+                "festa",
+                "tamanho",
+                "42"
+            ],
+            "color_terms": [],
+            "endpoint_http_code": 200,
+            "endpoint_error": "",
+            "endpoint_found": true,
+            "endpoint_top_products": [
+                {
+                    "id": 16,
+                    "name": "Vestido Longo Estampado Ver├úo QA",
+                    "stock_qty": 5
+                },
+                {
+                    "id": 15,
+                    "name": "Conjunto Linho Areia QA",
+                    "stock_qty": 4
+                },
+                {
+                    "id": 14,
+                    "name": "Blusa Viscose Marinho QA",
+                    "stock_qty": 3
+                }
+            ],
+            "score_top": [
+                {
+                    "model_id": 16,
+                    "name": "Vestido Longo Estampado Ver├úo QA",
+                    "sku": "QA-VEST-ESTAMPA",
+                    "demand_count": 65,
+                    "score": 35,
+                    "reasons": [
+                        "token 'elegante' em tags (+10)",
+                        "token 'festa' em tags (+10)",
+                        "token '42' em SKU (+15)"
+                    ]
+                },
+                {
+                    "model_id": 15,
+                    "name": "Conjunto Linho Areia QA",
+                    "sku": "QA-CONJ-LINHO",
+                    "demand_count": 45,
+                    "score": 25,
+                    "reasons": [
+                        "token 'elegante' em tags (+10)",
+                        "token '42' em SKU (+15)"
+                    ]
+                },
+                {
+                    "model_id": 14,
+                    "name": "Blusa Viscose Marinho QA",
+                    "sku": "QA-BLUSA-MARINHO",
+                    "demand_count": 55,
+                    "score": 20,
+                    "reasons": [
+                        "token 'elegante' em tags (+10)",
+                        "token 'festa' em tags (+10)"
+                    ]
+                }
+            ]
+        }
+    ]
+}
+
+
