@@ -92,54 +92,70 @@ function concierge_groups_attach_campaign_metrics(int $tenantId, array $groups):
         return [];
     }
 
-    $metricsByGroup = [];
-    if (concierge_groups_has_table('concierge_broadcasts') && concierge_groups_has_table('concierge_campaigns')) {
-        try {
-            $stmt = db()->prepare("
-                SELECT
-                    b.group_id,
-                    COUNT(DISTINCT CASE WHEN c.status IN ('scheduled','sending') THEN c.id END) AS scheduled_campaigns,
-                    COUNT(DISTINCT CASE WHEN c.status = 'sent' THEN c.id END) AS completed_campaigns,
-                    COUNT(DISTINCT c.id) AS total_campaigns,
-                    MIN(CASE WHEN c.status IN ('scheduled','sending') THEN c.scheduled_at END) AS next_dispatch_at
-                FROM concierge_broadcasts b
-                INNER JOIN concierge_campaigns c
-                    ON c.id = b.campaign_id
-                   AND c.tenant_id = :tid
-                WHERE b.tenant_id = :tid
-                GROUP BY b.group_id
-            ");
-            $stmt->execute([':tid' => $tenantId]);
-            foreach (($stmt->fetchAll(PDO::FETCH_ASSOC) ?: []) as $row) {
-                $gid = (int)($row['group_id'] ?? 0);
-                if ($gid <= 0) {
-                    continue;
-                }
-                $scheduled = (int)($row['scheduled_campaigns'] ?? 0);
-                $completed = (int)($row['completed_campaigns'] ?? 0);
-                $total = max((int)($row['total_campaigns'] ?? 0), $scheduled + $completed);
-                $progressBase = max(1, $scheduled + $completed);
-                $metricsByGroup[$gid] = [
-                    'scheduled_campaigns' => $scheduled,
-                    'completed_campaigns' => $completed,
-                    'total_campaigns' => $total,
-                    'progress_pct' => min(100, (int)round(($completed / $progressBase) * 100)),
-                    'next_dispatch_at' => !empty($row['next_dispatch_at']) ? (string)$row['next_dispatch_at'] : null,
-                ];
-            }
-        } catch (Throwable $e) {
-            $metricsByGroup = [];
-        }
-    }
-
     foreach ($groups as &$group) {
         $gid = (int)($group['id'] ?? 0);
-        $metric = $metricsByGroup[$gid] ?? null;
-        $group['scheduled_campaigns'] = (int)($metric['scheduled_campaigns'] ?? 0);
-        $group['completed_campaigns'] = (int)($metric['completed_campaigns'] ?? 0);
-        $group['total_campaigns'] = (int)($metric['total_campaigns'] ?? 0);
-        $group['progress_pct'] = (int)($metric['progress_pct'] ?? 0);
-        $group['next_dispatch_at'] = $metric['next_dispatch_at'] ?? null;
+        $scheduled = 0;
+        $completed = 0;
+        $total = 0;
+        $sentToday = 0;
+        $dailyLimit = max(0, (int)($group['daily_limit'] ?? 0));
+        $nextDispatchAt = null;
+        
+        if (concierge_groups_has_table('concierge_broadcasts') && concierge_groups_has_table('concierge_campaigns')) {
+            try {
+                $stmt = db()->prepare("
+                    SELECT
+                        COUNT(DISTINCT CASE WHEN b.status IN ('pending','scheduled','sending') THEN c.id END) AS scheduled_campaigns,
+                        COUNT(DISTINCT CASE WHEN b.status IN ('sent','completed') THEN c.id END) AS completed_campaigns,
+                        COUNT(DISTINCT CASE WHEN b.status NOT IN ('canceled','draft') THEN c.id END) AS total_campaigns,
+                        SUM(CASE WHEN b.status = 'sent' AND DATE(COALESCE(b.sent_at, b.updated_at, b.created_at)) = CURDATE() THEN 1 ELSE 0 END) AS sent_today_count
+                    FROM concierge_broadcasts b
+                    INNER JOIN concierge_campaigns c
+                        ON c.id = b.campaign_id
+                    WHERE b.group_id = ?
+                      AND b.tenant_id = ?
+                      AND c.tenant_id = ?
+                      AND c.status NOT IN ('canceled','draft')
+                ");
+                $stmt->execute([$gid, $tenantId, $tenantId]);
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($row) {
+                    $scheduled = (int)($row['scheduled_campaigns'] ?? 0);
+                    $completed = (int)($row['completed_campaigns'] ?? 0);
+                    $total = max((int)($row['total_campaigns'] ?? 0), $scheduled + $completed);
+                    $sentToday = max(0, (int)($row['sent_today_count'] ?? 0));
+                }
+                
+                // Get queue data to calculate next dispatch
+                $queueData = ai_groups_get_group_dispatch_queue($tenantId, $gid, 1);
+                if (!empty($queueData['next_items']) && count($queueData['next_items']) > 0) {
+                    $firstItem = $queueData['next_items'][0];
+                    if (!empty($firstItem['next_dispatch_at'])) {
+                        $nextDispatchAt = (string)$firstItem['next_dispatch_at'];
+                    }
+                }
+            } catch (Throwable $e) {
+                $scheduled = 0;
+                $completed = 0;
+                $total = 0;
+                $sentToday = 0;
+                $nextDispatchAt = null;
+            }
+        }
+
+        $group['scheduled_campaigns'] = $scheduled;
+        $group['completed_campaigns'] = $completed;
+        $group['total_campaigns'] = $total;
+        $group['sent_today'] = $sentToday;
+        
+        if ($dailyLimit > 0) {
+            $group['progress_pct'] = min(100, (int)round(($sentToday / $dailyLimit) * 100));
+        } else {
+            $progressBase = max(1, $scheduled + $completed);
+            $group['progress_pct'] = min(100, (int)round(($completed / $progressBase) * 100));
+        }
+        
+        $group['next_dispatch_at'] = $nextDispatchAt;
         $settingsRaw = $group['settings_json'] ?? null;
         $settings = [];
         if (is_array($settingsRaw)) {
@@ -238,6 +254,19 @@ try {
     $planMeta = concierge_groups_plan_meta($tenantId);
 
     if ($method === 'GET') {
+        $action = strtolower(trim((string)($_GET['action'] ?? '')));
+        if ($action === 'queue' || $action === 'performance_queue') {
+            $groupId = (int)($_GET['group_id'] ?? 0);
+            if ($groupId <= 0) {
+                throw new Exception('group_id inválido para consultar fila.');
+            }
+
+            $queueData = ai_groups_get_group_dispatch_queue($tenantId, $groupId, 3);
+            echo json_encode(ai_groups_response(false, 'OK', [
+                'queue' => $queueData,
+            ]), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            exit;
+        }
         $onlyActive = (int)($_GET['include_inactive'] ?? 0) !== 1;
         $groups = ai_get_concierge_groups($tenantId, $onlyActive);
         $groups = concierge_groups_attach_campaign_metrics($tenantId, $groups);
@@ -421,6 +450,10 @@ try {
             }
             if (isset($json['mia_status_auto_interval'])) {
                 ai_save_setting('mia_status_auto_interval', (int)$json['mia_status_auto_interval'], $tenantId);
+                $savedGlobal++;
+            }
+            if (isset($json['ai_groups_dispatch_webhook_url'])) {
+                ai_save_setting('ai_groups_dispatch_webhook_url', trim((string)$json['ai_groups_dispatch_webhook_url']), $tenantId);
                 $savedGlobal++;
             }
 

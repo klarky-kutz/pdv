@@ -1,0 +1,89 @@
+# Auditoria Técnica — Implementação Sugestões IA (Grupos)
+## Arquivos auditados
+- `CONCIERGE_SUGESTOES_IA_ROADMAP.mb`
+- `admin/concierge_config.php`
+- `admin/_inc/ai_config_salvar.php`
+- `admin/_inc/ai_config_webhook_test.php`
+- `_inc/helper/ai_groups_helper.php`
+- `api/concierge/suggestions.php`
+- `admin/Grupo/concierge_grupos.php`
+- `admin/Grupo/JS/concierge_grupos_novas_funcionalidades.js`
+
+## Status geral
+Implementação **parcialmente correta**. A base foi criada e várias etapas foram entregues, mas há pontos críticos de lógica e consistência que precisam ajuste antes de considerar o fluxo 100% confiável.
+
+## O que está OK
+1. Modal de sugestões localizada e integrada
+- Modal `mia-ov-ia-campanhas` existe em `admin/Grupo/concierge_grupos.php`.
+- Botão “Ver Sugestões” chama `abrirMiaModal('ia-campanhas')`.
+- Ao abrir modal, `miaLoadSuggestions()` é disparada.
+
+2. Novo webhook de sugestões na configuração
+- Campo `ai_groups_suggestions_webhook_url` adicionado em `admin/concierge_config.php`.
+- Persistência da chave adicionada em `admin/_inc/ai_config_salvar.php`.
+- Teste de webhook com tipo `suggestions` adicionado em `admin/_inc/ai_config_webhook_test.php`.
+
+3. Estrutura de dados de sugestões criada
+- Função `ai_groups_ensure_suggestions_schema()` existe em `_inc/helper/ai_groups_helper.php`.
+- Tabela `concierge_ai_suggestions` prevista com status (`pending`, `accepted`, `rejected`) e `batch_id`.
+
+4. Endpoint de sugestões criado
+- Arquivo `api/concierge/suggestions.php` existe e possui ações:
+  - `generate`
+  - `list`
+  - `accept`
+  - `reject`
+- Payload ao webhook inclui dados enriquecidos (nome, preço, descrição, categoria, variantes/tamanhos/cores e `media_urls`).
+
+5. UI da modal evoluída
+- Funções `miaLoadSuggestions`, `miaRenderSuggestions`, `miaAcceptSuggestion`, `miaRejectSuggestion` implementadas.
+- Exibição em grid (2 colunas) com blocos visuais para card/boas-vindas/CTA.
+
+6. Correção do número no `wa.me`
+- Uso de `window.MIA_WHATSAPP_NUMBER` implementado no JS.
+- Variável é injetada no PHP (`window.MIA_WHATSAPP_NUMBER = ...`).
+
+## Pontos que precisam atenção/alteração
+## 1) Bug crítico no SQL de categorias permitidas
+Em `api/concierge/suggestions.php`, a query mistura placeholder nomeado (`:tid`) com placeholder posicional (`?`) no mesmo `prepare/execute`.
+Isso pode falhar em PDO e quebrar a geração quando houver categorias permitidas configuradas.
+
+Impacto:
+- `action=generate` pode falhar silenciosamente ou retornar erro dependendo do driver/configuração.
+
+## 2) Regra de elegibilidade está incompleta
+Resumo dizia que o produto elegível não pode estar em campanha ativa/em fila e não deve conflitar com fluxo de disparo.
+No código atual, a seleção busca produtos ativos e categorias permitidas, porém **não exclui explicitamente** produtos já presentes em campanhas com status ativos/fila (`pending`, `scheduled`, `sending`, `queued`).
+
+Impacto:
+- Produto que já está em fluxo de disparo pode voltar como nova sugestão IA.
+
+## 3) Aceitar sugestão não cria campanha
+No `accept`, o status da sugestão muda para `accepted`, mas não há transformação para campanha (nem criação de registro de campanha/disparo).
+
+Impacto:
+- Divergência com o comportamento esperado da etapa de governança/ciclo.
+
+## 4) Fluxo de frontend com sobreposição de wrapper da mesma função
+Em `admin/Grupo/JS/concierge_grupos_novas_funcionalidades.js`, `abrirMiaModal` foi sobrescrita duas vezes.
+Funciona, mas gera acoplamento e risco de comportamento duplicado/reentrância em manutenção futura.
+
+Impacto:
+- Alto risco de regressão ao evoluir o mesmo arquivo.
+
+## 5) Ícone inválido na UI
+Uso de classe `fa-hand-wave` na renderização da sugestão (Font Awesome clássico geralmente não possui essa classe).
+
+Impacto:
+- Inconsistência visual (ícone não aparece).
+
+## 6) Falta validação robusta de retorno do webhook
+Se o webhook responder sem `suggestions` válido, o endpoint pode retornar sucesso com lista vazia sem indicar erro funcional claro.
+
+Impacto:
+- Debug difícil e UX confusa (“sem sugestões”) mesmo com problema no retorno IA.
+
+## Conclusão objetiva
+- A implementação **não está totalmente errada**: há avanço real de backend, schema, endpoint, configuração e UI.
+- Porém, há pelo menos **2 ajustes críticos obrigatórios** (bug SQL e critério de elegibilidade incompleto) e **1 ajuste funcional importante** (aceite não vira campanha).
+- Recomendado corrigir esses pontos antes de considerar entrega final pronta para produção.

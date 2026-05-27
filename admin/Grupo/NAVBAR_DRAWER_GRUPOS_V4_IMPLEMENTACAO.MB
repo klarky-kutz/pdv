@@ -1,0 +1,176 @@
+# Especificação Técnica — Navbar Grupos + Drawer/Modal de Grupos (Referência V4)
+## Objetivo
+Aplicar no fluxo de `Grupos IA` o mesmo padrão visual/funcional do arquivo de referência `admin/concierge_grupos_v4.html`, com foco em:
+- Exibição de horário + marcador de dia (`hoje` / `amanhã`) no contexto de próximos disparos.
+- Botões de ação de disparo imediato e cancelamento.
+- Manter a estrutura atual do drawer/modal e da navbar sem refatoração ampla.
+
+## Referência Visual Obrigatória (V4)
+Arquivo base de referência:
+- `admin/concierge_grupos_v4.html`
+
+Padrão visual a reproduzir:
+1. Bloco “Próximo Disparo” com:
+- Título da campanha/produto.
+- Horário em destaque (`19:00`).
+- Marcador de dia ao lado/abaixo (`hoje` ou `amanhã`).
+- Data completa.
+- Chips de grupos.
+- Ações:
+  - `Cancelar` (estilo ghost escuro `btn-ghost-w`).
+  - `Disparar Agora` (estilo verde WhatsApp `btn btn-wpp btn-sm`).
+2. Drawer (Fila do Grupo):
+- Cada item de “Próximos na fila” com:
+  - Horário principal.
+  - Marcador de dia (`hoje` / `amanhã` / data curta quando não for próximo).
+  - Botões de ação por item (disparo imediato e cancelamento/edição conforme regra definida).
+
+## Mapeamento Atual (Código existente)
+### 1) Estrutura da página principal
+Arquivo:
+- `admin/Grupo/concierge_grupos.php`
+
+Pontos já existentes:
+- Card de próximo disparo com IDs:
+  - `mia-next-hero`
+  - `mia-next-title`
+  - `mia-next-time`
+  - `mia-next-ampm`
+  - `mia-next-date`
+  - `mia-next-groups`
+- Drawer principal:
+  - `mia-drawer-ov`
+  - `mia-drawer`
+  - `mia-drawer-content`
+
+### 2) Lógica JS atual
+Arquivo:
+- `admin/Grupo/JS/concierge_grupos.js`
+
+Funções relevantes:
+- `miaUpdateNextScheduled(items)`:
+  - Já monta o card “Próximo Disparo”.
+  - Já calcula `hoje` e `amanhã`.
+  - Já cria botões de `Cancelar` e `Disparar Agora` dinamicamente.
+  - Ajuste necessário: padronizar chamadas de ação para endpoint funcional oficial de campanhas (detalhado abaixo).
+- `miaBuildGroupQueueItemCard(item, mode, index)`:
+  - Hoje mostra horário do item.
+  - Ainda não exibe o bloco de dia no formato visual V4 para fila.
+  - Ainda não cria ações por item na coluna direita.
+- `miaLoadGroupPerformanceQueue(groupId)`:
+  - Consome fila por grupo e injeta cards no drawer.
+  - É o ponto correto para refletir atualização em tempo real após ações.
+
+### 3) CSS atual
+Arquivo:
+- `admin/Grupo/CSS/concierge_grupos.css`
+
+Blocos já existentes e compatíveis com V4:
+- `.next-hero`, `.next-actions`, `.btn-ghost-w`
+- `.mia-gdr-q-item`, `.mia-gdr-q-right`, `.mia-gdr-q-time`, `.mia-gdr-q-actions`
+
+Necessário complementar:
+- Estilo para marcador de dia na fila do drawer (ex.: `.mia-gdr-q-day`).
+- Microajustes de alinhamento dos botões de ação por item para espelhamento do V4.
+
+## Endpoints/Contratos Funcionais (confirmados)
+### Fila por grupo
+- `GET api/concierge/groups.php?action=queue&group_id={id}`
+- Retorna `queue.next_items[]` com:
+  - `id` (id da campanha)
+  - `name`
+  - `next_dispatch_at`
+  - `next_dispatch_label`
+  - etc.
+
+### Ações de campanha
+Arquivo servidor:
+- `api/concierge/campaigns.php`
+
+Ações oficiais disponíveis:
+- Disparo imediato:
+  - `POST .../campaigns.php?action=send_now`
+  - payload: `{ campaign_id }`
+- Cancelamento:
+  - `POST .../campaigns.php?action=cancel`
+  - payload: `{ campaign_id }`
+
+## Onde as alterações devem ocorrer
+## Pasta alvo principal
+- `admin/Grupo/`
+
+## Arquivos obrigatórios para mudança
+1. `admin/Grupo/JS/concierge_grupos.js`
+2. `admin/Grupo/CSS/concierge_grupos.css`
+
+## Arquivo de consulta visual (somente referência)
+1. `admin/concierge_grupos_v4.html`
+
+## Diretrizes de Implementação (sem alterar a estrutura existente)
+1. Navbar/Card “Próximo Disparo”
+- Manter o uso dos IDs atuais no HTML.
+- Preservar construção dinâmica em `miaUpdateNextScheduled`.
+- Garantir que os botões usem o endpoint oficial de campanhas:
+  - `send_now` e `cancel`.
+- Não mover nem reestruturar blocos externos do card.
+
+2. Drawer/Fila do Grupo
+- Evoluir `miaBuildGroupQueueItemCard` para:
+  - Exibir horário + linha de dia (`hoje`, `amanhã` ou data curta).
+  - Renderizar ações no card para itens `next`:
+    - Disparar agora.
+    - Cancelar (ou editar quando aplicável à regra de negócio local).
+- Reusar refresh existente:
+  - `miaLoadGroupPerformanceQueue(...)`
+  - `miaLoadCampaigns()`
+
+3. Regras de funcionalidade para o dia
+- Se `next_dispatch_at` for no mesmo dia: mostrar `hoje`.
+- Se for no dia seguinte: mostrar `amanhã`.
+- Caso contrário: mostrar data curta (ex.: `07/04`).
+
+4. Integração de ações
+- Ao disparar/cancelar:
+  - feedback visual no botão (loading curto),
+  - toast de sucesso/erro,
+  - recarga dos dados de fila + campanhas para refletir estado novo.
+
+## Restrições do Projeto (obrigatórias)
+1. Não alterar a estrutura geral do drawer/modal de grupos (abas, containers e fluxo principal permanecem).
+2. Não alterar o fluxo do wizard “Novo Disparo”.
+3. Não criar nova tabela/coluna de banco.
+4. Não alterar permissões já existentes.
+5. Não mexer em layout global fora de `admin/Grupo` para esta tarefa.
+6. Manter compatibilidade com estilos e classes já existentes no arquivo CSS principal.
+
+## Critérios de Aceite
+1. No card “Próximo Disparo”, os botões `Cancelar` e `Disparar Agora` funcionam e atualizam a UI após ação.
+2. No drawer, itens de “Próximos na fila” exibem:
+- Horário principal.
+- Marcador de dia (`hoje`/`amanhã`/data).
+- Botões de ação visíveis e funcionais.
+3. Nenhuma quebra no restante da estrutura do drawer/modal.
+4. Sem regressão nas visualizações “Campanhas / Status / Grupos”.
+
+## Roadmap de Implementação (IA)
+1. Ler `admin/Grupo/JS/concierge_grupos.js` e localizar:
+- `miaUpdateNextScheduled`
+- `miaBuildGroupQueueItemCard`
+- `miaLoadGroupPerformanceQueue`
+2. Padronizar as chamadas de ação da Navbar para os endpoints oficiais:
+- `POST campaigns.php?action=send_now`
+- `POST campaigns.php?action=cancel`
+3. Implementar helper de formatação de dia relativo (hoje/amanhã/data) para reuso.
+4. Atualizar `miaBuildGroupQueueItemCard` para exibir:
+- hora + dia relativo,
+- botões de ação por item da fila.
+5. Adicionar/ajustar classes no `admin/Grupo/CSS/concierge_grupos.css` para:
+- linha de dia no lado direito do card,
+- alinhamento dos botões no padrão V4.
+6. Após cada ação (disparo/cancelamento), atualizar:
+- campanhas (`miaLoadCampaigns`),
+- fila do grupo atual (`miaLoadGroupPerformanceQueue`).
+7. Validar em tela:
+- card “Próximo Disparo”,
+- drawer de grupos (aba Fila),
+- comportamento sem regressão estrutural.

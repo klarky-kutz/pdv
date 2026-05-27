@@ -1,10 +1,15 @@
 <?php
+error_reporting(0);
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+
 ob_start();
 session_start();
 include('../../_init.php');
 
 require_once DIR_HELPER . 'ai_groups_helper.php';
 
+ob_end_clean();
 header('Content-Type: application/json; charset=UTF-8');
 
 function concierge_status_json_raw(): string
@@ -152,9 +157,9 @@ try {
 
         if (($sent + $error + $skipped) >= (int)$summary['total']) {
             $campaignStatus = $sent > 0 ? 'sent' : 'failed';
-            $sql = "UPDATE concierge_campaigns SET status = :status, sent_at = CASE WHEN :status = 'sent' THEN NOW() ELSE sent_at END, updated_at = NOW() WHERE tenant_id = :tid AND id = :cid LIMIT 1";
-            db()->prepare($sql)->execute([':status' => $campaignStatus, ':tid' => $tenantId, ':cid' => $campaignId]);
-        } elseif (($sending + $queued + $pending) > 0) {
+            $sql = "UPDATE concierge_campaigns SET status = :status, sent_at = CASE WHEN :status2 = 'sent' THEN NOW() ELSE sent_at END, updated_at = NOW() WHERE tenant_id = :tid AND id = :cid LIMIT 1";
+            db()->prepare($sql)->execute([':status' => $campaignStatus, ':status2' => $campaignStatus, ':tid' => $tenantId, ':cid' => $campaignId]);
+        } elseif ($sending > 0) {
             $campaignStatus = 'sending';
             db()->prepare("UPDATE concierge_campaigns SET status = 'sending', updated_at = NOW() WHERE tenant_id = :tid AND id = :cid LIMIT 1")
                 ->execute([':tid' => $tenantId, ':cid' => $campaignId]);
@@ -177,6 +182,7 @@ try {
         'summary' => $summary,
         'campaign_status' => $campaignStatus,
     ]), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
 } catch (Throwable $e) {
     if (http_response_code() === 200) {
         http_response_code(422);
@@ -187,4 +193,5 @@ try {
         'ip' => (string)($_SERVER['REMOTE_ADDR'] ?? ''),
     ]);
     echo json_encode(ai_groups_response(true, $e->getMessage(), null), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
 }

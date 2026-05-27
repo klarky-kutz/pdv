@@ -1,3 +1,19 @@
+function miaUpdateEditIndividualLinksToUseCorrectNumber(){
+  const waNumber = window.MIA_WHATSAPP_NUMBER || '5511999999999';
+  for (let index in miaEditIndividualLinks) {
+    const oldLink = miaEditIndividualLinks[index];
+    if (oldLink) {
+      const newLink = oldLink.replace(/wa\.me\/[0-9]+/, 'wa.me/' + waNumber);
+      miaEditIndividualLinks[index] = newLink;
+    } else {
+      miaEditIndividualLinks[index] = miaGenerateEditDefaultLinkForCard(index);
+    }
+  }
+  if (miaEditCtaLink) {
+    miaEditCtaLink = miaEditCtaLink.replace(/wa\.me\/[0-9]+/, 'wa.me/' + waNumber);
+  }
+}
+
 let miaEditMsgMode = 'single';
 let miaEditIndividualMessages = {};
 let miaEditIndividualLinks = {};
@@ -35,10 +51,11 @@ function setMiaEditMsgMode(mode){
 function miaGenerateEditDefaultLinkForCard(index){
   const product = miaGetSelectedProduct() || miaEditProduct;
   const ctaText = (miaEditCampaign && miaEditCampaign.payload_json && miaEditCampaign.payload_json.cta) || '';
-  let sku = '';
-  if (product && product.sku) {
-    sku = String(product.sku).trim();
-  }
+  const mediaUrl = Array.isArray(miaEditSelectedMediaUrls) ? String(miaEditSelectedMediaUrls[index] || '').trim() : '';
+  const variant = miaFindVariantByMediaUrl(product, mediaUrl);
+  const variantSku = (variant && variant.sku) ? String(variant.sku).trim() : '';
+  const parentSku = (product && product.sku) ? String(product.sku).trim() : '';
+  const sku = variantSku || parentSku;
   
   const waNumber = window.MIA_WHATSAPP_NUMBER || '5511999999999';
   
@@ -153,11 +170,13 @@ function miaRenderEditPreviewCarousel(){
   }
   
   const productDescription = String((product && product.description) ? product.description : '').replace(/\s+/g, ' ').trim();
-  const sku = (product && product.sku) ? String(product.sku).trim() : '';
+  const parentSku = (product && product.sku) ? String(product.sku).trim() : '';
   
   carousel.innerHTML = media.map(function(url, index){
     const productName = product ? product.name : 'Produto';
     const variant = miaFindVariantByMediaUrl(product, url);
+    const variantSku = (variant && variant.sku) ? String(variant.sku).trim() : '';
+    const displaySku = variantSku || parentSku;
     let colorLabel = '';
     let colorEmoji = '';
     let priceLabel = '';
@@ -182,7 +201,7 @@ function miaRenderEditPreviewCarousel(){
       + '<div class="wpp-card-title">'+miaEsc(productName)+'</div>'
       + (cardDescription ? '<div class="wpp-card-desc">'+miaEsc(cardDescription)+'</div>' : '')
       + '<div class="wpp-card-meta">'
-      + (sku ? '<div style="font-size:9px;color:#64748b;font-weight:600">SKU: '+miaEsc(sku)+'</div>' : '')
+      + (displaySku ? '<div style="font-size:9px;color:#64748b;font-weight:600">SKU: '+miaEsc(displaySku)+'</div>' : '')
       + (colorLabel ? '<div style="font-size:9px;color:#1f2937;font-weight:600">Cor: '+colorEmoji+' '+miaEsc(colorLabel)+'</div>' : '')
       + (priceLabel ? '<div class="wpp-price-chip">'+priceLabel+'</div>' : '')
       + '</div>'
@@ -238,6 +257,9 @@ miaEditCampaignContent = function(campaignId){
       miaEditCtaLink = miaEditCampaign.payload_json.main_cta_link;
     }
   }
+  
+  // Update links to use correct WhatsApp number
+  miaUpdateEditIndividualLinksToUseCorrectNumber();
   
   // Populate fields
   document.getElementById('mia-edit-campaign-title').value = miaEditCampaign.title || '';
@@ -360,7 +382,7 @@ miaBuildCampaignDrawerCarousel = function(campaign, product, mediaUrls){
   const fallback = MIA_ROOT + 'assets/itsolution24/img/noimage.jpg';
   const urls = miaUniqueMediaUrls(Array.isArray(mediaUrls) ? mediaUrls : []).slice(0, 4);
   const productName = String((product && product.name) || (campaign && campaign.title) || 'Produto').trim();
-  const sku = (product && product.sku) ? String(product.sku).trim() : '';
+  const parentSku = (product && product.sku) ? String(product.sku).trim() : '';
   const ctaText = miaGetCampaignCtaText(campaign);
   const campaignDescription = String((campaign && campaign.content) ? campaign.content : '').replace(/\s+/g, ' ').trim();
   const productDescription = String((product && product.description) ? product.description : '').replace(/\s+/g, ' ').trim();
@@ -376,6 +398,8 @@ miaBuildCampaignDrawerCarousel = function(campaign, product, mediaUrls){
 
   return urls.map(function(url, index){
     const variant = miaFindVariantByMediaUrl(product, url);
+    const variantSku = (variant && variant.sku) ? String(variant.sku).trim() : '';
+    const displaySku = variantSku || parentSku;
     let colorLabel = '';
     let colorEmoji = '';
     let priceLabel = '';
@@ -406,7 +430,7 @@ miaBuildCampaignDrawerCarousel = function(campaign, product, mediaUrls){
       + '<div class="wpp-card-title">'+miaEsc(productName)+'</div>'
       + (cardDescription ? '<div class="wpp-card-desc">'+miaEsc(cardDescription)+'</div>' : '')
       + '<div class="wpp-card-meta">'
-      + (sku ? '<div style="font-size:9px;color:#64748b;font-weight:600">SKU: '+miaEsc(sku)+'</div>' : '')
+      + (displaySku ? '<div style="font-size:9px;color:#64748b;font-weight:600">SKU: '+miaEsc(displaySku)+'</div>' : '')
       + (colorLabel ? '<div style="font-size:9px;color:#1f2937;font-weight:600">Cor: '+colorEmoji+' '+miaEsc(colorLabel)+'</div>' : '')
       + (priceLabel ? '<div class="wpp-price-chip">'+priceLabel+'</div>' : '')
       + '</div>'
@@ -489,6 +513,11 @@ function miaSaveCampaignGroups(){
     fecharMiaModal('edit-groups');
     
     miaLoadCampaigns();
+    miaLoadGroups();
+    const currentGroupId = Number(miaCurrentGroupId || 0);
+    if (currentGroupId > 0 && groupIds.indexOf(currentGroupId) !== -1) {
+      miaLoadGroupPerformanceQueue(currentGroupId);
+    }
     miaOpenCampaign(campaignId);
   }).catch(function(err){
     showMiaToast(err.message, 'error');

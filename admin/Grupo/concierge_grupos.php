@@ -1,4 +1,4 @@
-﻿<?php
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<?php
 header('Content-Type: text/html; charset=utf-8');
 ob_start();
 session_start();
@@ -27,6 +27,15 @@ $totalBroadcasts = $groupsStats['total_broadcasts'] ?? 0;
 
 // Get connected WhatsApp number
 $aiWhatsappNumber = ai_get_setting('ai_whatsapp_number', '', $tenantId);
+if (empty($aiWhatsappNumber)) {
+    // Try to fetch from Evolution API
+    if (function_exists('ai_evolution_fetch_and_save_instance_number')) {
+        $fetchResult = ai_evolution_fetch_and_save_instance_number($tenantId);
+        if ($fetchResult['ok'] && !empty($fetchResult['number'])) {
+            $aiWhatsappNumber = $fetchResult['number'];
+        }
+    }
+}
 if (empty($aiWhatsappNumber)) {
     $aiWhatsappNumber = '5511999999999';
 }
@@ -58,7 +67,7 @@ include ("../left_sidebar.php");
         </div>
       </div>
     <?php else: ?>
-        <link rel="stylesheet" href="CSS/concierge_grupos.css">
+        <link rel="stylesheet" href="CSS/concierge_grupos.css?v=<?php echo time(); ?>">
 
     <div class="mia-grupos-root">
       <!-- ACTIONS -->
@@ -133,7 +142,7 @@ include ("../left_sidebar.php");
         <!-- LEFT: TABLE -->
         <div class="bcast-panel">
           <div class="panel-hdr">
-            <div class="panel-hdr-title"><i class="fa fa-paper-plane"></i> Histórico & Gerenciamento</div>
+            <div class="panel-hdr-title"><i class="fa fa-paper-plane"></i> Histórico de Campanhas</div>
             <div style="display:flex;align-items:center;gap:12px">
               <div class="mia-view-tabs" style="display:flex;background:#f1f5f9;padding:2px;border-radius:8px;gap:2px">
                 <button class="fc on" style="border:none;border-radius:6px;font-size:10.5px;padding:4px 10px" onclick="mudarVisaoMia(this, 'campanhas')"><i class="fa fa-bullhorn"></i> Campanhas</button>
@@ -201,25 +210,26 @@ include ("../left_sidebar.php");
         <div class="right-panel">
           <div class="rcard">
             <div class="next-hero" id="mia-next-hero">
-              <div class="next-label">Próximo Agendado</div>
-              <div style="font-size:12.5px;font-weight:700;margin-bottom:3px" id="mia-next-title">Nenhum disparo agendado</div>
-              <div class="next-time" id="mia-next-time">--:--</div>
-              <div style="font-size:10.5px;color:#a5b4fc;margin:8px 0" id="mia-next-date">Sem previsão</div>
-              <div style="display:flex;gap:5px;flex-wrap:wrap" id="mia-next-groups"></div>
+              <div class="next-label"><i class="fa fa-clock"></i> Próximo Disparo</div>
+              <div class="next-product" id="mia-next-title">Nenhum disparo agendado</div>
+              <div class="next-time-row">
+                <div class="next-time" id="mia-next-time">--:--</div>
+                <div class="next-ampm" id="mia-next-ampm"></div>
+              </div>
+              <div class="next-date" id="mia-next-date">Sem previsão</div>
+              <div class="next-chips" id="mia-next-groups"></div>
             </div>
           </div>
 
           <div class="rcard">
             <div class="rcard-hdr">
-              <div class="rcard-hdr-title" style="color:#15803d"><i class="fa fa-whatsapp" style="color:#22c55e"></i> Grupos WhatsApp + Controle Diário</div>
-              <button class="btn btn-secondary btn-sm" onclick="abrirMiaModal('grupos')"><i class="fa fa-cog"></i> Configurar</button>
+              <div class="rcard-hdr-title" style="color:#15803d"><i class="fa fa-whatsapp" style="color:#22c55e"></i> Grupos</div>
+              <button class="btn btn-secondary btn-sm" onclick="abrirMiaModal('grupos')"><i class="fa fa-cog"></i></button>
             </div>
             <div class="rcard-body">
-              <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">Recursos de Grupos WhatsApp</div>
-              <div id="mia-side-groups" style="font-size:12px;color:#94a3b8">Carregando grupos...</div>
-              <div class="sep" style="margin:9px 0"></div>
-              <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">Disparos de Grupos</div>
-              <div id="mia-quota-list">
+              <div id="mia-side-groups" class="mia-side-groups-list">Carregando grupos...</div>
+              <button class="btn btn-secondary btn-sm mia-side-add-btn" onclick="abrirMiaModal('grupos')"><i class="fa fa-plus"></i> Adicionar grupo</button>
+              <div id="mia-quota-list" style="display:none">
                  <div style="font-size:11px;color:#94a3b8;padding:10px 0">Aguardando sincronização de grupos...</div>
               </div>
             </div>
@@ -613,16 +623,75 @@ include ("../left_sidebar.php");
 
   <!-- MODAL: CAMPANHAS IA -->
   <div class="mia-overlay hide" id="mia-ov-ia-campanhas">
+    <div class="mia-modal lg mia-ia-campanhas-modal">
+      <div class="mh-modal mia-ia-modal-head" style="background:linear-gradient(135deg,#1e1b4b,#4c1d95);border-bottom:none">
+        <div>
+          <div class="mh-title" style="color:#fff"><i class="fa fa-magic"></i> Campanhas Geradas pela IA</div>
+          <div class="mh-sub" style="color:#a5b4fc">A IA analisou o catálogo e criou campanhas prontas para aprovação</div>
+        </div>
+        <button class="mh-close" onclick="fecharMiaModal('ia-campanhas')" style="color:#a5b4fc;background:rgba(255,255,255,.1)"><i class="fa fa-times"></i></button>
+      </div>
+      <div class="mb-modal mia-ia-modal-body">
+        <div class="mia-ia-summary">
+          <div class="mia-ia-summary-icon"><i class="fa fa-magic"></i></div>
+          <div style="flex:1">
+            <div class="mia-ia-summary-title">IA analisou <span id="mia-ia-total-produtos">0</span> produtos do catálogo</div>
+            <div class="mia-ia-summary-sub"><span id="mia-ia-produtos-parados">0</span> produtos parados · <span id="mia-ia-produtos-baixo-giro">0</span> com baixo giro · <span id="mia-ia-produtos-novos">0</span> novo lançamento detectado</div>
+          </div>
+          <button class="btn btn-secondary btn-sm" id="mia-ia-reanalisar-btn" onclick="miaReanalizarCatalogo()"><i class="fa fa-refresh"></i> Reanalisar</button>
+        </div>
+        <div class="usage-bar" style="margin-bottom:14px;margin-top:14px">
+          <div class="usage-item">
+            <span class="usage-label"><i class="fa fa-bolt" style="color:#d97706"></i> Chamadas IA</span>
+            <div class="usage-track"><div id="mia-ia-usage-fill" class="usage-fill" style="width:0%"></div></div>
+            <span id="mia-ia-usage-num" class="usage-num">0 / ∞</span>
+          </div>
+          <div class="usage-sep"></div>
+          <div class="usage-item">
+            <span class="usage-label"><i class="fa fa-fire" style="color:#7c3aed"></i> Usados nesta criação</span>
+            <div style="flex:1"></div>
+            <span id="mia-ia-tokens-usados" class="usage-num">0</span>
+          </div>
+        </div>
+        <div id="mia-ia-sync-loading" class="mia-sync-loading-box" style="display:none">
+          <div class="mia-sync-logo" aria-hidden="true">
+            <span class="mia-sync-ring ring-a"></span>
+            <span class="mia-sync-ring ring-b"></span>
+            <div class="mia-sync-core"><i class="fa fa-whatsapp"></i></div>
+          </div>
+          <div class="mia-sync-loading-content">
+            <div class="mia-sync-loading-title">Analisando produtos com a IA...</div>
+            <div class="mia-sync-loading-sub">Isso pode levar até 3 minutos. Aguarde enquanto a IA processa suas sugestões.</div>
+            <div class="mia-sync-loading-line"><span id="mia-ia-progress-bar" style="width:0%"></span></div>
+          </div>
+        </div>
+        <div id="mia-ia-sug-loading" class="mia-ia-sug-loading"><i class="fa fa-spinner fa-spin"></i> Buscando oportunidades no catálogo...</div>
+        <div id="mia-ia-sug-container" class="mia-ia-sug-scroll" style="display:none"></div>
+      </div>
+      <div class="mf-modal" style="background:#f8f9fa;border-top:1px solid #e2e8f0;padding:11px 20px;display:flex;gap:7px;justify-content:flex-end">
+        <button class="btn btn-secondary" onclick="fecharMiaModal('ia-campanhas')">Fechar</button>
+        <button class="btn btn-ai" onclick="miaAprovarTodasSugestoes()"><i class="fa fa-check"></i> Aprovar Todas</button>
+      </div>
+    </div>
+  </div>
+  <div class="mia-overlay hide" id="mia-ov-suggestion-text-edit">
     <div class="mia-modal">
       <div class="mh-modal">
         <div>
-          <div class="mh-title"><i class="fa fa-magic"></i> Campanhas Geradas pela IA</div>
-          <div class="mh-sub">Sugestões baseadas no seu estoque atual</div>
+          <div class="mh-title"><i class="fa fa-pencil"></i> <span id="mia-suggestion-edit-title">Editar texto</span></div>
+          <div class="mh-sub">Ajuste o conteúdo do card selecionado.</div>
         </div>
-        <button class="mh-close" onclick="fecharMiaModal('ia-campanhas')"><i class="fa fa-times"></i></button>
+        <button class="mh-close" onclick="fecharMiaModal('suggestion-text-edit')"><i class="fa fa-times"></i></button>
       </div>
-      <div class="mb-modal" id="mia-ia-sug-list">
-         <div style="padding:40px;text-align:center;color:#94a3b8"><i class="fa fa-spinner fa-spin"></i> Buscando oportunidades no catálogo...</div>
+      <div class="mb-modal">
+        <div class="fg" style="margin-bottom:0">
+          <label id="mia-suggestion-edit-label">Texto</label>
+          <textarea class="ftextarea" id="mia-suggestion-edit-input" style="min-height:140px" placeholder="Digite o conteúdo..."></textarea>
+        </div>
+      </div>
+      <div class="mf-modal">
+        <button class="btn btn-secondary" onclick="fecharMiaModal('suggestion-text-edit')">Cancelar</button>
+        <button class="btn btn-primary" onclick="miaSaveSuggestionTextEdit()"><i class="fa fa-check"></i> Salvar</button>
       </div>
     </div>
   </div>
@@ -745,6 +814,20 @@ include ("../left_sidebar.php");
                 <div class="fg">
                   <label>Mensagens individuais</label>
                   <div id="mia-individual-msgs" style="display:flex;flex-direction:column;gap:8px"></div>
+                </div>
+              </div>
+              <div class="fg" style="margin-bottom:12px">
+                <div class="mia-individual-msg-card" id="mia-welcome-card">
+                  <div class="mia-individual-msg-header" onclick="toggleMiaWelcomeCard()">
+                    <span><i class="fa fa-handshake-o" style="margin-right:5px;color:#7c3aed"></i> Mensagem de Boas Vindas</span>
+                    <i class="fa fa-chevron-down" style="color:#94a3b8;font-size:11px"></i>
+                  </div>
+                  <div class="mia-individual-msg-content">
+                    <div class="fg" style="margin:0">
+                      <label style="font-size:11px;font-weight:700;color:#374151;margin-bottom:4px;display:block">Texto</label>
+                      <textarea class="mia-individual-msg-textarea" id="mia-welcome-message" placeholder="Ex: Bem-vinda(o)! Obrigado por participar do grupo." oninput="updateMiaWelcomeMessage(this)"></textarea>
+                    </div>
+                  </div>
                 </div>
               </div>
               
@@ -947,13 +1030,13 @@ include ("../left_sidebar.php");
                 <div class="fg" style="margin-bottom:15px">
                   <label style="font-size:10px; color:#475569; text-transform:uppercase; margin-bottom:8px">Dias da Semana</label>
                   <div class="day-selector" id="mia-status-days" style="display:flex; justify-content:space-between; gap:2px">
-                    <button type="button" class="day-btn" data-day="0" onclick="toggleMiaDay(this)" title="Domingo">D</button>
-                    <button type="button" class="day-btn" data-day="1" onclick="toggleMiaDay(this)" title="Segunda">S</button>
-                    <button type="button" class="day-btn" data-day="2" onclick="toggleMiaDay(this)" title="Terça">T</button>
-                    <button type="button" class="day-btn" data-day="3" onclick="toggleMiaDay(this)" title="Quarta">Q</button>
-                    <button type="button" class="day-btn" data-day="4" onclick="toggleMiaDay(this)" title="Quinta">Q</button>
-                    <button type="button" class="day-btn" data-day="5" onclick="toggleMiaDay(this)" title="Sexta">S</button>
-                    <button type="button" class="day-btn" data-day="6" onclick="toggleMiaDay(this)" title="Sábado">S</button>
+                    <button type="button" class="day-btn" data-day="0" onclick="toggleMiaDay(this)" title="Domingo">Dom</button>
+                    <button type="button" class="day-btn" data-day="1" onclick="toggleMiaDay(this)" title="Segunda">Seg</button>
+                    <button type="button" class="day-btn" data-day="2" onclick="toggleMiaDay(this)" title="Terça">Ter</button>
+                    <button type="button" class="day-btn" data-day="3" onclick="toggleMiaDay(this)" title="Quarta">Qua</button>
+                    <button type="button" class="day-btn" data-day="4" onclick="toggleMiaDay(this)" title="Quinta">Qui</button>
+                    <button type="button" class="day-btn" data-day="5" onclick="toggleMiaDay(this)" title="Sexta">Sex</button>
+                    <button type="button" class="day-btn" data-day="6" onclick="toggleMiaDay(this)" title="Sábado">Sáb</button>
                   </div>
                 </div>
 
@@ -1305,7 +1388,7 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 });
 </script>
-<script src="JS/concierge_grupos.js"></script>
+<script src="JS/concierge_grupos.js?v=<?php echo time(); ?>"></script>
 <script src="JS/concierge_grupos_novas_funcionalidades.js"></script>
 <script src="JS/concierge_grupos_edit_campaign.js"></script>
 <?php endif; // End of plan check ?>

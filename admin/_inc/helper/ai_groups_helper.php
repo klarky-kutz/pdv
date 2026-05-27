@@ -4,6 +4,108 @@
  * Centraliza consultas e lógica de negócio para o módulo de Grupos IA.
  */
 
+if (!function_exists('ai_get_setting')) {
+    require_once __DIR__ . '/ai_concierge.php';
+}
+
+/**
+ * Calcula o próximo horário estimado de disparo com base nas configurações do grupo.
+ */
+function ai_groups_calculate_next_dispatch_time(array $group, int $sentToday, ?string $lastSentAt = null, ?string $scheduledAt = null, bool $hasBeenSent = false): ?array
+{
+    $settings = ai_groups_decode_json($group['settings_json'] ?? null);
+    $dailyLimit = max(0, (int)($group['daily_limit'] ?? 0));
+    $intervalMinutes = max(0, (int)($settings['dispatch_interval_minutes'] ?? $settings['interval_between_dispatches'] ?? 0));
+    $startTime = trim((string)($settings['start_time'] ?? '09:00'));
+    if (!preg_match('/^\d{2}:\d{2}$/', $startTime)) {
+        $startTime = '09:00';
+    }
+    $repeatDaysStr = trim((string)($settings['repeat_days'] ?? ''));
+    $repeatDays = [];
+    if ($repeatDaysStr !== '') {
+        $repeatDays = array_map('intval', array_filter(explode(',', $repeatDaysStr)));
+    }
+
+    $isScheduledByUser = !$hasBeenSent && !empty($scheduledAt);
+    if ($isScheduledByUser) {
+        return [
+            'datetime' => $scheduledAt,
+            'type' => 'user',
+            'label' => 'Agendado por você'
+        ];
+    }
+
+    $now = new DateTime();
+    $now->setTimezone(new DateTimeZone(date_default_timezone_get()));
+
+    $baseTime = $now;
+    if (!empty($lastSentAt)) {
+        try {
+            $baseTime = new DateTime($lastSentAt);
+        } catch (Throwable $e) {
+            $baseTime = $now;
+        }
+    }
+
+    if ($dailyLimit > 0 && $sentToday >= $dailyLimit) {
+        $nextDay = (clone $baseTime)->modify('+1 day');
+        $validNextDay = ai_groups_find_next_valid_day($nextDay, $repeatDays);
+        [$startHour, $startMin] = explode(':', $startTime);
+        $validNextDay->setTime((int)$startHour, (int)$startMin, 0);
+        return [
+            'datetime' => $validNextDay->format('Y-m-d H:i:s'),
+            'type' => 'system',
+            'label' => 'Próximo dia útil'
+        ];
+    }
+
+    if ($intervalMinutes > 0) {
+        $nextInterval = (clone $baseTime)->modify("+{$intervalMinutes} minutes");
+    } else {
+        $nextInterval = (clone $baseTime);
+    }
+
+    $validDay = ai_groups_find_next_valid_day($nextInterval, $repeatDays);
+
+    [$startHour, $startMin] = explode(':', $startTime);
+    $startOfDay = (clone $validDay)->setTime((int)$startHour, (int)$startMin, 0);
+    $endOfDay = (clone $validDay)->setTime(23, 59, 59);
+
+    if ($validDay < $startOfDay) {
+        $nextTime = $startOfDay;
+    } else {
+        $nextTime = $validDay;
+    }
+
+    if ($nextTime > $endOfDay) {
+        $nextDay = (clone $endOfDay)->modify('+1 day');
+        $validNextDay = ai_groups_find_next_valid_day($nextDay, $repeatDays);
+        $validNextDay->setTime((int)$startHour, (int)$startMin, 0);
+        $nextTime = $validNextDay;
+    }
+
+    return [
+        'datetime' => $nextTime->format('Y-m-d H:i:s'),
+        'type' => 'system',
+        'label' => 'Fila de produtos'
+    ];
+}
+
+function ai_groups_find_next_valid_day(DateTime $date, array $repeatDays): DateTime
+{
+    $result = (clone $date);
+    $checkDays = 0;
+    while ($checkDays < 365) {
+        $dayOfWeek = (int)$result->format('w');
+        if (empty($repeatDays) || in_array($dayOfWeek, $repeatDays, true)) {
+            return $result;
+        }
+        $result->modify('+1 day');
+        $checkDays++;
+    }
+    return $date;
+}
+
 /**
  * Verifica se uma tabela necessária para o módulo existe.
  */
@@ -138,7 +240,6 @@ function ai_groups_collect_status_media_urls(array $row): array
     $urls = array_merge($urls, ai_groups_media_list($payload['media_urls'] ?? []));
     return array_values(array_unique($urls));
 }
-<<<<<<< HEAD
 function ai_groups_get_active_dispatch(int $tenantId): array
 {
     $result = [
@@ -301,8 +402,6 @@ function ai_groups_find_campaign_schedule_conflict(int $tenantId, string $schedu
 
     return null;
 }
-=======
->>>>>>> a884a980115d0edd08cc20971166a339609fc4cc
 function ai_groups_ensure_status_schema(): void
 {
     static $done = false;
@@ -335,7 +434,6 @@ function ai_groups_ensure_status_schema(): void
             return;
         }
 
-<<<<<<< HEAD
         // Força a adição das colunas ignorando erros de "coluna já existe"
         $cols = [
             'repeat_count' => "INT(11) NOT NULL DEFAULT 1",
@@ -356,8 +454,6 @@ function ai_groups_ensure_status_schema(): void
             }
         }
 
-=======
->>>>>>> a884a980115d0edd08cc20971166a339609fc4cc
         if (!ai_groups_column_exists('concierge_status', 'scheduled_at')) {
             db()->exec("ALTER TABLE `concierge_status` ADD COLUMN `scheduled_at` DATETIME DEFAULT NULL AFTER `status`");
         }
@@ -406,11 +502,7 @@ function ai_groups_ensure_broadcast_schema(): void
         }
     }
 }
-<<<<<<< HEAD
 function ai_groups_http_post_json(string $url, array $payload, array $headers = [], int $timeout = 120): array
-=======
-function ai_groups_http_post_json(string $url, array $payload, array $headers = [], int $timeout = 20): array
->>>>>>> a884a980115d0edd08cc20971166a339609fc4cc
 {
     $url = trim($url);
     if ($url === '') {
@@ -435,11 +527,7 @@ function ai_groups_http_post_json(string $url, array $payload, array $headers = 
     curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
     curl_setopt($ch, CURLOPT_HTTPHEADER, $mergedHeaders);
     curl_setopt($ch, CURLOPT_TIMEOUT, max(5, $timeout));
-<<<<<<< HEAD
     curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 30);
-=======
-    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
->>>>>>> a884a980115d0edd08cc20971166a339609fc4cc
     if (stripos($url, 'https://') === 0) {
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
@@ -468,15 +556,9 @@ function ai_groups_http_post_json(string $url, array $payload, array $headers = 
 }
 function ai_groups_dispatch_webhook_url(int $tenantId, string $kind = 'campaign'): string
 {
-    $primary = $kind === 'status'
+    return $kind === 'status'
         ? trim((string)ai_get_setting('ai_status_dispatch_webhook_url', '', $tenantId))
         : trim((string)ai_get_setting('ai_groups_dispatch_webhook_url', '', $tenantId));
-
-    if ($primary !== '') {
-        return $primary;
-    }
-
-    return trim((string)ai_get_setting('ai_webhook_target_url', '', $tenantId));
 }
 function ai_groups_status_posting_mode(): string
 {
@@ -491,6 +573,29 @@ function ai_groups_status_posting_mode(): string
             return $cached;
         }
         $stmt = db()->prepare("SELECT key_value FROM saas_config_global WHERE key_name = 'ai_status_posting_mode' LIMIT 1");
+        $stmt->execute();
+        $mode = strtolower(trim((string)$stmt->fetchColumn()));
+        if (in_array($mode, ['n8n', 'system'], true)) {
+            $cached = $mode;
+        }
+    } catch (Throwable $e) {
+    }
+
+    return $cached;
+}
+function ai_groups_campaign_posting_mode(): string
+{
+    static $cached = null;
+    if ($cached !== null) {
+        return $cached;
+    }
+
+    $cached = 'n8n';
+    try {
+        if (!ai_groups_table_exists('saas_config_global')) {
+            return $cached;
+        }
+        $stmt = db()->prepare("SELECT key_value FROM saas_config_global WHERE key_name = 'ai_campaign_posting_mode' LIMIT 1");
         $stmt->execute();
         $mode = strtolower(trim((string)$stmt->fetchColumn()));
         if (in_array($mode, ['n8n', 'system'], true)) {
@@ -560,13 +665,21 @@ function ai_groups_status_guess_media_type(string $mediaUrl): string
     }
     return 'image';
 }
-<<<<<<< HEAD
 function ai_groups_status_public_media_base_url(int $tenantId): string
 {
+    $globalBase = '';
+    try {
+        if (ai_groups_table_exists('saas_config_global')) {
+            $stmt = db()->prepare("SELECT key_value FROM saas_config_global WHERE key_name = 'ai_modernpos_base_url' LIMIT 1");
+            $stmt->execute();
+            $globalBase = rtrim(trim((string)$stmt->fetchColumn()), '/');
+        }
+    } catch (Throwable $e) {}
+
     $candidates = [
-        trim((string)ai_get_setting('ai_status_media_public_base_url', '', $tenantId)),
-        trim((string)ai_get_setting('ai_public_media_base_url', '', $tenantId)),
-        'https://qualityless-hilda-unstatable.ngrok-free.dev',
+        rtrim(trim((string)ai_get_setting('ai_status_media_public_base_url', '', $tenantId)), '/'),
+        rtrim(trim((string)ai_get_setting('ai_public_media_base_url', '', $tenantId)), '/'),
+        $globalBase,
     ];
 
     foreach ($candidates as $candidate) {
@@ -605,10 +718,19 @@ function ai_groups_status_normalize_media_url(string $mediaUrl, int $tenantId = 
         if ($publicBase !== '' && $path !== '') {
             // Garante que o path comece com /
             if ($path[0] !== '/') $path = '/' . $path;
-            
-            // Se a Ngrok aponta para a pasta modernpos, mas o path já contém /modernpos/, removemos para evitar duplicidade
-            // Ex: http://localhost/modernpos/img.jpg -> https://ngrok/modernpos/img.jpg
-            // Se o usuário configurar a ngrok na raiz do projeto, isso evita erro 404
+
+            $baseParts = @parse_url($publicBase);
+            $basePath = '';
+            if (is_array($baseParts)) {
+                $basePath = rtrim((string)($baseParts['path'] ?? ''), '/');
+            }
+            if ($basePath !== '' && strpos($path, $basePath . '/') === 0) {
+                $path = substr($path, strlen($basePath));
+                if ($path === '') {
+                    $path = '/';
+                }
+            }
+
             $mediaUrl = rtrim($publicBase, '/') . $path . $query;
         }
     }
@@ -828,10 +950,6 @@ function ai_groups_dispatch_status_via_system(int $tenantId, array $row): array
         }
     }
 
-=======
-function ai_groups_dispatch_status_via_system(int $tenantId, array $row): array
-{
->>>>>>> a884a980115d0edd08cc20971166a339609fc4cc
     if (!function_exists('ai_evolution_get_connection') || !function_exists('ai_evolution_http_request')) {
         return [
             'ok' => false,
@@ -863,39 +981,7 @@ function ai_groups_dispatch_status_via_system(int $tenantId, array $row): array
     $content = trim((string)($row['content'] ?? ''));
     $mediaUrls = ai_groups_collect_status_media_urls($row);
     $mediaUrl = trim((string)($mediaUrls[0] ?? $row['media_url'] ?? ''));
-<<<<<<< HEAD
     $mediaUrl = ai_groups_status_normalize_media_url($mediaUrl, $tenantId);
-=======
-    if ($mediaUrl !== '' && function_exists('ai_resolve_storage_url')) {
-        $mediaUrl = (string)ai_resolve_storage_url($mediaUrl);
-    }
-    if ($mediaUrl !== '') {
-        $parts = @parse_url($mediaUrl);
-        $host = strtolower((string)($parts['host'] ?? ''));
-        if (in_array($host, ['localhost', '127.0.0.1', '::1'], true)) {
-            $publicBase = 'https://qualityless-hilda-unstatable.ngrok-free.dev';
-            $path = (string)($parts['path'] ?? '');
-            $query = isset($parts['query']) && $parts['query'] !== '' ? ('?' . $parts['query']) : '';
-            if ($path !== '') {
-                $mediaUrl = rtrim($publicBase, '/') . $path . $query;
-            }
-        }
-        $parts = @parse_url($mediaUrl);
-        if (is_array($parts) && !empty($parts['scheme']) && !empty($parts['host'])) {
-            $normalizedPath = (string)($parts['path'] ?? '');
-            if ($normalizedPath !== '') {
-                $segments = explode('/', $normalizedPath);
-                $segments = array_map(static function ($seg) {
-                    return rawurlencode(rawurldecode((string)$seg));
-                }, $segments);
-                $normalizedPath = implode('/', $segments);
-            }
-            $normalizedQuery = isset($parts['query']) && $parts['query'] !== '' ? ('?' . $parts['query']) : '';
-            $normalizedPort = isset($parts['port']) ? (':' . (int)$parts['port']) : '';
-            $mediaUrl = $parts['scheme'] . '://' . $parts['host'] . $normalizedPort . $normalizedPath . $normalizedQuery;
-        }
-    }
->>>>>>> a884a980115d0edd08cc20971166a339609fc4cc
 
     $type = strtolower(trim((string)($payloadJson['media_type'] ?? $payloadJson['type'] ?? '')));
     if ($type === '') {
@@ -919,7 +1005,6 @@ function ai_groups_dispatch_status_via_system(int $tenantId, array $row): array
             'external_message_id' => '',
         ];
     }
-<<<<<<< HEAD
     if ($type !== 'text' && $mediaUrl !== '') {
         $mediaProbe = ai_groups_status_probe_media_url($mediaUrl);
         if (empty($mediaProbe['ok'])) {
@@ -937,8 +1022,6 @@ function ai_groups_dispatch_status_via_system(int $tenantId, array $row): array
             ];
         }
     }
-=======
->>>>>>> a884a980115d0edd08cc20971166a339609fc4cc
 
     $statusJidList = ai_groups_status_payload_jid_list($payloadJson['status_jid_list'] ?? $payloadJson['statusJidList'] ?? []);
     $allContactsRaw = $payloadJson['allContacts'] ?? $payloadJson['all_contacts'] ?? null;
@@ -970,10 +1053,7 @@ function ai_groups_dispatch_status_via_system(int $tenantId, array $row): array
         'allContacts' => $allContacts,
     ];
 
-<<<<<<< HEAD
     $base64Data = '';
-=======
->>>>>>> a884a980115d0edd08cc20971166a339609fc4cc
     if ($type === 'text') {
         $payload['content'] = $content;
         $payload['backgroundColor'] = $backgroundColor;
@@ -988,7 +1068,6 @@ function ai_groups_dispatch_status_via_system(int $tenantId, array $row): array
         $payload['statusJidList'] = $statusJidList;
     }
 
-<<<<<<< HEAD
     // Debug Log
     $debugMsg = sprintf("[%s] Dispatching Status ID %d | Type: %s | Base64: %s | URL: %s\n", 
         date('Y-m-d H:i:s'), $row['id'], $type, (($base64Data !== '' && $type !== 'text') ? 'YES' : 'NO'), $mediaUrl);
@@ -1029,21 +1108,11 @@ function ai_groups_dispatch_status_via_system(int $tenantId, array $row): array
             }
             $retryMsg = sprintf("[%s] Status ID %d retry with Base64 after media host upload failure.\n", date('Y-m-d H:i:s'), $row['id']);
             @file_put_contents(DIR_LOG . 'status_dispatch.log', $retryMsg, FILE_APPEND);
-=======
-    $url = rtrim($baseUrl, '/') . '/message/sendStatus/' . rawurlencode($instanceName);
-    $resp = ai_evolution_http_request('POST', $url, $apiKey, $payload);
-
-    if (empty($resp['ok'])) {
-        $legacyResp = ai_evolution_http_request('POST', $url, $apiKey, ['statusMessage' => $payload]);
-        if (!empty($legacyResp['ok'])) {
-            $resp = $legacyResp;
->>>>>>> a884a980115d0edd08cc20971166a339609fc4cc
         }
     }
 
     $externalMessageId = '';
     if (function_exists('ai_evolution_array_path')) {
-<<<<<<< HEAD
         $jsonBody = (array)($resp['json'] ?? []);
         $externalMessageId = (string)(
             ai_evolution_array_path($jsonBody, ['key', 'id'])
@@ -1090,19 +1159,6 @@ function ai_groups_dispatch_status_via_system(int $tenantId, array $row): array
         'ok' => $isOk,
         'http_code' => (int)($resp['http_code'] ?? 0),
         'error' => $isOk ? '' : $responseError,
-=======
-        $externalMessageId = (string)(
-            ai_evolution_array_path((array)($resp['json'] ?? []), ['key', 'id'])
-            ?? ai_evolution_array_path((array)($resp['json'] ?? []), ['response', 'key', 'id'])
-            ?? ''
-        );
-    }
-
-    return [
-        'ok' => !empty($resp['ok']),
-        'http_code' => (int)($resp['http_code'] ?? 0),
-        'error' => trim((string)($resp['error'] ?? '')),
->>>>>>> a884a980115d0edd08cc20971166a339609fc4cc
         'json' => (array)($resp['json'] ?? []),
         'raw' => (string)($resp['raw'] ?? ''),
         'external_message_id' => $externalMessageId,
@@ -1136,7 +1192,6 @@ function ai_get_due_concierge_statuses(int $tenantId = 0, int $limit = 50): arra
         return [];
     }
 }
-<<<<<<< HEAD
 function ai_groups_handle_status_repost_logic(int $tenantId, int $statusId, array $row): bool
 {
     // Força o fuso horário para garantir que a data gravada no JSON bata com o local do usuário
@@ -1470,16 +1525,21 @@ function ai_groups_get_ai_bar_stats(int $tenantId): array
 
 function ai_groups_get_public_base_url(int $tenantId): string
 {
-    $publicUrl = trim((string)ai_get_setting('ai_status_public_base_url', '', $tenantId));
+    $publicUrl = rtrim(trim((string)ai_get_setting('ai_status_public_base_url', '', $tenantId)), '/');
     if ($publicUrl === '') {
-        $publicUrl = trim((string)ai_get_setting('ai_public_media_base_url', '', $tenantId));
+        $publicUrl = rtrim(trim((string)ai_get_setting('ai_public_media_base_url', '', $tenantId)), '/');
     }
-    
-    // Se estiver em localhost e tivermos o nGrok do usuário, usamos como fallback
+
     if ($publicUrl === '' || stripos($publicUrl, 'localhost') !== false) {
-        $publicUrl = 'https://qualityless-hilda-unstatable.ngrok-free.dev';
+        try {
+            if (ai_groups_table_exists('saas_config_global')) {
+                $stmt = db()->prepare("SELECT key_value FROM saas_config_global WHERE key_name = 'ai_modernpos_base_url' LIMIT 1");
+                $stmt->execute();
+                $publicUrl = rtrim(trim((string)$stmt->fetchColumn()), '/');
+            }
+        } catch (Throwable $e) {}
     }
-    
+
     return rtrim($publicUrl, '/');
 }
 
@@ -1527,22 +1587,14 @@ function ai_process_due_concierge_statuses(int $tenantId = 0, int $limit = 25): 
         } catch (Throwable $e) {}
     }
 
-=======
-function ai_process_due_concierge_statuses(int $tenantId = 0, int $limit = 25): array
-{
-    ai_groups_ensure_status_schema();
->>>>>>> a884a980115d0edd08cc20971166a339609fc4cc
     $statusPostingMode = ai_groups_status_posting_mode();
     $result = [
         'due' => 0,
         'dispatched' => 0,
         'failed' => 0,
         'items' => [],
-<<<<<<< HEAD
         'generated' => $generatedCount,
         'generation_debug' => $generationDebug,
-=======
->>>>>>> a884a980115d0edd08cc20971166a339609fc4cc
     ];
 
     if (!ai_groups_table_exists('concierge_status')) {
@@ -1561,10 +1613,7 @@ function ai_process_due_concierge_statuses(int $tenantId = 0, int $limit = 25): 
         if ($statusPostingMode === 'system') {
             ai_update_concierge_status($tid, $statusId, [
                 'status' => 'sending',
-<<<<<<< HEAD
                 'attempt_count' => (int)($row['attempt_count'] ?? 0) + 1,
-=======
->>>>>>> a884a980115d0edd08cc20971166a339609fc4cc
                 'error_message' => '',
             ]);
 
@@ -1580,18 +1629,9 @@ function ai_process_due_concierge_statuses(int $tenantId = 0, int $limit = 25): 
             ];
 
             if (!empty($resp['ok'])) {
-<<<<<<< HEAD
                 // Lógica de Repostagem (agora cuida de marcar como 'sent' e incrementar post_count)
                 ai_groups_handle_status_repost_logic($tid, $statusId, $row);
 
-=======
-                ai_update_concierge_status($tid, $statusId, [
-                    'status' => 'sent',
-                    'sent_at' => date('Y-m-d H:i:s'),
-                    'error_message' => '',
-                    'payload_json' => $payloadJson,
-                ]);
->>>>>>> a884a980115d0edd08cc20971166a339609fc4cc
                 $result['dispatched']++;
                 $result['items'][] = [
                     'tenant_id' => $tid,
@@ -1604,7 +1644,6 @@ function ai_process_due_concierge_statuses(int $tenantId = 0, int $limit = 25): 
                 continue;
             }
 
-<<<<<<< HEAD
             $errRaw = $resp['error'] ?? '';
             $err = trim(is_array($errRaw) || is_object($errRaw) ? (string)json_encode($errRaw, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : (string)$errRaw);
             
@@ -1626,19 +1665,13 @@ function ai_process_due_concierge_statuses(int $tenantId = 0, int $limit = 25): 
                 continue;
             }
             
-=======
-            $err = trim((string)($resp['error'] ?? ''));
->>>>>>> a884a980115d0edd08cc20971166a339609fc4cc
             if ($err === '') {
                 $err = 'Falha no disparo direto de status (HTTP ' . (int)($resp['http_code'] ?? 0) . ').';
             }
             ai_update_concierge_status($tid, $statusId, [
                 'status' => 'error',
                 'error_message' => $err,
-<<<<<<< HEAD
                 'sent_at' => null,
-=======
->>>>>>> a884a980115d0edd08cc20971166a339609fc4cc
                 'payload_json' => $payloadJson,
             ]);
             $result['failed']++;
@@ -1673,23 +1706,16 @@ function ai_process_due_concierge_statuses(int $tenantId = 0, int $limit = 25): 
 
         ai_update_concierge_status($tid, $statusId, [
             'status' => 'sending',
-<<<<<<< HEAD
             'attempt_count' => (int)($row['attempt_count'] ?? 0) + 1,
-=======
->>>>>>> a884a980115d0edd08cc20971166a339609fc4cc
             'error_message' => '',
         ]);
 
         $payloadJson = ai_groups_decode_json($row['payload_json'] ?? null);
         $mediaUrls = ai_groups_collect_status_media_urls($row);
-<<<<<<< HEAD
         
         $token = ai_groups_store_token($tid);
         $publicBase = ai_groups_get_public_base_url($tid);
         $callbackUrl = $publicBase . '/api/concierge/status_webhook.php?loja_id=' . $tid . '&status_id=' . $statusId . '&token=' . $token;
-=======
-        $callbackUrl = rtrim((string)ROOT_URL, '/') . '/api/concierge/status_webhook.php?loja_id=' . $tid . '&status_id=' . $statusId;
->>>>>>> a884a980115d0edd08cc20971166a339609fc4cc
 
         $payload = [
             'source' => 'concierge_status_dispatch',
@@ -1706,10 +1732,7 @@ function ai_process_due_concierge_statuses(int $tenantId = 0, int $limit = 25): 
                 'method' => 'POST',
                 'headers' => [
                     'X-Concierge-Token' => $token,
-<<<<<<< HEAD
                     'ngrok-skip-browser-warning' => '1',
-=======
->>>>>>> a884a980115d0edd08cc20971166a339609fc4cc
                 ],
                 'body_template' => [
                     'tenant_id' => $tid,
@@ -1739,7 +1762,6 @@ function ai_process_due_concierge_statuses(int $tenantId = 0, int $limit = 25): 
             continue;
         }
 
-<<<<<<< HEAD
         $errRaw = $resp['error'] ?? '';
         $err = trim(is_array($errRaw) || is_object($errRaw) ? (string)json_encode($errRaw, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : (string)$errRaw);
         
@@ -1758,9 +1780,6 @@ function ai_process_due_concierge_statuses(int $tenantId = 0, int $limit = 25): 
             continue;
         }
         
-=======
-        $err = trim((string)($resp['error'] ?? ''));
->>>>>>> a884a980115d0edd08cc20971166a339609fc4cc
         if ($err === '') {
             $err = 'Falha ao chamar webhook N8N de status (HTTP ' . (int)($resp['http_code'] ?? 0) . ').';
         }
@@ -1768,10 +1787,7 @@ function ai_process_due_concierge_statuses(int $tenantId = 0, int $limit = 25): 
         ai_update_concierge_status($tid, $statusId, [
             'status' => 'error',
             'error_message' => $err,
-<<<<<<< HEAD
             'sent_at' => null,
-=======
->>>>>>> a884a980115d0edd08cc20971166a339609fc4cc
         ]);
 
         $result['failed']++;
@@ -1790,7 +1806,6 @@ function ai_process_due_concierge_statuses(int $tenantId = 0, int $limit = 25): 
 function ai_process_due_concierge_campaigns(int $tenantId = 0, int $limit = 25): array
 {
     ai_groups_ensure_broadcast_schema();
-<<<<<<< HEAD
     
     // Cleanup: Campanhas travadas em 'sending'
     try {
@@ -1821,14 +1836,13 @@ function ai_process_due_concierge_campaigns(int $tenantId = 0, int $limit = 25):
         } catch (Throwable $e) {}
     }
 
-=======
->>>>>>> a884a980115d0edd08cc20971166a339609fc4cc
     $result = [
         'due' => 0,
         'dispatched' => 0,
         'failed' => 0,
         'items' => [],
     ];
+    $campaignPostingMode = ai_groups_campaign_posting_mode();
 
     if (!ai_groups_table_exists('concierge_campaigns')) {
         return $result;
@@ -1841,6 +1855,23 @@ function ai_process_due_concierge_campaigns(int $tenantId = 0, int $limit = 25):
         $tid = (int)($campaign['tenant_id'] ?? 0);
         $campaignId = (int)($campaign['id'] ?? 0);
         if ($tid <= 0 || $campaignId <= 0) {
+            continue;
+        }
+        if ($campaignPostingMode === 'system') {
+            $stubMsg = 'Disparo de campanhas via sistema está em preparação. Altere para N8N para executar envios.';
+            ai_update_concierge_campaign($tid, $campaignId, [
+                'status' => 'failed',
+                'last_error' => $stubMsg,
+                'updated_by' => 0,
+            ]);
+            $result['failed']++;
+            $result['items'][] = [
+                'tenant_id' => $tid,
+                'campaign_id' => $campaignId,
+                'mode' => 'system',
+                'ok' => false,
+                'error' => $stubMsg,
+            ];
             continue;
         }
 
@@ -1888,6 +1919,13 @@ function ai_process_due_concierge_campaigns(int $tenantId = 0, int $limit = 25):
 
         $payloadJson = ai_groups_decode_json($campaign['payload_json'] ?? null);
         $callbackUrl = rtrim((string)ROOT_URL, '/') . '/api/concierge/campaign_status_webhook.php?loja_id=' . $tid;
+        $cta = (string)($payloadJson['cta'] ?? '');
+        $mainCtaLink = (string)($payloadJson['main_cta_link'] ?? '');
+        $mediaUrls = (array)($payloadJson['media_urls'] ?? []);
+        $mediaCount = count(array_filter($mediaUrls, function($url) { return trim((string)$url) !== ''; }));
+        if ($mediaCount === 0 && !empty(trim((string)($campaign['media_url'] ?? '')))) {
+            $mediaCount = 1;
+        }
         $payload = [
             'source' => 'concierge_campaign_dispatch',
             'tenant_id' => $tid,
@@ -1899,6 +1937,10 @@ function ai_process_due_concierge_campaigns(int $tenantId = 0, int $limit = 25):
                 'media_url' => (string)($campaign['media_url'] ?? ''),
                 'scheduled_at' => $campaign['scheduled_at'] ?? null,
                 'payload_json' => $payloadJson,
+                'cta' => $cta,
+                'main_cta_link' => $mainCtaLink,
+                'media_count' => $mediaCount,
+                'media_urls' => $mediaUrls,
             ],
             'targets' => $targets,
             'callback' => [
@@ -1906,10 +1948,7 @@ function ai_process_due_concierge_campaigns(int $tenantId = 0, int $limit = 25):
                 'method' => 'POST',
                 'headers' => [
                     'X-Concierge-Token' => $token,
-<<<<<<< HEAD
                     'ngrok-skip-browser-warning' => '1',
-=======
->>>>>>> a884a980115d0edd08cc20971166a339609fc4cc
                 ],
                 'body_template' => [
                     'tenant_id' => $tid,
@@ -1946,12 +1985,8 @@ function ai_process_due_concierge_campaigns(int $tenantId = 0, int $limit = 25):
             continue;
         }
 
-<<<<<<< HEAD
         $errRaw = $resp['error'] ?? '';
         $err = trim(is_array($errRaw) || is_object($errRaw) ? (string)json_encode($errRaw, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : (string)$errRaw);
-=======
-        $err = trim((string)($resp['error'] ?? ''));
->>>>>>> a884a980115d0edd08cc20971166a339609fc4cc
         if ($err === '') {
             $err = 'Falha ao chamar webhook N8N de campanhas (HTTP ' . (int)($resp['http_code'] ?? 0) . ').';
         }
@@ -2002,7 +2037,7 @@ function ai_schedule_concierge_campaign(int $tenantId, int $campaignId, string $
                 updated_at = NOW()
             WHERE tenant_id = :tid
               AND id = :cid
-              AND status NOT IN ('sent', 'canceled')
+              AND status NOT IN ('sent', 'canceled', 'completed')
             LIMIT 1
         ");
         $stmt->execute([
@@ -2185,17 +2220,22 @@ function ai_groups_normalize_campaign_status(string $status): string
         'aprovacao' => 'needs_approval',
         'scheduled' => 'scheduled',
         'agendado' => 'scheduled',
+        'pending' => 'pending',
+        'queued' => 'queued',
         'sending' => 'sending',
         'enviando' => 'sending',
         'sent' => 'sent',
         'enviado' => 'sent',
+        'completed' => 'completed',
+        'finalizado' => 'completed',
+        'error' => 'error',
         'failed' => 'failed',
-        'erro' => 'failed',
+        'erro' => 'error',
         'canceled' => 'canceled',
         'cancelado' => 'canceled',
     ];
 
-    return $map[$status] ?? 'draft';
+    return $map[$status] ?? $status;
 }
 
 /**
@@ -2271,9 +2311,21 @@ function ai_get_concierge_campaigns(int $tenantId, array $filters = [], int $pag
     $params = [':tid' => $tenantId];
 
     if (!empty($filters['status'])) {
-        $status = ai_groups_normalize_campaign_status((string)$filters['status']);
-        $where[] = 'c.status = :status';
-        $params[':status'] = $status;
+        $statusStr = trim((string)$filters['status']);
+        $statusList = array_map('ai_groups_normalize_campaign_status', array_filter(array_map('trim', explode(',', $statusStr))));
+        if (count($statusList) > 1) {
+            $placeholders = [];
+            foreach ($statusList as $i => $s) {
+                $key = ':status' . $i;
+                $placeholders[] = $key;
+                $params[$key] = $s;
+            }
+            $where[] = 'c.status IN (' . implode(',', $placeholders) . ')';
+        } else {
+            $status = ai_groups_normalize_campaign_status((string)$filters['status']);
+            $where[] = 'c.status = :status';
+            $params[':status'] = $status;
+        }
     }
 
     if (!empty($filters['search'])) {
@@ -2339,6 +2391,7 @@ function ai_get_concierge_campaigns(int $tenantId, array $filters = [], int $pag
             $item['product_id'] = (int)($item['product_id'] ?? 0);
             $item['created_by'] = (int)($item['created_by'] ?? 0);
             $item['updated_by'] = (int)($item['updated_by'] ?? 0);
+            $item['allow_requeue'] = (int)($item['allow_requeue'] ?? 1);
             $item['total_targets'] = (int)($item['total_targets'] ?? 0);
             $item['sent_targets'] = (int)($item['sent_targets'] ?? 0);
             $item['failed_targets'] = (int)($item['failed_targets'] ?? 0);
@@ -2381,6 +2434,7 @@ function ai_get_concierge_campaign(int $tenantId, int $campaignId): ?array
         $campaign['product_id'] = (int)($campaign['product_id'] ?? 0);
         $campaign['created_by'] = (int)($campaign['created_by'] ?? 0);
         $campaign['updated_by'] = (int)($campaign['updated_by'] ?? 0);
+        $campaign['allow_requeue'] = (int)($campaign['allow_requeue'] ?? 1);
         $campaign['targets'] = ai_get_campaign_targets($tenantId, $campaignId);
         $campaign['summary'] = ai_get_campaign_delivery_summary($tenantId, $campaignId);
 
@@ -2412,13 +2466,14 @@ function ai_create_concierge_campaign(int $tenantId, array $payload): int
     $createdBy = (int)($payload['created_by'] ?? 0);
     $payloadJson = $payload['payload_json'] ?? null;
     $payloadJson = is_array($payloadJson) ? json_encode($payloadJson, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : (string)$payloadJson;
+    $allowRequeue = (int)($payload['allow_requeue'] ?? 1);
 
     try {
         $stmt = db()->prepare("
             INSERT INTO concierge_campaigns
-            (tenant_id, product_id, title, content, media_url, status, scheduled_at, created_by, updated_by, payload_json, created_at, updated_at)
+            (tenant_id, product_id, title, content, media_url, status, scheduled_at, created_by, updated_by, payload_json, allow_requeue, created_at, updated_at)
             VALUES
-            (:tid, :pid, :title, :content, :media, :status, :scheduled_at, :created_by, :updated_by, :payload_json, NOW(), NOW())
+            (:tid, :pid, :title, :content, :media, :status, :scheduled_at, :created_by, :updated_by, :payload_json, :allow_requeue, NOW(), NOW())
         ");
 
         $stmt->execute([
@@ -2432,6 +2487,7 @@ function ai_create_concierge_campaign(int $tenantId, array $payload): int
             ':created_by' => $createdBy,
             ':updated_by' => $createdBy,
             ':payload_json' => $payloadJson !== '' ? $payloadJson : null,
+            ':allow_requeue' => $allowRequeue,
         ]);
 
         $campaignId = (int)db()->lastInsertId();
@@ -2500,6 +2556,11 @@ function ai_update_concierge_campaign(int $tenantId, int $campaignId, array $pay
         $pj = $payload['payload_json'];
         $pj = is_array($pj) ? json_encode($pj, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : (string)$pj;
         $params[':payload_json'] = $pj !== '' ? $pj : null;
+    }
+
+    if (array_key_exists('allow_requeue', $payload)) {
+        $sets[] = 'allow_requeue = :allow_requeue';
+        $params[':allow_requeue'] = (int)$payload['allow_requeue'];
     }
 
     if (empty($sets) && !array_key_exists('group_ids', $payload)) {
@@ -2669,6 +2730,7 @@ function ai_mark_broadcast_status(
     $status = ai_groups_normalize_broadcast_status($status);
     $externalMessageId = trim($externalMessageId);
     $errorMessage = trim($errorMessage);
+    $today = date('Y-m-d');
 
     try {
         if ($externalMessageId !== '') {
@@ -2721,6 +2783,51 @@ function ai_mark_broadcast_status(
             ':status_sent' => in_array($status, ['sent', 'sending'], true) ? 1 : 0,
         ]);
 
+        // Atualiza o success_history_json do grupo se o status for 'sent'
+        if ($status === 'sent' && ai_groups_table_exists('concierge_groups')) {
+            try {
+                // Obtém o success_history_json atual do grupo
+                $stmtGroup = db()->prepare("
+                    SELECT settings_json
+                    FROM concierge_groups
+                    WHERE id = :gid AND tenant_id = :tid
+                    LIMIT 1
+                ");
+                $stmtGroup->execute([':gid' => $groupId, ':tid' => $tenantId]);
+                $groupRow = $stmtGroup->fetch(PDO::FETCH_ASSOC);
+
+                $settings = [];
+                if ($groupRow && !empty($groupRow['settings_json'])) {
+                    $decoded = ai_groups_decode_json($groupRow['settings_json']);
+                    if (is_array($decoded)) {
+                        $settings = $decoded;
+                    }
+                }
+
+                // Atualiza o success_history_json
+                $successHistory = $settings['success_history_json'] ?? [];
+                if (!is_array($successHistory)) {
+                    $successHistory = [];
+                }
+                $successHistory[$today] = 'sent';
+                $settings['success_history_json'] = $successHistory;
+
+                // Salva as configurações atualizadas no grupo
+                $updateStmt = db()->prepare("
+                    UPDATE concierge_groups
+                    SET settings_json = :settings, updated_at = NOW()
+                    WHERE id = :gid AND tenant_id = :tid
+                ");
+                $updateStmt->execute([
+                    ':gid' => $groupId,
+                    ':tid' => $tenantId,
+                    ':settings' => json_encode($settings, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                ]);
+            } catch (Throwable $e) {
+                // Ignora erro ao atualizar o grupo, pois o principal é o broadcast
+            }
+        }
+
         return true;
     } catch (Throwable $e) {
         return false;
@@ -2755,7 +2862,7 @@ function ai_dispatch_concierge_campaign_now(int $tenantId, int $campaignId, int 
                 updated_at = NOW()
             WHERE tenant_id = :tid
               AND id = :cid
-              AND status NOT IN ('sent', 'canceled')
+              AND status NOT IN ('sent', 'canceled', 'completed')
             LIMIT 1
         ");
         $stmt->execute([
@@ -2764,7 +2871,12 @@ function ai_dispatch_concierge_campaign_now(int $tenantId, int $campaignId, int 
             ':uid' => $userId,
         ]);
 
-        return $stmt->rowCount() > 0;
+        if ($stmt->rowCount() > 0) {
+            ai_process_due_concierge_campaigns($tenantId, 1);
+            return true;
+        }
+
+        return false;
     } catch (Throwable $e) {
         return false;
     }
@@ -2799,6 +2911,220 @@ function ai_get_due_concierge_campaigns(int $tenantId = 0, int $limit = 50): arr
     } catch (Throwable $e) {
         return [];
     }
+}
+function ai_groups_get_group_dispatch_queue(int $tenantId, int $groupId, int $nextCount = 3): array
+{
+    $result = [
+        'group_id' => (int)$groupId,
+        'daily_limit' => 0,
+        'interval_minutes' => 0,
+        'start_time' => '09:00',
+        'sent_today' => 0,
+        'remaining_today' => 0,
+        'last_sent_item' => null,
+        'next_items' => [],
+        'total_items' => 0,
+    ];
+
+    if (
+        $tenantId <= 0
+        || $groupId <= 0
+        || !ai_groups_table_exists('concierge_groups')
+        || !ai_groups_table_exists('concierge_campaigns')
+        || !ai_groups_table_exists('concierge_broadcasts')
+    ) {
+        return $result;
+    }
+
+    $group = null;
+    try {
+        $stGroup = db()->prepare("SELECT * FROM concierge_groups WHERE tenant_id = :tid AND id = :gid LIMIT 1");
+        $stGroup->execute([':tid' => $tenantId, ':gid' => $groupId]);
+        $group = $stGroup->fetch(PDO::FETCH_ASSOC) ?: null;
+    } catch (Throwable $e) {
+        $group = null;
+    }
+
+    if (!$group) {
+        return $result;
+    }
+
+    $settings = ai_groups_decode_json($group['settings_json'] ?? null);
+    $dailyLimit = max(0, (int)($group['daily_limit'] ?? 0));
+    $intervalMinutes = max(0, (int)($settings['dispatch_interval_minutes'] ?? $settings['interval_between_dispatches'] ?? 0));
+    $startTime = trim((string)($settings['start_time'] ?? '09:00'));
+    if (!preg_match('/^\d{2}:\d{2}$/', $startTime)) {
+        $startTime = '09:00';
+    }
+
+    $result['daily_limit'] = $dailyLimit;
+    $result['interval_minutes'] = $intervalMinutes;
+    $result['start_time'] = $startTime;
+
+    $campaignRows = [];
+    $sentToday = 0;
+    try {
+        $stCampaigns = db()->prepare("
+            SELECT
+                c.id,
+                c.title,
+                c.content,
+                c.media_url,
+                c.status,
+                c.scheduled_at,
+                c.created_at,
+                c.allow_requeue,
+                MAX(CASE WHEN b.status IN ('sent','completed') THEN COALESCE(b.sent_at, b.updated_at, b.created_at) END) AS last_sent_at,
+                SUM(CASE WHEN b.status IN ('sent','completed') THEN 1 ELSE 0 END) AS total_sent_count,
+                SUM(CASE WHEN b.status IN ('sent','completed') AND DATE(COALESCE(b.sent_at, b.updated_at, b.created_at)) = CURDATE() THEN 1 ELSE 0 END) AS sent_today_count
+            FROM concierge_broadcasts b
+            INNER JOIN concierge_campaigns c
+                ON c.id = b.campaign_id
+            WHERE b.tenant_id = ?
+              AND b.group_id = ?
+              AND c.tenant_id = ?
+              AND c.status IN ('pending','scheduled','sending','sent','completed')
+              AND b.status IN ('pending','scheduled','sending','sent','completed')
+            GROUP BY c.id
+            ORDER BY c.scheduled_at ASC, c.id ASC
+        ");
+        $stCampaigns->execute([$tenantId, $groupId, $tenantId]);
+        $campaignRows = $stCampaigns->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        
+        foreach ($campaignRows as $row) {
+            $sentToday += max(0, (int)($row['sent_today_count'] ?? 0));
+        }
+    } catch (Throwable $e) {
+        $campaignRows = [];
+        $sentToday = 0;
+    }
+
+    if (empty($campaignRows)) {
+        $result['remaining_today'] = $dailyLimit > 0 ? $dailyLimit : 0;
+        return $result;
+    }
+
+    $result['sent_today'] = $sentToday;
+    $result['remaining_today'] = $dailyLimit > 0 ? max(0, $dailyLimit - $sentToday) : 0;
+    $result['total_items'] = count($campaignRows);
+
+    $orderedItems = [];
+    foreach ($campaignRows as $row) {
+        $cid = (int)($row['id'] ?? 0);
+        if ($cid <= 0) {
+            continue;
+        }
+        $thumb = trim((string)($row['media_url'] ?? ''));
+        $hasBeenSent = (int)($row['total_sent_count'] ?? 0) > 0;
+        $nextDispatch = ai_groups_calculate_next_dispatch_time(
+            $group,
+            $sentToday,
+            $row['last_sent_at'] ?? null,
+            $row['scheduled_at'] ?? null,
+            $hasBeenSent
+        );
+        $orderedItems[] = [
+            'id' => $cid,
+            'product_id' => $cid,
+            'name' => trim((string)($row['title'] ?? ('Campanha #' . $cid))),
+            'thumbnail' => $thumb !== '' ? ai_resolve_storage_url($thumb) : '',
+            'first_seen_at' => $row['scheduled_at'] ?? $row['created_at'] ?? null,
+            'last_sent_at' => $row['last_sent_at'] ?? null,
+            'total_sent_count' => max(0, (int)($row['total_sent_count'] ?? 0)),
+            'sent_today_count' => max(0, (int)($row['sent_today_count'] ?? 0)),
+            'next_dispatch_at' => $nextDispatch['datetime'] ?? null,
+            'next_dispatch_type' => $nextDispatch['type'] ?? 'system',
+            'next_dispatch_label' => $nextDispatch['label'] ?? 'Fila de produtos',
+            'status' => trim((string)($row['status'] ?? 'pending')),
+            'campaign_status_global' => trim((string)($row['status'] ?? 'pending')),
+            'queue_display_status' => trim((string)($row['status'] ?? 'pending')),
+            'allow_requeue' => max(0, (int)($row['allow_requeue'] ?? 1)),
+            'requeue_enabled' => max(0, (int)($row['allow_requeue'] ?? 1)),
+        ];
+    }
+
+    if (empty($orderedItems)) {
+        return $result;
+    }
+
+    $lastSentItem = null;
+    $lastSentAt = '';
+    foreach ($orderedItems as $it) {
+        $candidate = trim((string)($it['last_sent_at'] ?? ''));
+        if ($candidate !== '' && ($lastSentAt === '' || strcmp($candidate, $lastSentAt) > 0)) {
+            $lastSentAt = $candidate;
+            $lastSentItem = $it;
+        }
+    }
+    if ($lastSentItem) {
+        $lastSentItem['queue_display_status'] = 'sent';
+        $result['last_sent_item'] = $lastSentItem;
+    }
+
+    $unsent = array_values(array_filter($orderedItems, static function (array $it): bool {
+        return (int)($it['total_sent_count'] ?? 0) <= 0;
+    }));
+
+    usort($unsent, static function (array $a, array $b): int {
+        $aFirst = $a['first_seen_at'] ?? '';
+        $bFirst = $b['first_seen_at'] ?? '';
+        return strcmp($aFirst, $bFirst);
+    });
+
+    $queue = [];
+    if (!empty($unsent)) {
+        $unsentIds = array_map(static function (array $it): int {
+            return (int)($it['id'] ?? 0);
+        }, $unsent);
+        $queue = $unsent;
+        foreach ($orderedItems as $it) {
+            if (!in_array((int)$it['id'], $unsentIds, true)) {
+                $queue[] = $it;
+            }
+        }
+    } else {
+        $queue = $orderedItems;
+        if ($lastSentItem) {
+            $lastCid = (int)$lastSentItem['id'];
+            $idx = -1;
+            foreach ($queue as $i => $it) {
+                if ((int)$it['id'] === $lastCid) {
+                    $idx = $i;
+                    break;
+                }
+            }
+            if ($idx >= 0) {
+                $lastItem = $queue[$idx];
+                if ((int)($lastItem['allow_requeue'] ?? 1) === 1) {
+                    $queue = array_merge(array_slice($queue, $idx + 1), array_slice($queue, 0, $idx + 1));
+                }
+            }
+        }
+    }
+
+    $nextCount = max(1, min(10, $nextCount));
+    $nextItems = array_slice($queue, 0, $nextCount);
+    $result['next_items'] = array_map(static function (array $item): array {
+        $status = strtolower(trim((string)($item['status'] ?? 'pending')));
+        $allowRequeue = (int)($item['requeue_enabled'] ?? $item['allow_requeue'] ?? 1) === 1;
+        $alreadySent = (int)($item['total_sent_count'] ?? 0) > 0;
+        $queueDisplayStatus = $status;
+
+        if ($status === 'sending') {
+            $queueDisplayStatus = 'sending';
+        } elseif ($allowRequeue && $alreadySent && in_array($status, ['sent', 'completed'], true)) {
+            $queueDisplayStatus = 'scheduled';
+        } elseif ($status === '') {
+            $queueDisplayStatus = 'pending';
+        }
+
+        $item['campaign_status_global'] = trim((string)($item['campaign_status_global'] ?? $status));
+        $item['queue_display_status'] = $queueDisplayStatus;
+        $item['requeue_enabled'] = $allowRequeue ? 1 : 0;
+        return $item;
+    }, $nextItems);
+
+    return $result;
 }
 
 /**
@@ -2962,7 +3288,6 @@ function ai_create_concierge_status(int $tenantId, array $payload): int
         ];
         $holders = [':tid', ':pid', ':content', ':media', ':status'];
 
-<<<<<<< HEAD
         if (isset($payload['repeat_count'])) {
             $columns[] = 'repeat_count';
             $holders[] = ':rep';
@@ -2988,8 +3313,6 @@ function ai_create_concierge_status(int $tenantId, array $payload): int
             $params[':rd'] = trim((string)$payload['repeat_days']);
         }
 
-=======
->>>>>>> a884a980115d0edd08cc20971166a339609fc4cc
         if ($hasScheduledAt) {
             $columns[] = 'scheduled_at';
             $holders[] = ':sched';
@@ -3077,7 +3400,6 @@ function ai_update_concierge_status(int $tenantId, int $statusId, array $payload
 
     $sets = [];
     $params = [':tid' => $tenantId, ':sid' => $statusId];
-<<<<<<< HEAD
     $stringify = static function ($v): string {
         if (is_array($v) || is_object($v)) {
             $j = json_encode($v, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
@@ -3107,61 +3429,13 @@ function ai_update_concierge_status(int $tenantId, int $statusId, array $payload
             }
             $sets[] = "`{$field}` = :{$field}";
         }
-=======
-    $hasPayloadJson = ai_groups_column_exists('concierge_status', 'payload_json');
-    $hasScheduledAt = ai_groups_column_exists('concierge_status', 'scheduled_at');
-    $hasUpdatedAt = ai_groups_column_exists('concierge_status', 'updated_at');
-
-    if (array_key_exists('content', $payload)) {
-        $sets[] = 'content = :content';
-        $params[':content'] = trim((string)$payload['content']);
-    }
-    if (array_key_exists('status', $payload)) {
-        $sets[] = 'status = :status';
-        $params[':status'] = (string)$payload['status'];
-    }
-    if (array_key_exists('error_message', $payload)) {
-        $sets[] = 'error_message = :err';
-        $params[':err'] = trim((string)$payload['error_message']);
-    }
-    if (array_key_exists('sent_at', $payload)) {
-        $sets[] = 'sent_at = :sent_at';
-        $params[':sent_at'] = $payload['sent_at'];
-    }
-    if (array_key_exists('media_url', $payload)) {
-        $sets[] = 'media_url = :media_url';
-        $mediaUrl = trim((string)$payload['media_url']);
-        $params[':media_url'] = $mediaUrl !== '' ? $mediaUrl : null;
-    }
-    if ($hasScheduledAt && array_key_exists('scheduled_at', $payload)) {
-        $sets[] = 'scheduled_at = :scheduled_at';
-        $scheduledAt = trim((string)$payload['scheduled_at']);
-        $params[':scheduled_at'] = $scheduledAt !== '' ? $scheduledAt : null;
-    }
-    if (array_key_exists('product_id', $payload)) {
-        $sets[] = 'product_id = :product_id';
-        $productId = (int)$payload['product_id'];
-        $params[':product_id'] = $productId > 0 ? $productId : null;
-    }
-    if ($hasPayloadJson && array_key_exists('payload_json', $payload)) {
-        $sets[] = 'payload_json = :payload_json';
-        $payloadJson = $payload['payload_json'];
-        $payloadJson = is_array($payloadJson)
-            ? json_encode($payloadJson, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
-            : trim((string)$payloadJson);
-        $params[':payload_json'] = $payloadJson !== '' ? $payloadJson : null;
->>>>>>> a884a980115d0edd08cc20971166a339609fc4cc
     }
 
     if (empty($sets)) return true;
 
     try {
         $sql = "UPDATE concierge_status SET " . implode(', ', $sets);
-<<<<<<< HEAD
         if (ai_groups_column_exists('concierge_status', 'updated_at')) {
-=======
-        if ($hasUpdatedAt) {
->>>>>>> a884a980115d0edd08cc20971166a339609fc4cc
             $sql .= ", updated_at = NOW()";
         }
         $sql .= " WHERE tenant_id = :tid AND id = :sid LIMIT 1";

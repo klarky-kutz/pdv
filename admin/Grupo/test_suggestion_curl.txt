@@ -1,0 +1,52 @@
+curl -X POST http://localhost/modernpos/api/concierge/suggestions.php?action=webhook \
+-H "Content-Type: application/json" \
+-d '{
+  "event": "generate_suggestions",
+  "tenant_id": 347,
+  "products": [
+    {
+      "id": 36,
+      "nome": "Vestido Curto Um Ombro Só",
+      "preco": 29.99,
+      "descricao": "Este vestido apresenta modelagem de um ombro só e um caimento que valoriza a silhueta no estilo coladinha.",
+      "categoria": {
+        "id": 2,
+        "nome": "Vestidos"
+      },
+      "sku": "HYI-226",
+      "variants": [
+        {
+          "id": 64,
+          "sku": "HYI-226-1",
+          "size": "Único",
+          "color": "Beige / Nude",
+          "price": 29.99
+        }
+      ],
+      "tamanhos": ["Único"],
+      "cores": ["Beige / Nude"],
+      "media_urls": [
+        "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=fashion%20dress%20one%20shoulder%20beige&image_size=square_hd"
+      ]
+    }
+  ],
+  "suggestions": [
+    {
+      "product_id": 36,
+      "texto_card": "✨ Vestido Curto Um Ombro Só\n\nDisponível agora por R$ 29,99.\n📲 Fale com a gente para garantir o seu!",
+      "texto_boas_vindas": "Olá! Temos um vestido incrível para você hoje 😊",
+      "cta": "📲 Chama no privado!",
+      "modo": "single",
+      "product": {
+        "id": 36,
+        "nome": "Vestido Curto Um Ombro Só",
+        "preco": 29.99,
+        "sku": "HYI-226",
+        "media_urls": [
+          "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=fashion%20dress%20one%20shoulder%20beige&image_size=square_hd"
+        ]
+      }
+    }
+  ],
+  "source_url": "https://n8n.seudominio.com/webhook/teste"
+}'

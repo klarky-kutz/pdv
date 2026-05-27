@@ -1,0 +1,146 @@
+# Tarefa IA — Correção da Modal de Sugestões + Cobrança por Variação (por partes)
+## Contexto
+Página: `admin/Grupo/concierge_grupos.php`  
+Fluxo impactado: modal **Ver Sugestões / Campanhas IA** (`mia-ov-ia-campanhas`) e endpoint `api/concierge/suggestions.php`.
+
+## Problemas confirmados na análise
+1. Ao clicar **Reanalisar**, a UI de “Analisando produtos com a IA...” pode ser interrompida por mensagens/toasts e pelo fluxo de listagem.
+2. Ao fechar e abrir a modal, muitas vezes aparece direto **“Nenhuma sugestão disponível no momento”** em vez de manter estado de análise.
+3. Com limpeza de cache/navegador, o estado de análise se perde (front-end depende de variável em memória).
+4. Barra superior IA (`#mia-ai-bar`) está sendo exibida no estado “concluído/verde” de forma estática quando deveria refletir processamento em andamento.
+5. Cobrança de “Chamadas IA” não está ocorrendo no momento correto:
+   - hoje a cobrança principal está no `accept_group` (aprovação), não no disparo da análise (`generate` para n8n).
+6. Custo por produto não está limitado ao máximo de 4 variações.
+7. Regras de não cobrança para itens já gerados/aguardando aprovação precisam ficar blindadas por estado de processamento + tenant.
+
+## Arquivos já mapeados
+- `admin/Grupo/JS/concierge_grupos_novas_funcionalidades.js`
+  - `miaLoadSuggestions(forceGenerate)`
+  - wrapper de `abrirMiaModal('ia-campanhas')`
+  - `miaReanalizarCatalogo()`
+  - render de vazio (`Nenhuma sugestão disponível...`)
+- `admin/Grupo/JS/concierge_grupos.js`
+  - `miaLoadGroups()` (atualiza barra `#mia-ai-bar`)
+- `admin/Grupo/CSS/concierge_grupos.css`
+  - estilos da AI bar e loading (`.ai-bar`, `.ai-bar-fill`, `.mia-sync-loading-box`)
+- `api/concierge/suggestions.php`
+  - ações `generate`, `list`, `accept_group`, `reject_group`
+  - cálculo de custo e token_stats
+
+---
+
+## PARTE 1 — Estado de análise da modal (persistente e sem sobreposição)
+### Objetivo
+Garantir que “Analisando produtos com a IA...” permaneça até:
+- timeout da análise, ou
+- chegada de sugestões.
+
+### Ajustes necessários
+1. **Persistir estado no backend (tenant-aware)** em `suggestions.php`:
+   - criar/usar chave em `ai_settings` (exemplo):
+     - `mia_suggestions_processing_state` (json)
+   - campos recomendados:
+     - `is_processing` (bool)
+     - `started_at` (datetime)
+     - `expires_at` (datetime, ex: +180s)
+     - `last_batch_id`
+2. Em `action=generate`:
+   - ao iniciar requisição para n8n, marcar `is_processing=true`.
+   - ao finalizar com sugestões ou erro final, marcar `is_processing=false`.
+3. Em `action=list`:
+   - sempre retornar bloco `processing` com estado atual.
+4. Front-end (`miaLoadSuggestions`) deve:
+   - respeitar `processing.is_processing` vindo do backend;
+   - **não** trocar para “Nenhuma sugestão” enquanto `is_processing=true`;
+   - manter polling discreto (ex: 5–10s) sem toasts repetitivos;
+   - só mostrar vazio quando `is_processing=false` e sem sugestões.
+5. Evitar toast intrusivo durante processamento:
+   - remover/suprimir toasts de “ainda está processando” no loop.
+
+### Critério de aceite da Parte 1
+- Fechar/reabrir modal durante análise mantém loading.
+- Limpar cache e reabrir modal ainda mostra análise em andamento (se backend estiver processando).
+- “Nenhuma sugestão...” só aparece após fim real da análise sem resultados.
+
+---
+
+## PARTE 2 — Barra IA dinâmica durante progresso (modal + barra principal)
+### Objetivo
+Mostrar progresso real durante análise e voltar ao estado concluído (verde) ao terminar.
+
+### Ajustes necessários
+1. Em `concierge_grupos.js` (`miaLoadGroups`):
+   - não fixar `ai-bar-fill` em verde 100% sempre que `catalog_count > 0`;
+   - aplicar estado dinâmico baseado em processamento (vindo de `suggestions.php` ou cache local sincronizado).
+2. Estados visuais sugeridos:
+   - **Analisando**:
+     - título: “IA está analisando seu catálogo...”
+     - sub: “X produtos ativos · buscando campanhas para aprovação”
+     - barra em animação (roxo/gradiente).
+   - **Concluído**:
+     - título: “IA analisou seu catálogo e identificou oportunidades!”
+     - sub: “X produtos ativos · Y campanhas prontas para aprovação”
+     - barra verde 100%.
+3. No fim da análise:
+   - sempre voltar para estado concluído (independente de ter encontrado ou não novas sugestões),
+   - se `Y = 0`, manter mensagem de concluído com zero campanhas.
+
+### Critério de aceite da Parte 2
+- Durante progresso, usuário vê barra de análise ativa.
+- Ao finalizar, barra volta ao estado verde/concluído.
+- Não há regressão visual no card superior.
+
+---
+
+## PARTE 3 — Cobrança por requisição ao n8n, proporcional a variações
+### Objetivo
+Cobrar no momento correto (disparo de análise), com custo proporcional por produto/variação.
+
+### Regra de custo
+- custo por produto = `min(4, max(1, qtd_variacoes_ativas))`
+- custo total = soma dos produtos enviados ao n8n.
+
+### Ajustes necessários em `suggestions.php`
+1. `action=generate`:
+   - manter filtro por tenant (`tenant_id`) em todas as queries.
+   - continuar excluindo produtos já:
+     - em sugestões pendentes, ou
+     - em campanhas existentes (especialmente aguardando aprovação).
+2. **Cobrança deve ocorrer no generate**, não depender de `accept_group`:
+   - validar saldo disponível (`base_remaining + extra_tokens_balance`),
+   - consumir `totalCost` com `ai_consume_call($tid)` no fluxo de geração (requisição enviada ao n8n),
+   - registrar `token_cost` e `token_consumed=true` nos payloads gerados.
+3. `accept_group`:
+   - manter fallback legado apenas para registros antigos com `token_consumed=false` (evitar quebra),
+   - novos registros já devem chegar consumidos.
+4. `token_stats.used_this_generation`:
+   - retornar custo desta rodada para UI.
+
+### Critério de aceite da Parte 3
+- Reanalisar consome chamadas imediatamente conforme variações (máx. 4 por produto).
+- Produto com 4 variações custa mais que produto com 1 variação.
+- Não há cobrança duplicada para produtos já pendentes/aguardando aprovação.
+- Tenant A não interfere em tenant B.
+
+---
+
+## PARTE 4 — Ajustes finais de UX e validação
+1. Garantir botão **Reanalisar** desabilitado enquanto `is_processing=true`.
+2. Reativar botão ao encerrar processamento.
+3. Validar campos da barra de uso:
+   - `Chamadas IA` (`used_month / monthly_limit`)
+   - `Usados nesta criação` (`used_this_generation`)
+4. Teste manual mínimo:
+   - iniciar análise,
+   - fechar/abrir modal,
+   - simular reload/limpeza de cache,
+   - confirmar persistência do estado,
+   - validar cobrança por variação.
+
+## Resultado esperado final
+Fluxo contínuo e confiável para o usuário:
+- análise visível até o fim,
+- barra dinâmica clara,
+- sem toast atrapalhando a leitura,
+- cobrança correta por variações (máx. 4) no momento da requisição ao n8n,
+- sem cobrança duplicada para itens já pendentes de aprovação.

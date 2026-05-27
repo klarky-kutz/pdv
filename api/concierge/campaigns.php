@@ -1,4 +1,8 @@
 <?php
+error_reporting(0);
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+
 ob_start();
 session_start();
 include('../../_init.php');
@@ -7,6 +11,7 @@ require_once DIR_HELPER . 'ai_concierge.php';
 require_once DIR_HELPER . 'ai_plan_gate.php';
 require_once DIR_HELPER . 'ai_groups_helper.php';
 
+ob_end_clean();
 header('Content-Type: application/json; charset=UTF-8');
 
 function concierge_campaigns_extract_token(): string
@@ -159,6 +164,7 @@ try {
         echo json_encode(ai_groups_response(true, 'Módulo de grupos indisponível no plano.', ['blocked' => true]));
         exit;
     }
+    $campaignPostingMode = ai_groups_campaign_posting_mode();
 
     if ($method === 'GET') {
         $campaignId = (int)($_GET['id'] ?? $_GET['campaign_id'] ?? 0);
@@ -197,6 +203,11 @@ try {
             $campaignId = (int)($json['campaign_id'] ?? $_POST['campaign_id'] ?? $_GET['campaign_id'] ?? 0);
             if ($campaignId <= 0) {
                 throw new Exception('campaign_id não informado.');
+            }
+            if ($campaignPostingMode === 'system') {
+                http_response_code(409);
+                echo json_encode(ai_groups_response(true, 'Disparo imediato de campanhas via sistema está em preparação.', ['campaign_id' => $campaignId, 'posting_mode' => 'system']), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                exit;
             }
 
             $targets = ai_get_campaign_targets($tenantId, $campaignId);
@@ -293,7 +304,11 @@ try {
             ai_schedule_concierge_campaign($tenantId, $campaignId, $payload['scheduled_at'], (int)(function_exists('user_id') ? user_id() : 0));
         }
 
+        $creationMessage = 'Campanha criada com sucesso.';
         if ((int)($json['send_now'] ?? 0) === 1) {
+            if ($campaignPostingMode === 'system') {
+                $creationMessage = 'Campanha criada. Disparo imediato via sistema está em preparação e não foi executado.';
+            } else {
             $targets = ai_get_campaign_targets($tenantId, $campaignId);
             $limitCheck = ai_check_groups_broadcast_limit($tenantId, max(1, count($targets)));
             if (empty($limitCheck['ok'])) {
@@ -302,13 +317,14 @@ try {
                 exit;
             }
             ai_dispatch_concierge_campaign_now($tenantId, $campaignId, (int)(function_exists('user_id') ? user_id() : 0));
+            }
         }
 
         $campaign = ai_get_concierge_campaign($tenantId, $campaignId);
         if (is_array($campaign)) {
             $campaign = concierge_campaigns_normalize_campaign($campaign);
         }
-        echo json_encode(ai_groups_response(false, 'Campanha criada com sucesso.', ['campaign' => $campaign]), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        echo json_encode(ai_groups_response(false, $creationMessage, ['campaign' => $campaign]), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         exit;
     }
 
@@ -320,7 +336,7 @@ try {
         }
 
         $payload = [];
-        foreach (['title', 'content', 'status', 'media_url', 'scheduled_at', 'product_id'] as $key) {
+        foreach (['title', 'content', 'status', 'media_url', 'scheduled_at', 'product_id', 'allow_requeue'] as $key) {
             if (array_key_exists($key, $json)) {
                 $payload[$key] = $json[$key];
             }

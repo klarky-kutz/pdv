@@ -1,0 +1,205 @@
+# Prompt Mestre para IA Implementadora — Modal de Sugestões IA (Grupos)
+Você irá implementar por etapas as melhorias solicitadas para:
+- `admin/Grupo/concierge_grupos.php` (Modal Sugestões)
+- `admin/concierge_config.php` (novo webhook de sugestões IA)
+- `admin/concierge_catalogo.php` / APIs de catálogo (JSON enriquecido)
+Sem fazer varredura ampla desnecessária. Em cada etapa: **analisar -> implementar -> validar -> concluir**. Só depois siga para a próxima etapa.
+## Regras de execução obrigatórias
+1. Execute em sequência.
+2. Antes de editar, confirme no código atual onde a lógica existe.
+3. Evite buscas globais; abra primeiro os arquivos listados neste documento.
+4. Cada etapa deve terminar com validação funcional objetiva.
+5. Não mude comportamento fora do escopo.
+## Estado atual já analisado (base real do sistema)
+### Front-end Grupos / Modal
+- Tela ativa: `admin/Grupo/concierge_grupos.php`
+- JS principal: `admin/Grupo/JS/concierge_grupos.js`
+- JS complementar: `admin/Grupo/JS/concierge_grupos_novas_funcionalidades.js`
+- Existe modal `mia-ov-ia-campanhas` (Campanhas Geradas pela IA), mas o fluxo ainda está focado em campanhas/status.
+- Existe modo de mensagem `single` e `individual`, com suporte a CTA por card e campo de boas-vindas no fluxo de campanha.
+### Configuração de Webhooks
+- Em `admin/concierge_config.php` já existem campos:
+  - `ai_webhook_conversation_url`
+  - `ai_groups_dispatch_webhook_url`
+  - `ai_status_dispatch_webhook_url`
+- `ai_config_salvar.php` salva essas chaves.
+- `ai_config_webhook_test.php` só reconhece tipos `conversation`, `campaign`, `status`.
+### APIs e helpers
+- `api/concierge/products.php` já retorna `description`, `variants`, `media_urls`, e endpoint `action=categories`.
+- `api/concierge/groups.php` já salva `mia_allowed_categories`.
+- `api/concierge/status.php` e `api/concierge/campaigns.php` já fazem disparo n8n/system para status/campanha.
+- `_inc/helper/ai_groups_helper.php` centraliza dispatch para status/campanhas e geração inteligente.
+## Lacunas que ainda precisam ser analisadas na implementação
+1. Onde exatamente a lista de sugestões do modal `ia-campanhas` é carregada (função JS específica ainda precisa ser confirmada no trecho final do JS principal).
+2. Se já existe tabela/processo para registrar “sugestão aceita/rejeitada” separada de campanha.
+3. Se `ai_get_catalogo_models()` já inclui `category_id/category_name` de forma consistente em todos os cenários.
+4. Se o fluxo de geração de sugestões deve criar campanhas diretas ou um novo tipo de entidade (recomendado: entidade própria para sugestões).
+## Objetivo funcional final (resumo)
+1. Modal Sugestões deve mostrar **somente 2 sugestões por ciclo**.
+2. Sugestão deve vir de produtos[Catalogo AI] que **não estão em nenhuma fila de disparo** e **sem vínculo com grupos para disparo**.
+3. Sistema deve enviar webhook exclusivo para IA analisar imagem e gerar:
+   - Texto do card
+   - Texto de boas-vindas
+   - CTA do botão
+4. Novo campo de webhook em `concierge_config.php` para N8N específico de sugestões IA.
+5. JSON de produto deve conter: `nome`, `preço`, `tamanho`, `cor`, **`descrição` e `categoria`**, respeitando `Categorias Permitidas para IA`.
+6. Novo webhook só é chamado novamente quando Pelemonos uma das 2 sugestões atuais forem **aceitas ou rejeitadas**.
+7. Modal sem preview, porém com blocos claros e bonitos para:
+   - Card
+   - CTA
+   - Boas-vindas
+   - Modo individual vs por cards
+8. Referência visual: `admin/concierge_grupos_v4.html` (adotar estilo base e evoluir UI com badges, cores e emojis por bloco).
+## Etapas de implementação (obrigatórias)
+## Etapa 1 — Descoberta pontual da modal de sugestões atual
+Arquivos foco:
+- `admin/Grupo/JS/concierge_grupos.js`
+- `admin/Grupo/concierge_grupos.php`
+- `admin/Grupo/JS/concierge_grupos_novas_funcionalidades.js`
+Entregável:
+- Mapeamento curto de funções/eventos que:
+  - abrem modal de sugestões
+  - carregam sugestões
+  - aprovam/rejeitam
+  - criam campanha a partir da sugestão
+Validação:
+- Confirmar caminho exato de execução ao clicar “Ver Sugestões”.
+## Etapa 2 — Novo webhook exclusivo de Sugestões IA (Configuração)
+Arquivos:
+- `admin/concierge_config.php`
+- `_inc/ai_config_salvar.php`
+- `_inc/ai_config_webhook_test.php`
+Implementar:
+1. Novo campo:
+   - chave sugerida: `ai_groups_suggestions_webhook_url`
+   - label: “Webhook Sugestões IA (Modal de Sugestões -> n8n)”
+2. Persistência no salvar (`ai_config_salvar.php`).
+3. Botão de teste desse webhook.
+4. Expandir `webhook_type` para incluir `suggestions`.
+Validação:
+- Salvar/recuperar valor.
+- Teste retornar HTTP 2xx quando URL válida.
+## Etapa 3 — Critério de elegibilidade de oportunidades
+Arquivos:
+- `api/concierge/products.php`
+- `api/concierge/campaigns.php`
+- `_inc/helper/ai_groups_helper.php`
+- (se necessário) novo endpoint em `api/concierge/` para sugestões
+Implementar:
+1. Regra para identificar produto elegível:
+   - não pertence a campanha ativa/em fila (`pending`, `scheduled`, `sending`, `queued`)
+   - não já sugerido pendente de decisão
+2. Aplicar filtro por `Categorias Permitidas para IA` (`mia_allowed_categories`).
+3. Limite de lote: exatamente 2 itens por ciclo.
+Validação:
+- Com base de teste, retorno conter no máximo 2 oportunidades elegíveis.
+## Etapa 4 — JSON enriquecido para IA (catálogo + sugestões)
+Arquivos:
+- `api/concierge/products.php`
+- pontos de serialização no helper (se aplicável)
+Implementar payload com campos explícitos por item:
+- `id`
+- `nome`
+- `preco`
+- `tamanho` (lista)
+- `cor` (lista)
+- `descricao`
+- `categoria` (id/nome)
+- `media_urls`
+- metadados auxiliares (sku/variantes)
+Regra:
+- categoria/descritivo obrigatórios no JSON enviado ao webhook de sugestões.
+Validação:
+- Inspecionar resposta JSON e garantir presença dos novos campos.
+## Etapa 5 — Novo fluxo de geração de sugestões via webhook
+Arquivos:
+- `api/concierge/...` (novo endpoint sugerido: `suggestions.php`)
+- `_inc/helper/ai_groups_helper.php` (ou helper dedicado)
+Implementar:
+1. Endpoint/backend para:
+   - buscar 2 oportunidades elegíveis
+   - montar payload enriquecido
+   - chamar `ai_groups_suggestions_webhook_url`
+2. Persistir retorno da IA com:
+   - texto_card
+   - texto_boas_vindas
+   - cta
+   - modo (`single` ou `cards`)
+   - status da sugestão (`pending`, `accepted`, `rejected`)
+3. Política de nova geração:
+   - somente quando não houver sugestões pendentes (as 2 atuais já decididas).
+Validação:
+- Simular aceite/rejeição e confirmar nova varredura apenas após esgotar pendentes.
+## Etapa 6 — UI da Modal Sugestões (sem preview, estilo V4 evoluído)
+Arquivos:
+- `admin/Grupo/concierge_grupos.php`
+- `admin/Grupo/CSS/concierge_grupos.css`
+- `admin/Grupo/JS/concierge_grupos.js`
+- referência visual: `admin/concierge_grupos_v4.html`
+Implementar UI:
+1. Modal com 2 cards de sugestão.
+2. Blocos visuais distintos com badges/cores/emojis:
+   - 🧾 Texto do Card
+   - 👋 Texto de Boas-vindas
+   - 🎯 CTA
+3. Exibir claramente:
+   - “Texto individual” vs “Texto por cards”
+   - quando por cards, mostrar texto+CTA de cada card individualmente
+4. Ações:
+   - Aceitar
+   - Rejeitar
+5. Sem preview de WhatsApp nessa modal.
+Validação:
+- UX clara, legível e alinhada à referência V4.
+## Etapa 7 — Estados e governança do ciclo de sugestões
+Arquivos:
+- JS da modal + endpoint(s) de sugestão
+Implementar:
+1. Controle de estado no front:
+   - pendentes
+   - aceitas
+   - rejeitadas
+2. Ao aceitar:
+   - transformar sugestão em campanha pronta (ou agendada conforme regra definida)
+3. Ao rejeitar:
+   - marcar rejeição sem gerar imediatamente novas sugestões se ainda existir outra pendente
+4. Só ao finalizar o lote (2 decididas) disparar nova coleta via webhook.
+Validação:
+- Fluxo completo de ciclo fechado sem duplicidade de chamadas.
+## Etapa 8 — Testes e checklist final
+Testes obrigatórios:
+1. Configurar webhook de sugestões em Configurações.
+2. Gerar 2 sugestões.
+3. Verificar JSON enviado com categoria/descrição/tamanho/cor/preço/nome.
+4. Aceitar/rejeitar sugestões e confirmar política de nova geração.
+5. Garantir filtro de categorias permitidas.
+6. Garantir que produtos já em fila não reaparecem.
+7. Regressão básica em:
+   - disparos de campanha (`campaigns`)
+   - status automação (`status`)
+## Estrutura de dados sugerida (sugestão)
+Sugestão de tabela nova (se não existir estrutura adequada):
+- `concierge_ai_suggestions`
+  - `id`, `tenant_id`, `product_id`
+  - `suggestion_payload_json` (texto card/boas-vindas/cta/modo)
+  - `status` (`pending`,`accepted`,`rejected`)
+  - `batch_id` (controle do lote de 2)
+  - `source_webhook`, `created_at`, `updated_at`, `resolved_at`
+## Prompt de execução para IA implementadora (copiar e usar)
+Implemente este projeto em etapas estritas.
+Para cada etapa:
+1) Analise apenas os arquivos listados da etapa;
+2) Explique brevemente o que identificou;
+3) Implemente;
+4) Rode validação mínima da etapa;
+5) Só então avance.
+Não faça varredura ampla sem necessidade.
+Priorize mudanças locais, pequenas e testáveis.
+Respeite os requisitos:
+- 2 sugestões por ciclo
+- novo webhook exclusivo de sugestões
+- payload JSON enriquecido com nome/preço/tamanho/cor/descrição/categoria
+- filtro por categorias permitidas para IA
+- nova geração somente após aceite/rejeição do lote atual
+- modal sem preview, com destaque visual para Card, Boas-vindas e CTA, incluindo modo individual vs por cards.
+- API para Retorno do N8N para sistema para que possa aparecer as Sugestões, com filtro por tenant.

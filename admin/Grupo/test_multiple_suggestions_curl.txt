@@ -1,0 +1,1 @@
+curl -X POST "http://localhost/modernpos/api/concierge/suggestions.php?action=webhook" -H "Content-Type: application/json" --data-binary "@c:\xampp\htdocs\modernpos\admin\Grupo\test_multiple_suggestions_payload.json"

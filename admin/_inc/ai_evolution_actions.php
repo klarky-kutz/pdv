@@ -255,6 +255,7 @@ try {
             ];
 
             if ($webhookN8n !== '') {
+                $saveData['ai_webhook_conversation_url'] = $webhookN8n;
                 $saveData['ai_webhook_target_url'] = $webhookN8n;
             }
 

@@ -17,6 +17,18 @@ function mudarVisaoMia(el, visao){
   miaCurrentView = visao;
   miaRefreshCurrentView();
 }
+function miaBuildSentBadgeLabel(campaign){
+  if (!campaign) return '';
+  const sentFmt = miaFmtDateTime(campaign.sent_at || '');
+  if (campaign.sent_at && sentFmt.time !== '--:--') {
+    return 'Enviado ' + sentFmt.day + ' ' + sentFmt.time;
+  }
+  const fallbackFmt = miaFmtDateTime(campaign.updated_at || campaign.created_at || '');
+  if (fallbackFmt.time !== '--:--') {
+    return 'Enviado ' + fallbackFmt.day + ' ' + fallbackFmt.time;
+  }
+  return 'Enviado recentemente';
+}
 
 function abrirMiaModal(id){
   const modal = document.getElementById('mia-ov-' + id);
@@ -37,6 +49,296 @@ function abrirMiaModal(id){
     miaRenderPreviewCarousel();
     updateMiaCharCount();
   }
+}
+function miaFormatQueueDateTime(raw){
+  const src = String(raw || '').trim();
+  if (!src) return '';
+  const d = new Date(src.replace(' ', 'T'));
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('pt-BR') + ' às ' + d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+}
+function miaGetRelativeDayLabel(rawDate){
+  const src = String(rawDate || '').trim();
+  if (!src) return '';
+  const d = new Date(src.replace(' ', 'T'));
+  if (Number.isNaN(d.getTime())) return '';
+  const today = new Date();
+  const todayRef = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const dateRef = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const dayDiff = Math.round((dateRef.getTime() - todayRef.getTime()) / 86400000);
+  if (dayDiff === 0) return 'hoje';
+  if (dayDiff === 1) return 'amanhã';
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+}
+function miaRefreshCampaignAndQueue(groupId){
+  miaLoadCampaigns();
+  const gid = Number(groupId || miaCurrentGroupId || 0);
+  if (gid > 0) miaLoadGroupPerformanceQueue(gid);
+}
+function miaIsRequeueEnabled(value, defaultValue){
+  const fallback = Number(defaultValue || 0) === 1;
+  if (value === null || value === undefined || value === '') return fallback;
+  const normalized = Number(value);
+  if (Number.isNaN(normalized)) return fallback;
+  return normalized === 1;
+}
+function miaQueueCampaignAction(action, campaignId, groupId, btnEl){
+  if (!MIA_CAN_MANAGE) { showMiaToast('Sem permissão.', 'warning'); return; }
+  const aid = String(action || '').toLowerCase();
+  const cid = Number(campaignId || 0);
+  const gid = Number(groupId || miaCurrentGroupId || 0);
+  if (cid <= 0) return;
+  if (aid === 'cancel' && !confirm('Tem certeza que deseja cancelar este disparo?')) return;
+
+  const oldHtml = btnEl ? btnEl.innerHTML : '';
+  if (btnEl) {
+    btnEl.disabled = true;
+    btnEl.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+  }
+
+  const request = aid === 'cancel'
+    ? miaApi('POST', MIA_API.campaigns + '?action=cancel', { campaign_id: cid })
+    : miaApi('POST', MIA_API.campaigns + '?action=send_now', { campaign_id: cid });
+
+  request.then(function(resp){
+    if (resp.error) throw new Error(resp.message || (aid === 'cancel' ? 'Falha ao cancelar' : 'Falha ao disparar'));
+    showMiaToast(resp.message || (aid === 'cancel' ? 'Disparo cancelado com sucesso!' : 'Disparo solicitado.'), 'success');
+    miaRefreshCampaignAndQueue(gid);
+    if (aid === 'send_now') miaScheduleDispatchSync(900);
+  }).catch(function(err){
+    showMiaToast(err.message || (aid === 'cancel' ? 'Erro ao cancelar' : 'Erro ao disparar'), 'error');
+  }).finally(function(){
+    if (btnEl) {
+      btnEl.disabled = false;
+      btnEl.innerHTML = oldHtml;
+    }
+  });
+}
+function miaBuildGroupQueueItemCard(item, mode, index){
+  const fallback = MIA_ROOT + 'assets/itsolution24/img/noimage.jpg';
+  const thumb = String(item && item.thumbnail ? item.thumbnail : '').trim() || fallback;
+  const title = miaEsc((item && item.name) ? item.name : 'Produto sem nome');
+  const fallbackEscaped = fallback.replace(/'/g, "\\'");
+
+  const dtRef = item && (item.next_dispatch_at || item.last_sent_at)
+    ? new Date(String(item.next_dispatch_at || item.last_sent_at).replace(' ', 'T'))
+    : null;
+  const hasTime = dtRef && !Number.isNaN(dtRef.getTime());
+  const timeLabel = hasTime ? dtRef.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}) : '--:--';
+  const dayLabel = hasTime ? miaGetRelativeDayLabel(item.next_dispatch_at || item.last_sent_at || '') : '';
+  const campaignId = Number(item && item.id ? item.id : 0);
+  const groupId = Number(miaCurrentGroupId || 0);
+
+  const rawStatus = String((item && (item.queue_display_status || item.status)) || '').toLowerCase();
+  let statusClass = 'q-pending';
+  let badgeText = 'Agendado';
+  let metaText = 'Na fila';
+  let numberText = String(Number(index || 0) + 1);
+  let numberIcon = '';
+  const requeueFlag = item && item.requeue_enabled != null
+    ? item.requeue_enabled
+    : (item ? item.allow_requeue : null);
+  const isAllowRequeue = miaIsRequeueEnabled(requeueFlag, 1);
+  const requeueIcon = isAllowRequeue ? '<i class="fa fa-repeat mia-requeue-indicator" title="Permite retorno à fila"></i>' : '';
+
+  if (mode === 'last') {
+    statusClass = 'q-sent';
+    badgeText = 'Enviado';
+    metaText = dayLabel ? ('Último envio em ' + dayLabel) : 'Último envio';
+    numberText = '';
+    numberIcon = (isAllowRequeue ? '<i class="fa fa-repeat mia-requeue-indicator before-check" title="Permite retorno à fila"></i>' : '') + '<i class="fa fa-check" style="font-size:9px"></i>';
+  } else if (rawStatus) {
+    switch(rawStatus) {
+      case 'sent':
+      case 'completed':
+        statusClass = 'q-sent';
+        badgeText = 'Enviado';
+        metaText = 'Enviado';
+        break;
+      case 'sending':
+        statusClass = 'q-next';
+        badgeText = 'Enviando';
+        metaText = 'Enviando';
+        break;
+      case 'queued':
+        statusClass = 'q-pending';
+        badgeText = 'Na fila';
+        metaText = 'Na fila';
+        break;
+      case 'pending':
+        statusClass = 'q-pending';
+        badgeText = 'Pendente';
+        metaText = 'Pendente';
+        break;
+      case 'scheduled':
+        statusClass = 'q-pending';
+        badgeText = 'Agendado';
+        metaText = 'Agendado';
+        break;
+      case 'canceled':
+        statusClass = 'q-pending';
+        badgeText = 'Cancelado';
+        metaText = 'Cancelado';
+        break;
+      case 'error':
+      case 'failed':
+        statusClass = 'q-pending';
+        badgeText = 'Erro';
+        metaText = 'Erro';
+        break;
+      default:
+        statusClass = 'q-pending';
+        badgeText = 'Agendado';
+        metaText = 'Na fila';
+    }
+  } else if (Number(index || 0) === 0) {
+    statusClass = 'q-next';
+    badgeText = 'Próximo';
+    metaText = 'Próximo na fila';
+  }
+
+  if (item && item.next_dispatch_label) {
+    metaText = String(item.next_dispatch_label);
+  }
+  const actionsHtml = (mode === 'next' && campaignId > 0 && MIA_CAN_MANAGE)
+    ? '<div class="mia-gdr-q-actions">'
+        + '<button class="icon-btn fire" title="Disparar agora" onclick="event.stopPropagation();miaQueueCampaignAction(\'send_now\','+campaignId+','+groupId+',this)"><i class="fa fa-bolt"></i></button>'
+        + '<button class="icon-btn danger" title="Cancelar disparo" onclick="event.stopPropagation();miaQueueCampaignAction(\'cancel\','+campaignId+','+groupId+',this)"><i class="fa fa-ban"></i></button>'
+      + '</div>'
+    : '';
+
+  return '<div class="mia-gdr-q-item '+statusClass+'">'
+    + '<div class="mia-gdr-q-num">'+(numberIcon || miaEsc(numberText))+'</div>'
+    + '<div class="mia-gdr-q-thumb"><img src="'+miaEsc(thumb)+'" loading="lazy" onerror="this.src=\''+fallbackEscaped+'\'"></div>'
+    + '<div class="mia-gdr-q-info">'
+      + '<div class="mia-gdr-q-name" style="display:flex;align-items:center">'+requeueIcon+title+'</div>'
+      + '<div class="mia-gdr-q-meta"><i class="fa fa-clock-o"></i> '+miaEsc(metaText)+'</div>'
+      + '<span class="mia-gdr-q-badge">'+miaEsc(badgeText)+'</span>'
+    + '</div>'
+    + '<div class="mia-gdr-q-right">'
+      + '<div class="mia-gdr-q-time">'+miaEsc(timeLabel)+'</div>'
+      + '<div class="mia-gdr-q-day">'+miaEsc(dayLabel)+'</div>'
+      + actionsHtml
+    + '</div>'
+  + '</div>';
+}
+let miaLiveProgress = {};
+function miaLoadGroupPerformanceQueue(groupId){
+  const gid = Number(groupId || 0);
+  if (gid <= 0) return;
+  const lastWrap = document.getElementById('mia-group-last-sent-' + gid);
+  const nextWrap = document.getElementById('mia-group-next-queue-' + gid);
+  const liveWrap = document.getElementById('mia-group-live-' + gid);
+  const sentTodayEl = document.getElementById('mia-group-sent-today-' + gid);
+  if (!lastWrap || !nextWrap) return;
+
+  miaApi('GET', MIA_API.groups + '?action=queue&group_id=' + gid).then(function(resp){
+    if (resp.error) throw new Error(resp.message || 'Falha ao carregar fila');
+    const queue = (resp.data || {}).queue || {};
+    const lastItem = queue.last_sent_item || null;
+    const nextItems = Array.isArray(queue.next_items) ? queue.next_items : [];
+    const sentToday = Number(queue.sent_today || 0);
+    const dailyLimit = Number(queue.daily_limit || 0);
+    const remainingToday = Number(queue.remaining_today || 0);
+    if (sentTodayEl) {
+      sentTodayEl.textContent = String(sentToday) + (dailyLimit > 0 ? (' / ' + String(dailyLimit)) : '');
+    }
+
+    if (liveWrap) {
+      const sendingItem = nextItems.find(item => item && String(item.queue_display_status || item.status || '').toLowerCase() === 'sending');
+      if (sendingItem) {
+        const productName = miaEsc(sendingItem.name || 'Produto');
+        if (!miaLiveProgress[gid] || miaLiveProgress[gid].campaignId !== Number(sendingItem.id || 0)) {
+          miaLiveProgress[gid] = {
+            campaignId: Number(sendingItem.id || 0),
+            progress: 0,
+            startTime: Date.now(),
+            timeoutId: null
+          };
+        }
+        liveWrap.innerHTML = '<div class="gc-live">'
+          + '<div class="gc-live-dot"></div>'
+          + '<div class="gc-live-text"><i class="fa fa-spinner fa-spin"></i> Enviando: ' + productName + '</div>'
+          + '<div class="gc-live-bar"><div class="gc-live-fill" id="gc-live-fill-' + gid + '" style="width:0%"></div></div>'
+          + '<div class="gc-live-pct" id="gc-live-pct-' + gid + '">0%</div>'
+        + '</div>';
+        miaUpdateLiveProgress(gid);
+      } else if (nextItems.length) {
+        const next = nextItems[0];
+        const nextAt = miaFormatQueueDateTime(next.next_dispatch_at || '');
+        liveWrap.innerHTML = '<div class="mia-gdr-live"><div class="mia-gdr-live-dot"></div><div><strong>Fila ativa.</strong> Próximo item: '+miaEsc(next.name || 'Produto')+(nextAt ? (' · ' + miaEsc(nextAt)) : '')+'</div></div>';
+        if (miaLiveProgress[gid]) {
+          if (miaLiveProgress[gid].timeoutId) clearTimeout(miaLiveProgress[gid].timeoutId);
+          delete miaLiveProgress[gid];
+        }
+      } else {
+        liveWrap.innerHTML = '<div class="mia-gdr-live"><div class="mia-gdr-live-dot" style="background:#94a3b8;animation:none"></div><div>Nenhum envio em andamento no momento.</div></div>';
+        if (miaLiveProgress[gid]) {
+          if (miaLiveProgress[gid].timeoutId) clearTimeout(miaLiveProgress[gid].timeoutId);
+          delete miaLiveProgress[gid];
+        }
+      }
+    } else if (aiBar && aiStats.catalog_count <= 0) {
+      aiBar.style.display = 'none';
+    }
+
+    if (!lastItem) {
+      lastWrap.innerHTML = '<div class="mia-gdr-empty"><i class="fa fa-inbox"></i>Nenhum item enviado ainda para este grupo.</div>';
+    } else {
+      lastWrap.innerHTML = miaBuildGroupQueueItemCard(lastItem, 'last', 0);
+    }
+
+    if (!nextItems.length) {
+      const queueMsg = dailyLimit > 0 && remainingToday <= 0
+        ? ('Limite diário atingido (' + sentToday + '/' + dailyLimit + ').')
+        : 'Nenhum item na fila para este grupo.';
+      nextWrap.innerHTML = '<div class="mia-gdr-empty"><i class="fa fa-list-ul"></i>'+miaEsc(queueMsg)+'</div>';
+      return;
+    }
+
+    nextWrap.innerHTML = nextItems.slice(0, 3).map(function(item, idx){
+      return miaBuildGroupQueueItemCard(item, 'next', idx);
+    }).join('');
+  }).catch(function(err){
+    lastWrap.innerHTML = '<div class="mia-gdr-empty" style="color:#ef4444"><i class="fa fa-exclamation-triangle"></i>Erro ao carregar últimos enviados.</div>';
+    nextWrap.innerHTML = '<div class="mia-gdr-empty" style="color:#ef4444"><i class="fa fa-exclamation-triangle"></i>'+miaEsc(err.message || 'Erro ao carregar fila.')+'</div>';
+    if (liveWrap) {
+      liveWrap.innerHTML = '<div class="mia-gdr-live" style="border-color:#fecaca;background:#fff1f2;color:#b91c1c"><i class="fa fa-exclamation-triangle"></i><div>Não foi possível atualizar o status ao vivo.</div></div>';
+    }
+  });
+}
+function miaUpdateLiveProgress(groupId) {
+  const gid = Number(groupId || 0);
+  if (!miaLiveProgress[gid]) return;
+  
+  const fillEl = document.getElementById('gc-live-fill-' + gid);
+  const pctEl = document.getElementById('gc-live-pct-' + gid);
+  if (!fillEl || !pctEl) return;
+  
+  const elapsed = Date.now() - miaLiveProgress[gid].startTime;
+  const seconds = elapsed / 1000;
+  
+  let progress = 0;
+  if (seconds < 10) {
+    progress = 33;
+  } else if (seconds < 20) {
+    progress = 50;
+  } else if (seconds < 30) {
+    progress = 75;
+  } else if (seconds < 60) {
+    progress = 95;
+  } else {
+    progress = 100;
+    if (miaLiveProgress[gid].timeoutId) clearTimeout(miaLiveProgress[gid].timeoutId);
+    return;
+  }
+  
+  fillEl.style.width = progress + '%';
+  pctEl.textContent = progress + '%';
+  
+  miaLiveProgress[gid].timeoutId = setTimeout(function() {
+    miaUpdateLiveProgress(gid);
+  }, 500);
 }
 
 function toggleMiaDay(el){
@@ -213,7 +515,10 @@ let miaMediaPickerContext = 'campaign';
 let miaMediaPickerSelection = [];
 let miaMsgMode = 'single';
 let miaIndividualMessages = {};
+let miaIndividualLinks = {};
 let miaCtaLink = '';
+let miaWelcomeMessage = '';
+let miaWelcomeCardExpanded = false;
 
 function miaSearchProducts(){
   clearTimeout(miaProdTimer);
@@ -520,6 +825,24 @@ function miaFindVariantByMediaUrl(product, mediaUrl){
     return variantKey !== '' && variantKey === mediaKey;
   }) || null;
 }
+function miaBuildProductVariationsPayload(product){
+  if (!product || !Array.isArray(product.variants) || !product.variants.length) return [];
+  return product.variants.map(function(variant){
+    const value = Number(variant && variant.price !== undefined && variant.price !== null ? variant.price : 0);
+    return {
+      id: Number(variant && variant.id ? variant.id : 0),
+      sku: String(variant && variant.sku ? variant.sku : '').trim(),
+      size: String(variant && variant.size ? variant.size : '').trim(),
+      color: String(variant && variant.color ? variant.color : '').trim(),
+      value: value,
+      price: value,
+      stock_qty: Number(variant && variant.stock_qty ? variant.stock_qty : 0),
+      media_url: String(variant && variant.media_url ? variant.media_url : '').trim()
+    };
+  }).filter(function(item){
+    return item.sku !== '' || item.value > 0 || item.media_url !== '';
+  });
+}
 
 function miaGetPreviewMessageForCard(){
   const msgEl = document.getElementById('ia-msg');
@@ -622,7 +945,7 @@ function miaBuildCampaignDrawerCarousel(campaign, product, mediaUrls){
   const fallback = MIA_ROOT + 'assets/itsolution24/img/noimage.jpg';
   const urls = miaUniqueMediaUrls(Array.isArray(mediaUrls) ? mediaUrls : []).slice(0, 4);
   const productName = String((product && product.name) || (campaign && campaign.title) || 'Produto').trim();
-  const sku = (product && product.sku) ? String(product.sku).trim() : '';
+  const parentSku = (product && product.sku) ? String(product.sku).trim() : '';
   const ctaText = miaGetCampaignCtaText(campaign);
   const campaignDescription = String((campaign && campaign.content) ? campaign.content : '').replace(/\s+/g, ' ').trim();
   const productDescription = String((product && product.description) ? product.description : '').replace(/\s+/g, ' ').trim();
@@ -634,6 +957,8 @@ function miaBuildCampaignDrawerCarousel(campaign, product, mediaUrls){
 
   return urls.map(function(url){
     const variant = miaFindVariantByMediaUrl(product, url);
+    const variantSku = (variant && variant.sku) ? String(variant.sku).trim() : '';
+    const displaySku = variantSku || parentSku;
     let colorLabel = '';
     let colorEmoji = '';
     let priceLabel = '';
@@ -656,7 +981,7 @@ function miaBuildCampaignDrawerCarousel(campaign, product, mediaUrls){
       + '<div class="wpp-card-title">'+miaEsc(productName)+'</div>'
       + (cardDescription ? '<div class="wpp-card-desc">'+miaEsc(cardDescription)+'</div>' : '')
       + '<div class="wpp-card-meta">'
-      + (sku ? '<div style="font-size:9px;color:#64748b;font-weight:600">SKU: '+miaEsc(sku)+'</div>' : '')
+      + (displaySku ? '<div style="font-size:9px;color:#64748b;font-weight:600">SKU: '+miaEsc(displaySku)+'</div>' : '')
       + (colorLabel ? '<div style="font-size:9px;color:#1f2937;font-weight:600">Cor: '+miaEsc(colorEmoji)+' '+miaEsc(colorLabel)+'</div>' : '')
       + (priceLabel ? '<div class="wpp-price-chip">'+priceLabel+'</div>' : '')
       + '</div>'
@@ -693,11 +1018,13 @@ function miaRenderPreviewCarousel(){
   const messageDescription = miaGetPreviewMessageForCard();
   const productDescription = String((product && product.description) ? product.description : '').replace(/\s+/g, ' ').trim();
   const cardDescription = messageDescription || productDescription;
-  const sku = (product && product.sku) ? String(product.sku).trim() : '';
+  const parentSku = (product && product.sku) ? String(product.sku).trim() : '';
   
   carousel.innerHTML = media.map(function(url){
     const productName = product ? product.name : 'Produto';
     const variant = miaFindVariantByMediaUrl(product, url);
+    const variantSku = (variant && variant.sku) ? String(variant.sku).trim() : '';
+    const displaySku = variantSku || parentSku;
     let colorLabel = '';
     let colorEmoji = '';
     let priceLabel = '';
@@ -719,7 +1046,7 @@ function miaRenderPreviewCarousel(){
       + '<div class="wpp-card-title">'+miaEsc(productName)+'</div>'
       + (cardDescription ? '<div class="wpp-card-desc">'+miaEsc(cardDescription)+'</div>' : '')
       + '<div class="wpp-card-meta">'
-      + (sku ? '<div style="font-size:9px;color:#64748b;font-weight:600">SKU: '+miaEsc(sku)+'</div>' : '')
+      + (displaySku ? '<div style="font-size:9px;color:#64748b;font-weight:600">SKU: '+miaEsc(displaySku)+'</div>' : '')
       + (colorLabel ? '<div style="font-size:9px;color:#1f2937;font-weight:600">Cor: '+colorEmoji+' '+miaEsc(colorLabel)+'</div>' : '')
       + (priceLabel ? '<div class="wpp-price-chip">'+priceLabel+'</div>' : '')
       + '</div>'
@@ -885,6 +1212,9 @@ function miaSaveCampaign(){
   const mediaUrls = miaSelectedMediaUrls.slice(0, 4);
   const tone = (document.getElementById('mia-input-tone') || {}).value || '';
   const cta = (document.getElementById('mia-input-cta') || {}).value || '';
+  const ctaText = miaGetSelectedCtaText();
+  const productVariations = miaBuildProductVariationsPayload(selectedProduct);
+  const welcomeMessage = String(miaWelcomeMessage || '').trim();
   
   const groupIds = Array.from(document.querySelectorAll('input[name="mia-target-groups"]:checked')).map(function(el){ return parseInt(el.value); });
   
@@ -896,7 +1226,12 @@ function miaSaveCampaign(){
   if (miaSchedType !== 'now' && (!date || !time)) { showMiaToast('Informe data e hora para agendar.', 'warning'); return; }
   const scheduledAt = miaSchedType === 'now' ? '' : (date + ' ' + time);
   const lockKey = 'save_campaign_' + (miaSchedType === 'now' ? 'now' : 'schedule');
-  if (!miaAcquireDispatchLock('campaign', lockKey)) return;
+  let lockAcquired = false;
+  
+  if (miaSchedType === 'now' && !miaAcquireDispatchLock('campaign', lockKey)) {
+    return;
+  }
+  lockAcquired = miaSchedType === 'now';
   
   const payload = {
     title: title,
@@ -907,16 +1242,19 @@ function miaSaveCampaign(){
     group_ids: groupIds,
     scheduled_at: scheduledAt,
     send_now: miaSchedType === 'now' ? 1 : 0,
-    status: scheduledAt ? 'scheduled' : 'sent',
+    status: scheduledAt ? 'scheduled' : 'draft',
     payload_json: {
       media_urls: mediaUrls,
       tone: tone,
       cta: cta,
+      cta_text: ctaText,
       objective: 'divulgação',
       msg_mode: miaMsgMode,
       individual_messages: miaIndividualMessages,
       individual_links: miaIndividualLinks,
-      main_cta_link: miaCtaLink
+      main_cta_link: miaCtaLink,
+      welcome_message: welcomeMessage,
+      product_variations: productVariations
     }
   };
   
@@ -930,11 +1268,18 @@ function miaSaveCampaign(){
     showMiaToast('Campanha salva com sucesso! âœ…', 'success');
     fecharMiaModal('novo-disparo');
     miaLoadCampaigns();
+    miaLoadGroups();
+    const currentGroupId = Number(miaCurrentGroupId || 0);
+    if (currentGroupId > 0 && groupIds.indexOf(currentGroupId) !== -1) {
+      miaLoadGroupPerformanceQueue(currentGroupId);
+    }
     miaScheduleDispatchSync(1100);
   }).catch(function(err){
     showMiaToast('Erro ao salvar: ' + err.message, 'error');
   }).finally(function(){
-    miaReleaseDispatchLock('campaign', lockKey);
+    if (lockAcquired) {
+      miaReleaseDispatchLock('campaign', lockKey);
+    }
     nextBtn.disabled = false;
     nextBtn.innerHTML = oldText;
   });
@@ -975,8 +1320,19 @@ function resetMiaSteps(){
   document.getElementById('mbtn-next').innerHTML='Próximo <i class="fa fa-chevron-right"></i>';
   miaSelectedMediaUrls = [];
   miaSelectedMediaIndex = 0;
+  miaIndividualMessages = {};
+  miaIndividualLinks = {};
+  miaCtaLink = '';
+  miaWelcomeMessage = '';
+  miaWelcomeCardExpanded = false;
+  const welcomeInput = document.getElementById('mia-welcome-message');
+  if (welcomeInput) {
+    welcomeInput.value = '';
+  }
   miaRenderMediaAttachments();
   miaRenderPreviewCarousel();
+  miaCampaignSendLocks = {};
+  miaStatusSendLocks = {};
 }
 
 function abrirMiaDrawer(type){
@@ -989,6 +1345,7 @@ function abrirMiaDrawer(type){
   content.innerHTML = html;
   ov.classList.add('open');
   dw.classList.add('open');
+  miaSwitchGroupDrawerTab(forceEdit ? 'cfg' : 'fila');
 
   // Se for campanha, carrega dados reais
   if (type && !isNaN(type)) {
@@ -1286,11 +1643,29 @@ function miaScheduleDispatchSync(delayMs){
 }
 
 function miaStatusToFiltro(status){
-  const map = { scheduled: 'agendado', pending: 'agendado', sending: 'enviando', sent: 'enviado', draft: 'rascunho', needs_approval: 'aprovacao' };
+  const map = { 
+    scheduled: 'agendado', 
+    pending: 'agendado', 
+    queued: 'agendado',
+    sending: 'enviando', 
+    sent: 'enviado', 
+    completed: 'enviado',
+    error: 'enviando',
+    failed: 'enviando',
+    draft: 'rascunho', 
+    needs_approval: 'aprovacao',
+    canceled: 'rascunho'
+  };
   return map[status] || (status || 'todos');
 }
 function miaFiltroToStatus(filtro){
-  const map = { agendado: 'pending', enviando: 'sending', enviado: 'sent', rascunho: 'draft', aprovacao: 'needs_approval' };
+  const map = { 
+    agendado: 'pending,scheduled,queued', 
+    enviando: 'sending,error,failed', 
+    enviado: 'sent,completed', 
+    rascunho: 'draft,canceled', 
+    aprovacao: 'needs_approval' 
+  };
   return map[filtro] || '';
 }
 function miaEsc(v){
@@ -1370,6 +1745,7 @@ function miaApi(method, url, payload){
     opts.headers['Content-Type'] = 'application/json';
     opts.body = JSON.stringify(payload);
   }
+  console.log('📡 miaApi chamada:', { method: upperMethod, url, payload, opts });
   let timeoutId = null;
   if (typeof AbortController !== 'undefined') {
     const timeoutMs = upperMethod === 'GET' ? 45000 : 240000;
@@ -1380,11 +1756,13 @@ function miaApi(method, url, payload){
 
   return fetch(url, opts).then(function(r){
     return r.text().then(function(rawText){
+      console.log('📡 miaApi resposta bruta:', rawText);
       const data = miaSafeParseApiData(rawText);
       data.__http = r.status;
       if (!r.ok && !data.message) {
         data.message = 'Erro HTTP ' + r.status + '.';
       }
+      console.log('📡 miaApi resposta processada:', data);
       return data;
     });
   }).catch(function(err){
@@ -1426,42 +1804,124 @@ function miaUpdateFilterCounts(items){
   });
 }
 function miaUpdateNextScheduled(items){
+  const nextHero = document.getElementById('mia-next-hero');
   const nextTitle = document.getElementById('mia-next-title');
   const nextTime = document.getElementById('mia-next-time');
+  const nextAmPm = document.getElementById('mia-next-ampm');
   const nextDate = document.getElementById('mia-next-date');
   const nextGroups = document.getElementById('mia-next-groups');
-  if (!nextTitle || !nextTime || !nextDate || !nextGroups) return;
+  if (!nextTitle || !nextTime || !nextDate || !nextGroups || !nextHero || !nextAmPm) return;
 
   const scheduled = (items || [])
-    .filter(function(c){ return (c.status || '') === 'scheduled' && !!c.scheduled_at; })
+    .filter(function(c){ 
+      const s = String(c.status || '');
+      return (s === 'scheduled' || s === 'pending' || s === 'sending') && !!c.scheduled_at; 
+    })
     .sort(function(a,b){ return new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime(); });
 
   if (!scheduled.length) {
-    nextTitle.textContent = 'Sem campanha agendada';
+    nextTitle.textContent = 'Nenhum disparo agendado';
     nextTime.textContent = '--:--';
+    nextAmPm.textContent = '';
     nextDate.textContent = 'Sem previsão';
     nextGroups.innerHTML = '';
+    const existingActions = nextHero.querySelector('.next-actions');
+    if (existingActions) existingActions.remove();
     return;
   }
   const c = scheduled[0];
-  const dt = miaFmtDateTime(c.scheduled_at);
+  const relDay = miaGetRelativeDayLabel(c.scheduled_at);
+  const ampmText = (relDay === 'hoje' || relDay === 'amanhã') ? relDay : '';
+  
+  const dtFmt = miaFmtDateTime(c.scheduled_at);
   nextTitle.textContent = c.title || ('Campanha #' + c.id);
-  nextTime.textContent = dt.time;
-  nextDate.textContent = dt.day;
-  nextGroups.innerHTML = '<span class="next-chip">'+Number(c.total_targets || 0)+' grupos alvo</span>';
+  nextTime.textContent = dtFmt.time;
+  nextAmPm.textContent = ampmText;
+  nextDate.innerHTML = '<i class="fa fa-calendar"></i> ' + dtFmt.day;
+  
+  nextGroups.innerHTML = '';
+  const cGroups = c.groups || [];
+  if (cGroups.length) {
+    cGroups.forEach(function(g){
+      const span = document.createElement('span');
+      span.className = 'next-chip';
+      span.innerHTML = '<i class="fa fa-users"></i> ' + (g.name || 'Grupo');
+      nextGroups.appendChild(span);
+    });
+  }
+  
+  let existingActions = nextHero.querySelector('.next-actions');
+  if (!existingActions) {
+    existingActions = document.createElement('div');
+    existingActions.className = 'next-actions';
+    nextHero.appendChild(existingActions);
+  }
+  existingActions.innerHTML = '';
+  
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'btn-ghost-w';
+  cancelBtn.innerHTML = '<i class="fa fa-ban"></i> Cancelar';
+  cancelBtn.onclick = function(){
+    miaQueueCampaignAction('cancel', Number(c.id), Number(miaCurrentGroupId || 0), cancelBtn);
+  };
+  existingActions.appendChild(cancelBtn);
+  
+  const dispatchBtn = document.createElement('button');
+  dispatchBtn.className = 'btn btn-wpp btn-sm';
+  dispatchBtn.innerHTML = '<i class="fa fa-bolt"></i> Disparar Agora';
+  dispatchBtn.onclick = function(){
+    miaQueueCampaignAction('send_now', Number(c.id), Number(miaCurrentGroupId || 0), dispatchBtn);
+  };
+  existingActions.appendChild(dispatchBtn);
+}
+function miaGetGroupVisualMeta(group){
+  const name = String((group && group.name) || '').toLowerCase();
+  if (name.indexOf('vip') !== -1) {
+    return { icon: 'fa-star', avatar: 'linear-gradient(135deg,#7c3aed,#a78bfa)' };
+  }
+  if (name.indexOf('promo') !== -1 || name.indexOf('oferta') !== -1) {
+    return { icon: 'fa-tag', avatar: 'linear-gradient(135deg,#128c7e,#22c55e)' };
+  }
+  if (name.indexOf('insta') !== -1 || name.indexOf('segu') !== -1) {
+    return { icon: 'fa-heart', avatar: 'linear-gradient(135deg,#d97706,#fbbf24)' };
+  }
+  if (name.indexOf('cole') !== -1 || name.indexOf('novo') !== -1) {
+    return { icon: 'fa-bullhorn', avatar: 'linear-gradient(135deg,#0ea5e9,#38bdf8)' };
+  }
+  return { icon: 'fa-users', avatar: 'linear-gradient(135deg,#0891b2,#22d3ee)' };
+}
+function miaSwitchGroupDrawerTab(tabName){
+  const target = ['fila', 'perf', 'cfg'].indexOf(String(tabName || '')) !== -1 ? String(tabName) : 'fila';
+  ['fila', 'perf', 'cfg'].forEach(function(name){
+    const btn = document.getElementById('mia-gdr-tab-' + name);
+    const pane = document.getElementById('mia-gdr-pane-' + name);
+    if (btn) btn.classList.toggle('act', name === target);
+    if (pane) pane.classList.toggle('act', name === target);
+  });
 }
 function miaRenderSideGroups(groups){
   const side = document.getElementById('mia-side-groups');
   if (!side) return;
   if (!groups || !groups.length) {
-    side.textContent = 'Nenhum grupo sincronizado.';
+    side.innerHTML = '<div class="mia-side-groups-empty">Nenhum grupo sincronizado.</div>';
     return;
   }
   side.innerHTML = groups.slice(0, 5).map(function(g){
+    const gid = Number(g.id || 0);
     const on = Number(g.is_active || 0) === 1;
-    return '<div class="group-item '+(on ? 'active' : '')+'">'
-      + '<div class="group-av" style="background:'+(on ? '#7c3aed' : '#94a3b8')+'"><i class="fa fa-users"></i><div class="g-status '+(on ? 'g-on' : 'g-off')+'"></div></div>'
-      + '<div style="flex:1"><div class="group-name">'+miaEsc(g.name || 'Grupo')+'</div><div class="group-members"><i class="fa fa-users"></i> '+Number(g.member_count || 0)+' membros</div></div>'
+    const isCurrent = Number(miaCurrentGroupId || 0) === gid;
+    const completed = Number(g.completed_campaigns || 0);
+    const nextDispatch = g.next_dispatch_at ? miaFmtDateTime(g.next_dispatch_at) : { day: 'Sem previsão', time: '--:--' };
+    const nextLabel = on ? (nextDispatch.time !== '--:--' ? ('próx. ' + nextDispatch.time) : 'sem agenda') : 'pausado';
+    const visual = miaGetGroupVisualMeta(g);
+    const toggleHtml = MIA_CAN_MANAGE
+      ? '<label class="toggle" onclick="event.stopPropagation()"><input type="checkbox" '+(on ? 'checked' : '')+' onchange="miaToggleGroup('+gid+')"><span class="toggle-sl"></span></label>'
+      : '<label class="toggle" onclick="event.stopPropagation()"><input type="checkbox" '+(on ? 'checked' : '')+' disabled><span class="toggle-sl"></span></label>';
+    return '<div class="mia-side-group-item '+((on || isCurrent) ? 'active' : '')+'" onclick="miaOpenGroup('+gid+')">'
+      + '<div class="mia-side-g-av" style="background:'+miaEsc(visual.avatar)+'"><i class="fa '+miaEsc(visual.icon)+'"></i><div class="mia-side-g-st '+(on ? 'on' : 'off')+'"></div></div>'
+      + '<div class="mia-side-group-main"><div class="mia-side-group-name">'+miaEsc(g.name || 'Grupo')+'</div><div class="mia-side-group-meta"><i class="fa fa-users"></i> '+Number(g.member_count || 0)+' membros</div></div>'
+      + '<div class="mia-side-group-right"><div class="mia-side-group-last">'+miaEsc(nextLabel)+'</div><div class="mia-side-group-count">'+completed+' disp.</div></div>'
+      + toggleHtml
       + '</div>';
   }).join('');
 }
@@ -1491,6 +1951,7 @@ function miaRenderQuotaList(groups, plan){
   }
   quota.innerHTML = '<div class="quota-group-list">' + list.map(function(g){
     const dailyLimit = Number(g.daily_limit || 0);
+    const sentToday = Number(g.sent_today || 0);
     const completed = Number(g.completed_campaigns || 0);
     const scheduled = Number(g.scheduled_campaigns || 0);
     const total = completed + scheduled;
@@ -1506,7 +1967,7 @@ function miaRenderQuotaList(groups, plan){
       + '<div class="quota-top"><div class="quota-name">'+miaEsc(g.name || 'Grupo')+'</div><span class="quota-pill '+(unlimited ? 'unlimited' : 'limited')+'">'+(unlimited ? 'Sem limite/dia' : (dailyLimit + '/dia'))+'</span></div>'
       + '<div class="quota-sub"><span><i class="fa fa-users"></i> '+Number(g.member_count || 0)+' membros</span><span><i class="fa fa-line-chart"></i> '+total+' campanhas</span><span><i class="fa fa-shield"></i> '+miaEsc(planBadge)+'</span></div>'
       + '<div class="quota-track"><div class="quota-fill '+fillClass+'" style="width:'+fillWidth+'%"></div></div>'
-      + '<div class="quota-cats"><span class="qcat">Agendados: '+scheduled+'</span><span class="qcat">Realizados: '+completed+'</span><span class="qcat">Progresso: '+fillWidth+'%</span></div>'
+      + '<div class="quota-cats"><span class="qcat">Agendados: '+scheduled+'</span><span class="qcat">Realizados: '+completed+'</span><span class="qcat">Hoje: '+sentToday+'/'+(unlimited ? '∞' : dailyLimit)+'</span><span class="qcat">Progresso: '+fillWidth+'%</span></div>'
       + '</div>';
   }).join('') + '</div>';
 }
@@ -1615,12 +2076,45 @@ function miaLoadStatuses(){
         if (isSending && s.updated_at) {
           const lastUpdate = new Date(s.updated_at.replace(' ', 'T')).getTime();
           const now = new Date().getTime();
-          // Timeout se estiver enviando há mais de 120 segundos (120000ms)
           if (now - lastUpdate > 120000) { hasTimeout = true; isSending = false; }
         }
 
-        let badgeClass = s.status === 'sent' ? 'sent' : (s.status === 'error' ? 'draft' : (s.status === 'canceled' ? 'draft' : (isSending ? 'sending' : (s.status === 'pending' ? 'scheduled' : 'scheduled'))));
-        let badgeText = s.status === 'sent' ? 'Sucesso' : (s.status === 'error' ? 'Erro' : (s.status === 'canceled' ? 'Cancelado' : (isSending ? 'Enviando' : (s.status === 'pending' ? 'Agendado' : 'Agendado'))));
+        let badgeClass = 'draft';
+        let badgeText = 'Rascunho';
+        switch(String(s.status || '').toLowerCase()) {
+          case 'sent':
+            badgeClass = 'sent';
+            badgeText = 'Sucesso';
+            break;
+          case 'scheduled':
+            badgeClass = 'scheduled';
+            badgeText = 'Agendado';
+            break;
+          case 'queued':
+            badgeClass = 'scheduled';
+            badgeText = 'Na fila';
+            break;
+          case 'pending':
+            badgeClass = 'scheduled';
+            badgeText = 'Pendente';
+            break;
+          case 'sending':
+            badgeClass = 'sending';
+            badgeText = 'Enviando';
+            break;
+          case 'canceled':
+            badgeClass = 'canceled';
+            badgeText = 'Cancelado';
+            break;
+          case 'error':
+          case 'failed':
+            badgeClass = 'error';
+            badgeText = 'Erro';
+            break;
+          default:
+            badgeClass = 'draft';
+            badgeText = 'Rascunho';
+        }
         
         if (hasTimeout) { 
           badgeText = 'Sem resposta'; 
@@ -1833,11 +2327,65 @@ function miaLoadCampaigns(){
         ? groupNames.slice(0, 2).map(function(name){ return '<span class="gchip">'+miaEsc(name)+'</span>'; }).join('')
         : '<span class="gchip">'+gcount+' grupos</span>';
       const filtro = miaStatusToFiltro(c.status);
-      const badgeClass = c.status === 'sent' ? 'sent' : (c.status === 'scheduled' ? 'scheduled' : (c.status === 'sending' ? 'sending' : 'draft'));
-      const badgeText = c.status === 'scheduled' ? 'Agendado' : (c.status === 'sending' ? 'Enviando' : (c.status === 'sent' ? 'Enviado' : (c.status === 'needs_approval' ? 'Aprovação' : 'Rascunho')));
+      let badgeClass = 'draft';
+      let badgeText = 'Rascunho';
+      switch(String(c.status || '').toLowerCase()) {
+        case 'sent':
+        case 'completed':
+          badgeClass = 'sent';
+          badgeText = c.status === 'completed' ? 'Concluído' : 'Enviado';
+          break;
+        case 'scheduled':
+          badgeClass = 'scheduled';
+          badgeText = 'Agendado';
+          break;
+        case 'queued':
+          badgeClass = 'scheduled';
+          badgeText = 'Na fila';
+          break;
+        case 'pending':
+          badgeClass = 'scheduled';
+          badgeText = 'Pendente';
+          break;
+        case 'sending':
+          badgeClass = 'sending';
+          badgeText = 'Enviando';
+          break;
+        case 'canceled':
+          badgeClass = 'canceled';
+          badgeText = 'Cancelado';
+          break;
+        case 'error':
+        case 'failed':
+          badgeClass = 'error';
+          badgeText = 'Erro';
+          break;
+        case 'needs_approval':
+          badgeClass = 'needs_approval';
+          badgeText = 'Aprovação';
+          break;
+        default:
+          badgeClass = 'draft';
+          badgeText = 'Rascunho';
+        }
+      
+      const hasBeenSent = Number(c.sent_targets || 0) > 0;
+      const isAllowRequeue = miaIsRequeueEnabled(c.allow_requeue, 1);
+      const normalizedStatus = String(c.status || '').toLowerCase();
+      if (hasBeenSent && isAllowRequeue && (normalizedStatus === 'sent' || normalizedStatus === 'completed')) {
+        badgeClass = 'scheduled';
+        badgeText = 'Agendado';
+      }
+      const badgeLabel = hasBeenSent ? 'Fila de produtos' : 'Agendado por você';
+      const badgeRowClass = hasBeenSent ? 'mia-queue-badge-system' : 'mia-queue-badge-user';
+      const badgeRowHtml = '<span class="mia-queue-badge '+badgeRowClass+'" style="margin-top:6px">'+miaEsc(badgeLabel)+'</span>';
+      const requeueTitleIcon = isAllowRequeue
+        ? '<i class="fa fa-repeat mia-campaign-requeue-dot on" title="Fila ativa"></i>'
+        : '';
+      
       return '<div class="brow" data-status="'+miaEsc(filtro)+'" data-text="'+miaEsc((c.title || '') + ' ' + groupsMeta)+'" onclick="miaOpenCampaign('+Number(c.id)+')">'
         + '<div class="brow-thumb">'+(thumb ? ('<img src="'+miaEsc(thumb)+'" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:8px">') : '📣')+'</div>'
-        + '<div><div class="brow-name">'+miaEsc(c.title || ('Campanha #' + c.id))+'</div><div class="brow-meta">'+miaEsc(groupsMeta)+'</div></div>'
+        + '<div style="flex:1;min-width:0"><div class="brow-name">'+requeueTitleIcon+miaEsc(c.title || ('Campanha #' + c.id))+'</div><div class="brow-meta">'+miaEsc(groupsMeta)+'</div>'+badgeRowHtml+'</div>'
         + '<div class="brow-groups">'+groupsCol+'</div>'
         + '<div><div class="brow-sched">'+miaEsc(dt.day)+'</div><div class="brow-sched-sub"><i class="fa fa-clock-o"></i> '+miaEsc(dt.time)+'</div></div>'
         + '<div class="brow-count"><div class="brow-count-val">'+Number(c.sent_targets || 0)+'</div><div class="brow-count-lbl">enviados</div></div>'
@@ -1932,11 +2480,16 @@ function miaLoadGroups(){
     const aiBarTitle = document.getElementById('mia-ai-bar-title');
     const aiBarSub = document.getElementById('mia-ai-bar-sub');
     const aiBarFill = document.querySelector('.ai-bar-fill');
+    window.miaAIBarCatalogCount = Number(aiStats.catalog_count || 0);
     if (aiBar && aiStats.catalog_count > 0) {
       aiBar.style.display = 'flex';
-      aiBarTitle.innerText = 'IA analisou seu catálogo e identificou oportunidades!';
-      if (aiBarSub) aiBarSub.innerText = aiStats.catalog_count + ' produtos ativos · ' + (aiStats.pending_campaigns || 0) + ' campanhas prontas para aprovação';
-      if (aiBarFill) { aiBarFill.style.width = '100%'; aiBarFill.style.animation = 'none'; aiBarFill.style.background = '#22c55e'; }
+      if (typeof miaUpdateMainAIBar === 'function') {
+        setTimeout(function(){ miaUpdateMainAIBar(); }, 0);
+      } else {
+        if (aiBarTitle) aiBarTitle.innerText = 'IA analisou seu catálogo e identificou oportunidades!';
+        if (aiBarSub) aiBarSub.innerText = aiStats.catalog_count + ' produtos ativos · ' + (aiStats.pending_campaigns || 0) + ' campanhas prontas para aprovação';
+        if (aiBarFill) { aiBarFill.style.width = '100%'; }
+      }
     }
     const normalizeGroup = function(raw){
       const g = Object.assign({}, raw || {});
@@ -2057,6 +2610,10 @@ function miaLoadGroups(){
     miaRenderGroupRules(allGroupsNorm);
     miaUpdateStatusSummaryFromGroups(allGroupsNorm);
     updateMiaCharCount();
+    const currentGid = Number(miaCurrentGroupId || 0);
+    if (currentGid > 0) {
+      miaOpenGroup(currentGid);
+    }
   }).catch(function(err){
     showMiaToast(err.message || 'Erro ao carregar grupos', 'error');
   });
@@ -2149,7 +2706,7 @@ function miaSendNow(campaignId){
         throw new Error(resp.message || 'Falha no disparo');
     }
     showMiaToast(resp.message || 'Disparo solicitado.', 'success');
-    miaLoadCampaigns();
+    miaRefreshCampaignAndQueue();
     miaScheduleDispatchSync(900);
   }).catch(function(err){ 
     showMiaToast(err.message || 'Erro ao disparar', 'error'); 
@@ -2201,8 +2758,8 @@ function miaOpenCampaign(campaignId){
     const drawerChatName = String(MIA_STORE_NAME || c.title || 'Loja').trim();
     const drawerAvatar = (drawerChatName.charAt(0) || 'L').toUpperCase();
     
-    const badgeClass = c.status === 'sent' ? 'sent' : (c.status === 'scheduled' ? 'scheduled' : (c.status === 'sending' ? 'sending' : 'draft'));
-    const badgeText = c.status === 'scheduled' ? 'Agendado' : (c.status === 'sending' ? 'Enviando' : (c.status === 'sent' ? 'Enviado' : 'Rascunho'));
+    const badgeClass = c.status === 'sent' ? 'sent' : (c.status === 'scheduled' ? 'scheduled' : (c.status === 'sending' ? 'sending' : (c.status === 'canceled' ? 'canceled' : 'draft')));
+    const badgeText = c.status === 'scheduled' ? 'Agendado' : (c.status === 'sending' ? 'Enviando' : (c.status === 'sent' ? 'Enviado' : (c.status === 'canceled' ? 'Cancelado' : 'Rascunho')));
     
     let productHtml = '';
     if (p) {
@@ -2235,23 +2792,59 @@ function miaOpenCampaign(campaignId){
             + '</div>';
     }
 
-    content.innerHTML = '<div class="mia-dh"><div><div class="mia-dh-title"><i class="fa fa-bullhorn"></i> '+miaEsc(c.title || ('Campanha #' + c.id))+'</div><div class="mia-dh-sub"><span class="sbadge '+badgeClass+'">'+miaEsc(badgeText)+'</span><span><i class="fa fa-clock-o"></i> '+miaEsc(dt.day)+' '+miaEsc(dt.time)+'</span></div></div><button class="mia-dh-close" onclick="fecharMiaDrawer()"><i class="fa fa-times"></i></button></div>'
+    const scheduledAt = c.scheduled_at || c.created_at || '';
+    let currentDate = '';
+    let currentTime = '';
+    if (scheduledAt) {
+        try {
+            const d = new Date(scheduledAt);
+            const localDate = new Date(d.getTime() + (d.getTimezoneOffset() * 60000));
+            currentDate = localDate.toISOString().split('T')[0];
+            currentTime = localDate.toTimeString().slice(0, 5);
+        } catch (e) {
+            currentDate = '';
+            currentTime = '';
+        }
+    }
+
+    const isAllowRequeue = miaIsRequeueEnabled(c.allow_requeue, 1);
+    const sentBadgeLabel = miaBuildSentBadgeLabel(c);
+    content.innerHTML = '<div class="mia-dh"><div><div class="mia-dh-title"><i class="fa fa-bullhorn"></i> '+miaEsc(c.title || ('Campanha #' + c.id))+'</div><div class="mia-dh-sub"><span class="sbadge '+badgeClass+'">'+miaEsc(badgeText)+'</span><span><i class="fa fa-clock-o"></i> '+miaEsc(dt.day)+' '+miaEsc(dt.time)+'</span>'+(isAllowRequeue ? '<span class="sbadge sent"><i class="fa fa-repeat"></i> '+miaEsc(sentBadgeLabel)+'</span>' : '')+'</div></div><button class="mia-dh-close" onclick="fecharMiaDrawer()"><i class="fa fa-times"></i></button></div>'
       + '<div class="mia-db">'
       + productHtml
+      + '<div class="mia-d-sec"><div class="mia-d-sec-title" style="display:flex;align-items:center;justify-content:space-between"><div><i class="fa fa-calendar-check-o"></i> Agendamento</div></div>'
+      + '<div class="mia-d-box" style="padding:16px">'
+        + '<div class="mia-schedule-row">'
+          + '<div class="mia-schedule-field">'
+            + '<label class="mia-schedule-label">Data</label>'
+            + '<input type="date" id="mia-edit-campaign-date" class="mia-schedule-input-date" value="'+miaEsc(currentDate)+'">'
+          + '</div>'
+          + '<div class="mia-schedule-field">'
+            + '<label class="mia-schedule-label">Hora</label>'
+            + '<input type="time" id="mia-edit-campaign-time" class="mia-schedule-input-time" value="'+miaEsc(currentTime)+'">'
+          + '</div>'
+        + '</div>'
+        + '<div style="margin-top:12px;text-align:right">'
+          + '<button class="btn btn-wpp btn-sm" id="mia-save-schedule-btn" data-campaign-id="'+Number(c.id)+'"><i class="fa fa-save"></i> Salvar Alterações</button>'
+        + '</div>'
+      + '</div></div>'
       + '<div class="mia-d-sec"><div class="mia-d-sec-title"><i class="fa fa-whatsapp"></i> Preview da campanha</div>'
       + '<div class="wpp-wrap wpp-wrap-drawer"><div class="wpp-header-bar"><div class="wpp-h-av">'+miaEsc(drawerAvatar)+'</div><div><div class="wpp-h-name">'+miaEsc(drawerChatName)+'</div><div class="wpp-h-status wpp-h-status-live"><span class="wpp-status-dot"></span> Online</div></div><div class="wpp-h-actions"><i class="fa fa-video-camera"></i><i class="fa fa-phone"></i><i class="fa fa-ellipsis-v"></i></div></div><div class="wpp-body wpp-body-drawer"><div class="wpp-bubble wpp-bubble-drawer"><div class="wpp-carousel wpp-carousel-cards wpp-carousel-drawer" id="mia-drawer-wpp-carousel">'+mediaPreview+'</div></div><div class="wpp-meta-row"><div class="wpp-indicators" id="mia-drawer-wpp-indicators"></div><div class="wpp-time-check">'+miaEsc(dt.time)+' <i class="fa fa-check"></i></div></div></div></div></div>'
-      + '<div class="mia-d-sec"><div class="mia-d-sec-title"><i class="fa fa-file-text-o"></i> Conteúdo</div><div class="mia-d-box">'+miaEsc(c.content || '')+'</div>'
-      + '<div style="display:flex;justify-content:flex-end;gap:6px;margin-top:8px">'
-        + '<button class="btn btn-secondary btn-sm" onclick="miaEditCampaignContent('+Number(c.id)+')"><i class="fa fa-pencil"></i> Editar</button>'
-        + '<button class="btn btn-secondary btn-sm" onclick="miaCopyCampaignContent('+Number(c.id)+')"><i class="fa fa-copy"></i> Copiar</button>'
-        + '<button class="btn btn-ai btn-sm" onclick="showMiaToast(\'Use o Novo Disparo para regenerar IA.\',\'info\')"><i class="fa fa-magic"></i> Regenerar IA</button>'
-      + '</div></div>'
+      + '<div class="mia-d-sec"><div class="mia-d-sec-title" style="display:flex;align-items:center;justify-content:space-between"><div><i class="fa fa-file-text-o"></i> Conteúdo</div><button class="btn btn-secondary btn-sm" style="padding:3px 8px;font-size:10px" onclick="miaEditCampaignContent('+Number(c.id)+')"><i class="fa fa-pencil"></i> Editar</button></div><div class="mia-d-box">'+miaEsc(c.content || '')+'</div></div>'
       + '<div class="mia-d-sec"><div class="mia-d-sec-title" style="display:flex;align-items:center;justify-content:space-between"><div><i class="fa fa-users"></i> Grupos alvo</div><button class="btn btn-secondary btn-sm" style="padding:3px 8px;font-size:10px" onclick="miaEditCampaignGroups('+Number(c.id)+')"><i class="fa fa-pencil"></i> Editar</button></div><div class="mia-d-box">'+(targets || '<span style="color:#94a3b8">Sem grupos vinculados.</span>')+'</div></div>'
       + '<div class="mia-d-sec"><div class="mia-d-sec-title"><i class="fa fa-line-chart"></i> Resumo</div><div class="mia-perf-grid"><div class="mia-perf-item"><div class="mia-perf-val">'+Number((c.summary||{}).total||0)+'</div><div class="mia-perf-lbl">Total</div></div><div class="mia-perf-item"><div class="mia-perf-val">'+Number((c.summary||{}).sent||0)+'</div><div class="mia-perf-lbl">Enviados</div></div><div class="mia-perf-item"><div class="mia-perf-val">'+Number((c.summary||{}).error||0)+'</div><div class="mia-perf-lbl">Erros</div></div></div></div>'
       + '</div>'
       + '<div class="mia-df">'
       + '<button class="btn btn-secondary btn-sm" onclick="fecharMiaDrawer()">Fechar</button>'
-      + (MIA_CAN_MANAGE ? '<button class="btn btn-wpp btn-sm" style="margin-left:auto" onclick="miaSendNow('+Number(c.id)+');fecharMiaDrawer()"><i class="fa fa-bolt"></i> Disparar Agora</button>' : '')
+      + '<label class="mia-requeue-toggle-wrap" for="mia-campaign-allow-requeue-switch" title="Permitir retorno à fila">'
+        + '<span class="mia-requeue-toggle-text">'+(isAllowRequeue ? 'Fila ativa' : 'Fila inativa')+'</span>'
+        + '<span class="mia-requeue-toggle">'
+          + '<input type="checkbox" id="mia-campaign-allow-requeue-switch" data-campaign-id="'+Number(c.id)+'" '+(isAllowRequeue ? 'checked' : '')+'>'
+          + '<span class="mia-requeue-toggle-slider"></span>'
+        + '</span>'
+      + '</label>'
+      + '<div style="flex:1"></div>'
+      + (MIA_CAN_MANAGE ? '<button class="btn btn-wpp btn-sm" onclick="miaSendNow('+Number(c.id)+');fecharMiaDrawer()"><i class="fa fa-bolt"></i> Disparar Agora</button>' : '')
       + '</div>';
     const drawerCarousel = document.getElementById('mia-drawer-wpp-carousel');
     const drawerTotalCards = mediaUrls.length;
@@ -2266,6 +2859,115 @@ function miaOpenCampaign(campaignId){
       miaRenderWppIndicators(0, 'mia-drawer-wpp-indicators', 0);
     }
     miaEnableCarouselDrag(drawerCarousel);
+    
+    const saveScheduleBtn = document.getElementById('mia-save-schedule-btn');
+    if (saveScheduleBtn) {
+      saveScheduleBtn.onclick = function(){
+        const campaignId = Number(saveScheduleBtn.getAttribute('data-campaign-id'));
+        const dateInput = document.getElementById('mia-edit-campaign-date');
+        const timeInput = document.getElementById('mia-edit-campaign-time');
+        
+        if (!dateInput || !timeInput) {
+          showMiaToast('Campos não encontrados.', 'error');
+          return;
+        }
+        
+        const dateVal = dateInput.value.trim();
+        const timeVal = timeInput.value.trim();
+        
+        if (!dateVal || !timeVal) {
+          showMiaToast('Por favor, preencha a data e a hora.', 'warning');
+          return;
+        }
+        
+        const scheduledAt = new Date(dateVal + 'T' + timeVal);
+        const localTime = new Date(scheduledAt.getTime() - (scheduledAt.getTimezoneOffset() * 60000));
+        const isoStr = localTime.toISOString().slice(0, 19).replace('T', ' ');
+        
+        const btn = event.target;
+        const oldHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Salvando...';
+        
+        const currentCampaign = miaCampaignMap[Number(campaignId)];
+        const payload = {
+          id: campaignId,
+          scheduled_at: isoStr
+        };
+        if (currentCampaign && currentCampaign.status === 'canceled') {
+          payload.status = 'scheduled';
+        }
+        
+        miaApi('PATCH', MIA_API.campaigns, payload).then(function(resp){
+          if (resp.error) throw new Error(resp.message || 'Falha ao salvar');
+          const c = resp.data && resp.data.campaign;
+          if (c) {
+            miaCampaignMap[Number(c.id)] = c;
+          }
+          showMiaToast('Agendamento atualizado com sucesso!', 'success');
+          
+          // Recarrega as listas para atualizar os dados
+          miaLoadCampaigns();
+          miaLoadGroups();
+          
+          // Reabre o drawer da campanha para exibir o novo horário
+          setTimeout(function(){
+            miaOpenCampaign(campaignId);
+          }, 300);
+        }).catch(function(err){
+          showMiaToast(err.message || 'Erro ao salvar o agendamento', 'error');
+        }).finally(function(){
+          btn.disabled = false;
+          btn.innerHTML = oldHtml;
+        });
+      };
+    }
+    
+    const allowRequeueSwitch = document.getElementById('mia-campaign-allow-requeue-switch');
+    const allowRequeueText = document.querySelector('.mia-requeue-toggle-text');
+    if (allowRequeueSwitch) {
+      allowRequeueSwitch.onchange = function(){
+        const campaignId = Number(allowRequeueSwitch.getAttribute('data-campaign-id'));
+        const currentIsActive = !!allowRequeueSwitch.checked;
+        miaApi('PATCH', MIA_API.campaigns, {
+          id: campaignId,
+          allow_requeue: currentIsActive ? 1 : 0
+        }).then(function(resp){
+          if (resp.error) throw new Error(resp.message || 'Falha ao salvar');
+          const c = resp.data && resp.data.campaign;
+          if (c) {
+            miaCampaignMap[Number(c.id)] = c;
+          }
+          showMiaToast(currentIsActive ? 'Permitir retorno à fila ativado!' : 'Permitir retorno à fila desativado!', 'success');
+          if (allowRequeueText) {
+            allowRequeueText.textContent = currentIsActive ? 'Fila ativa' : 'Fila inativa';
+          }
+          
+          // Recarrega as listas para atualizar os ícones
+          miaLoadCampaigns();
+          miaLoadGroups();
+          
+          // Não reabre o drawer - só atualiza o badge no header
+          const dhSub = document.querySelector('.mia-dh-sub');
+          if (dhSub) {
+            const currentCampaign = miaCampaignMap[campaignId];
+            const finalIsActive = miaIsRequeueEnabled(currentCampaign && currentCampaign.allow_requeue, 1);
+            let subHtml = '<span class="sbadge '+badgeClass+'">'+miaEsc(badgeText)+'</span><span><i class="fa fa-clock-o"></i> '+miaEsc(dt.day)+' '+miaEsc(dt.time)+'</span>';
+            if (finalIsActive) {
+              subHtml += '<span class="sbadge sent"><i class="fa fa-repeat"></i> '+miaEsc(miaBuildSentBadgeLabel(currentCampaign))+'</span>';
+            }
+            dhSub.innerHTML = subHtml;
+          }
+        }).catch(function(err){
+          showMiaToast(err.message || 'Erro ao salvar', 'error');
+          allowRequeueSwitch.checked = !currentIsActive;
+          if (allowRequeueText) {
+            allowRequeueText.textContent = !currentIsActive ? 'Fila ativa' : 'Fila inativa';
+          }
+        });
+      };
+    }
+    
     ov.classList.add('open');
     dw.classList.add('open');
   }).catch(function(err){
@@ -2382,6 +3084,8 @@ function miaSaveCampaignEdit(){
   });
 }
 
+
+
 function miaCopyCampaignContent(campaignId){
   const campaign = miaCampaignMap[Number(campaignId)] || null;
   const text = campaign && campaign.content ? String(campaign.content) : '';
@@ -2406,39 +3110,162 @@ function miaOpenGroup(groupId, forceEdit){
   const dw = document.getElementById('mia-drawer');
   const content = document.getElementById('mia-drawer-content');
   if (!ov || !dw || !content) return;
-  miaCurrentGroupId = Number(groupId);
+  const gid = Number(g.id || 0);
+  miaCurrentGroupId = gid;
+  const on = Number(g.is_active || 0) === 1;
   const progress = Math.max(0, Math.min(100, Number(g.progress_pct || 0)));
   const completed = Number(g.completed_campaigns || 0);
   const scheduled = Number(g.scheduled_campaigns || 0);
   const nextDispatch = g.next_dispatch_at ? miaFmtDateTime(g.next_dispatch_at) : { day: 'Sem previsão', time: '--:--' };
   const intervalMinutes = miaGetGroupDispatchInterval(g);
-  content.innerHTML = '<div class="mia-dh"><div><div class="mia-dh-title"><i class="fa fa-users"></i> '+miaEsc(g.name || 'Grupo')+'</div><div class="mia-dh-sub"><span><i class="fa fa-users"></i> '+Number(g.member_count || 0)+' membros</span></div></div><button class="mia-dh-close" onclick="fecharMiaDrawer()"><i class="fa fa-times"></i></button></div>'
-    + '<div class="mia-db">'
-    + '<div class="mia-d-sec"><div class="mia-d-sec-title"><i class="fa fa-line-chart"></i> Performance</div><div class="mia-d-box">'
-      + '<div style="font-size:12px;font-weight:700;color:#334155">Realizados: '+completed+'</div>'
-      + '<div style="font-size:11px;color:#64748b;margin-top:2px">Agendados: '+scheduled+' · Progresso: '+progress+'%</div>'
-      + '<div class="group-mini-progress"><span style="width:'+progress+'%"></span></div>'
-      + '<div style="margin-top:10px" class="group-next">'+miaEsc(nextDispatch.day)+'</div>'
-      + '<div class="group-next-sub"><i class="fa fa-clock-o"></i> '+miaEsc(nextDispatch.time)+'</div>'
-    + '</div></div>'
-    + '<div class="mia-d-sec"><div class="mia-d-sec-title"><i class="fa fa-sliders"></i> Configuração do Grupo</div><div class="mia-d-box">'
-      + '<div class="fg"><label>Quantidade de produtos por dia</label><input class="finput" type="number" min="0" id="mia-group-edit-daily-limit" value="'+Number(g.daily_limit || 0)+'"></div>'
-      + '<div class="fg" style="margin-bottom:0"><label>Intervalo entre disparos (min)</label><input class="finput" type="number" min="0" id="mia-group-edit-interval" value="'+intervalMinutes+'"><div style="font-size:10px;color:#94a3b8;margin-top:4px">0 = sem intervalo.</div></div>'
-    + '</div></div>'
+  const settings = miaParseGroupSettings(g.settings_json);
+  const startTimeDefault = String(settings.start_time || '09:00').slice(0, 5);
+  const visual = miaGetGroupVisualMeta(g);
+  const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  const repeatDays = String(settings.repeat_days || '')
+    .split(',')
+    .map(function(d){ return parseInt(d, 10); })
+    .filter(function(d){ return !isNaN(d) && d >= 0 && d <= 6; });
+  const repeatDaysLabel = repeatDays.length
+    ? repeatDays.map(function(d){ return dayNames[d] || ''; }).filter(function(v){ return v !== ''; }).join(', ')
+    : 'Não definido';
+  const dayButtons = [
+    { day: 0, label: 'Dom', title: 'Domingo' },
+    { day: 1, label: 'Seg', title: 'Segunda-feira' },
+    { day: 2, label: 'Ter', title: 'Terça-feira' },
+    { day: 3, label: 'Qua', title: 'Quarta-feira' },
+    { day: 4, label: 'Qui', title: 'Quinta-feira' },
+    { day: 5, label: 'Sex', title: 'Sexta-feira' },
+    { day: 6, label: 'Sáb', title: 'Sábado' }
+  ].map(function(item){
+    return '<button type="button" class="day-btn" data-day="'+item.day+'" onclick="toggleMiaGroupDay(this, '+gid+')" title="'+miaEsc(item.title)+'">'+miaEsc(item.label)+'</button>';
+  }).join('');
+  const weeklySource = {
+    repeat_days: settings.repeat_days || '',
+    success_history_json: g.success_history_json || settings.success_history_json || '{}',
+    status: on ? 'sent' : 'pending'
+  };
+  const dailyLimit = Number(g.daily_limit || 0);
+  content.innerHTML = '<div class="mia-gdr-wrap">'
+    + '<div class="mia-gdr-head">'
+      + '<div class="mia-gdr-head-top">'
+        + '<div class="mia-gdr-group-info">'
+          + '<div class="mia-gdr-group-av" style="background:'+miaEsc(visual.avatar)+'"><i class="fa '+miaEsc(visual.icon)+'"></i><div class="mia-gdr-av-st '+(on ? 'on' : 'off')+'"></div></div>'
+          + '<div>'
+            + '<div class="mia-gdr-group-name">'+miaEsc(g.name || 'Grupo')+'</div>'
+            + '<div class="mia-gdr-group-sub">'
+              + '<span><i class="fa fa-users"></i> '+Number(g.member_count || 0)+' membros</span>'
+              + '<span><i class="fa fa-circle" style="font-size:7px;color:'+(on ? '#22c55e' : '#94a3b8')+'"></i> '+(on ? 'Online' : 'Pausado')+'</span>'
+              + '<span><i class="fa fa-bolt"></i> '+(dailyLimit > 0 ? (dailyLimit + '/dia') : 'sem limite')+'</span>'
+            + '</div>'
+          + '</div>'
+        + '</div>'
+        + '<button class="mia-gdr-close" onclick="fecharMiaDrawer()"><i class="fa fa-times"></i></button>'
+      + '</div>'
+      + '<div class="mia-gdr-stats-strip">'
+        + '<div class="mia-gdr-stat"><div class="mia-gdr-stat-val">'+completed+'</div><div class="mia-gdr-stat-lbl">Realizados</div><div class="mia-gdr-stat-sub">Agendados: '+scheduled+'</div></div>'
+        + '<div class="mia-gdr-stat"><div class="mia-gdr-stat-val" id="mia-group-sent-today-'+gid+'">'+Number(g.sent_today || 0)+'</div><div class="mia-gdr-stat-lbl">Hoje</div><div class="mia-gdr-stat-sub">'+(dailyLimit > 0 ? (dailyLimit + '/dia') : 'sem limite')+'</div></div>'
+        + '<div class="mia-gdr-stat"><div class="mia-gdr-stat-val">'+Number(g.member_count || 0)+'</div><div class="mia-gdr-stat-lbl">Membros</div><div class="mia-gdr-stat-sub">grupo ativo</div></div>'
+        + '<div class="mia-gdr-stat"><div class="mia-gdr-stat-val">'+miaEsc(nextDispatch.time)+'</div><div class="mia-gdr-stat-lbl">Próximo</div><div class="mia-gdr-stat-sub">'+miaEsc(nextDispatch.day)+'</div></div>'
+      + '</div>'
+      + '<div class="mia-gdr-prog-bar"><div class="mia-gdr-prog-fill" style="width:'+progress+'%"></div></div>'
     + '</div>'
-    + '<div class="mia-df">'
+    + '<div class="mia-gdr-tab-nav">'
+      + '<button type="button" class="mia-gdr-tab-btn act" id="mia-gdr-tab-fila" onclick="miaSwitchGroupDrawerTab(\'fila\')"><i class="fa fa-list"></i> Fila</button>'
+      + '<button type="button" class="mia-gdr-tab-btn" id="mia-gdr-tab-perf" onclick="miaSwitchGroupDrawerTab(\'perf\')"><i class="fa fa-bar-chart"></i> Performance</button>'
+      + '<button type="button" class="mia-gdr-tab-btn" id="mia-gdr-tab-cfg" onclick="miaSwitchGroupDrawerTab(\'cfg\')"><i class="fa fa-sliders"></i> Configuração</button>'
+    + '</div>'
+    + '<div class="mia-gdr-body">'
+      + '<div class="mia-gdr-pane act" id="mia-gdr-pane-fila">'
+        + '<div class="mia-gdr-sec">'
+          + '<div class="mia-gdr-sec-hdr"><div class="mia-gdr-sec-title"><i class="fa fa-bolt"></i> Fila em tempo real</div></div>'
+          + '<div class="mia-gdr-sec-body"><div id="mia-group-live-'+gid+'" class="mia-gdr-live"><div class="mia-gdr-live-dot"></div><div>Atualizando status da fila...</div></div></div>'
+        + '</div>'
+        + '<div class="mia-gdr-sec">'
+          + '<div class="mia-gdr-sec-hdr"><div class="mia-gdr-sec-title"><i class="fa fa-clock-o"></i> Próximos na fila</div></div>'
+          + '<div class="mia-gdr-sec-body"><div id="mia-group-next-queue-'+gid+'" class="mia-gdr-queue"><div class="mia-gdr-empty"><i class="fa fa-spinner fa-spin"></i>Carregando próximos itens...</div></div></div>'
+        + '</div>'
+        + '<div class="mia-gdr-sec" style="border-bottom:none;margin-bottom:0">'
+          + '<div class="mia-gdr-sec-hdr"><div class="mia-gdr-sec-title"><i class="fa fa-check-circle"></i> Último enviado</div></div>'
+          + '<div class="mia-gdr-sec-body"><div id="mia-group-last-sent-'+gid+'" class="mia-gdr-queue"><div class="mia-gdr-empty"><i class="fa fa-spinner fa-spin"></i>Buscando último envio...</div></div></div>'
+        + '</div>'
+      + '</div>'
+      + '<div class="mia-gdr-pane" id="mia-gdr-pane-perf">'
+        + '<div class="mia-gdr-sec">'
+          + '<div class="mia-gdr-sec-hdr"><div class="mia-gdr-sec-title"><i class="fa fa-line-chart"></i> Métricas do grupo</div></div>'
+          + '<div class="mia-gdr-sec-body"><div class="mia-gdr-metrics">'
+            + '<div class="mia-gdr-metric"><div class="mia-gdr-metric-val">'+completed+'</div><div class="mia-gdr-metric-lbl">Realizados</div><div class="mia-gdr-metric-tag">campanhas</div></div>'
+            + '<div class="mia-gdr-metric"><div class="mia-gdr-metric-val">'+scheduled+'</div><div class="mia-gdr-metric-lbl">Agendados</div><div class="mia-gdr-metric-tag">na fila</div></div>'
+            + '<div class="mia-gdr-metric"><div class="mia-gdr-metric-val">'+progress+'%</div><div class="mia-gdr-metric-lbl">Progresso</div><div class="mia-gdr-metric-tag">atividade</div></div>'
+          + '</div></div>'
+        + '</div>'
+        + '<div class="mia-gdr-sec">'
+          + '<div class="mia-gdr-sec-hdr"><div class="mia-gdr-sec-title"><i class="fa fa-calendar"></i> Check-in semanal</div></div>'
+          + '<div class="mia-gdr-sec-body"><div style="background:#f8fafc;border:1px solid #eef2f7;border-radius:10px;padding:10px">'+miaRenderWeeklyStatus(weeklySource, true)+'</div><div style="font-size:11px;color:#64748b;margin-top:8px"><i class="fa fa-refresh"></i> Dias configurados: '+miaEsc(repeatDaysLabel)+'</div></div>'
+        + '</div>'
+        + '<div class="mia-gdr-sec" style="border-bottom:none;margin-bottom:0">'
+          + '<div class="mia-gdr-sec-hdr"><div class="mia-gdr-sec-title"><i class="fa fa-clock-o"></i> Próximo disparo</div></div>'
+          + '<div class="mia-gdr-sec-body"><div style="font-size:16px;font-weight:800;color:#0f172a">'+miaEsc(nextDispatch.time)+'</div><div style="font-size:11px;color:#64748b;margin-top:2px">'+miaEsc(nextDispatch.day)+'</div><div style="font-size:11px;color:#7c3aed;margin-top:7px"><i class="fa fa-random"></i> Intervalo atual: '+intervalMinutes+' min</div></div>'
+        + '</div>'
+      + '</div>'
+      + '<div class="mia-gdr-pane" id="mia-gdr-pane-cfg">'
+        + '<div class="mia-gdr-sec" style="border-bottom:none;margin-bottom:0">'
+          + '<div class="mia-gdr-sec-hdr"><div class="mia-gdr-sec-title"><i class="fa fa-sliders"></i> Configuração do grupo</div></div>'
+          + '<div class="mia-gdr-sec-body">'
+            + '<div class="mia-gdr-config-grid">'
+              + '<div class="mia-gdr-cfg-field"><label class="mia-gdr-cfg-label">Quantidade de produtos por dia</label><input class="finput" type="number" min="0" id="mia-group-edit-daily-limit" value="'+dailyLimit+'"><div class="mia-gdr-cfg-hint">Máximo diário por grupo</div></div>'
+              + '<div class="mia-gdr-cfg-field"><label class="mia-gdr-cfg-label">Intervalo entre disparos (min)</label><input class="finput" type="number" min="0" id="mia-group-edit-interval" value="'+intervalMinutes+'"><div class="mia-gdr-cfg-hint">0 = sem intervalo</div></div>'
+            + '</div>'
+            + '<div style="margin-top:12px"><label class="mia-gdr-cfg-label" style="display:block;margin-bottom:5px">Horário de início dos disparos</label><input class="finput" type="time" id="mia-group-edit-start-time" value="'+miaEsc(startTimeDefault)+'" style="max-width:190px"></div>'
+            + '<div style="margin-top:14px"><div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Dias de disparo</div><div class="day-selector day-selector-wide" id="mia-group-days-'+gid+'">'+dayButtons+'</div></div>'
+          + '</div>'
+        + '</div>'
+      + '</div>'
+    + '</div>'
+    + '<div class="mia-gdr-foot">'
       + '<button class="btn btn-secondary btn-sm" onclick="fecharMiaDrawer()">Fechar</button>'
+      + (MIA_CAN_MANAGE ? '<button class="btn btn-secondary btn-sm" onclick="miaToggleGroup('+gid+')"><i class="fa '+(on ? 'fa-pause' : 'fa-play')+'"></i> '+(on ? 'Pausar' : 'Ativar')+'</button>' : '')
       + (MIA_CAN_MANAGE ? '<button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="miaSaveGroupDrawer()"><i class="fa fa-check"></i> Salvar edição</button>' : '')
-    + '</div>';
+    + '</div>'
+  + '</div>';
   ov.classList.add('open');
   dw.classList.add('open');
+  
+  // Pre-select days and start time for group
+  setTimeout(function(){
+    const daysContainer = document.getElementById('mia-group-days-' + gid);
+    const startTimeInput = document.getElementById('mia-group-edit-start-time');
+    if (daysContainer || startTimeInput) {
+      if (daysContainer) {
+        daysContainer.querySelectorAll('.day-btn').forEach(function(btn){
+          const day = parseInt(btn.dataset.day);
+          if (repeatDays.includes(day)) btn.classList.add('active');
+        });
+      }
+      
+      if (startTimeInput) {
+        startTimeInput.value = startTimeDefault || '09:00';
+      }
+    }
+  }, 50);
+  
   if (forceEdit) {
     setTimeout(function(){
       const input = document.getElementById('mia-group-edit-daily-limit');
       if (input) input.focus();
-    }, 90);
+    }, 100);
   }
+  
+  // Load queue for group
+  setTimeout(function(){
+    miaLoadGroupPerformanceQueue(gid);
+  }, 120);
 }
+
+function toggleMiaGroupDay(el, groupId){
+  el.classList.toggle('active');
+}
+
 function miaSaveGroupDrawer(){
   if (!MIA_CAN_MANAGE) { showMiaToast('Sem permissão para editar grupo.', 'warning'); return; }
   const groupId = Number(miaCurrentGroupId || 0);
@@ -2446,8 +3273,10 @@ function miaSaveGroupDrawer(){
   const g = miaGroupsMap[groupId] || {};
   const dailyInput = document.getElementById('mia-group-edit-daily-limit');
   const intervalInput = document.getElementById('mia-group-edit-interval');
+  const startTimeInput = document.getElementById('mia-group-edit-start-time');
   const dailyLimit = Math.max(0, Number(dailyInput ? dailyInput.value : 0) || 0);
   const intervalMinutes = Math.max(0, Number(intervalInput ? intervalInput.value : 0) || 0);
+  const startTime = startTimeInput ? startTimeInput.value : '09:00';
   const existingSettings = miaParseGroupSettings(g.settings_json);
   const settings = {};
   if (typeof existingSettings === 'object' && existingSettings !== null) {
@@ -2459,6 +3288,18 @@ function miaSaveGroupDrawer(){
   }
   settings.dispatch_interval_minutes = intervalMinutes;
   settings.interval_between_dispatches = intervalMinutes;
+  settings.start_time = startTime;
+  
+  // Get selected days
+  const daysContainer = document.getElementById('mia-group-days-' + Number(groupId));
+  const selectedDays = [];
+  if (daysContainer) {
+    daysContainer.querySelectorAll('.day-btn.active').forEach(function(btn){
+      selectedDays.push(parseInt(btn.dataset.day));
+    });
+  }
+  const repeatDays = selectedDays.sort((a, b) => a - b).join(',');
+  settings.repeat_days = repeatDays;
 
   miaApi('PATCH', MIA_API.groups, {
     id: groupId,
@@ -2679,14 +3520,30 @@ function miaRenderStatusHistoryItem(s){
   let label = s.status === 'sent' ? 'Sucesso' : (s.status === 'error' ? 'Erro' : (isSending ? 'Enviando...' : (s.status === 'canceled' ? 'Cancelado' : 'Pendente')));
   
   if (hasTimeout) {
-    badge = 'draft';
-    label = 'Sem resposta';
+    badge = 'sending';
+    label = 'Pendente';
   }
 
   const mediaUrls = Array.isArray(s.media_urls) ? s.media_urls : [];
   const thumb = s.media_url || mediaUrls[0] || '';
   
-  return '<div class="brow" id="status-item-'+(s.id || 'temp')+'" style="grid-template-columns: 36px 1fr 100px 80px 40px; padding: 10px; border-bottom: 1px solid #f1f5f9; cursor: default; align-items:center; opacity: '+(isSending ? '0.7' : '1')+'">'
+  let actionsHtml = '';
+  if (hasTimeout && s.id) {
+    actionsHtml = '<div style="display:flex; gap:4px; justify-content: flex-end; flex-direction: column">'
+      + '<div style="font-size:9px; color:#94a3b8; margin-bottom:4px; text-align:center">Postou?</div>'
+      + '<div style="display:flex; gap:4px">'
+      + '<button class="icon-btn fire" title="Confirmar envio" onclick="miaConfirmStatusSent('+s.id+')" style="width:22px;height:22px"><i class="fa fa-check" style="font-size:10px"></i></button>'
+      + '<button class="icon-btn danger" title="Marcar como erro" onclick="miaMarkStatusAsError('+s.id+')" style="width:22px;height:22px"><i class="fa fa-times" style="font-size:10px"></i></button>'
+      + '</div>'
+      + '</div>';
+  } else {
+    actionsHtml = '<div style="display:flex; gap:4px; justify-content: flex-end">' 
+      + (isPending ? '<button class="icon-btn fire" title="Disparar agora" onclick="miaSendStatusNow('+s.id+')" style="width:22px;height:22px"><i class="fa fa-bolt" style="font-size:10px"></i></button>' : '') 
+      + (s.id ? '<button class="icon-btn danger" title="Excluir" onclick="miaDeleteStatus('+s.id+')" style="width:22px;height:22px"><i class="fa fa-trash" style="font-size:10px"></i></button>' : '') 
+      + '</div>';
+  }
+  
+  return '<div class="brow" id="status-item-'+(s.id || 'temp')+'" style="grid-template-columns: 36px 1fr 100px 80px 60px; padding: 10px; border-bottom: 1px solid #f1f5f9; cursor: default; align-items:center; opacity: '+(isSending ? '0.7' : '1')+'">'
     + '<div class="brow-thumb" style="width:30px;height:30px;min-width:30px;margin-right:0">'+(thumb ? ('<img src="'+miaEsc(thumb)+'" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:5px" onerror="this.src=\''+fallback+'\'">') : '🟣')+'</div>'
     + '<div style="font-size:11.5px; color:#334155; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-left:5px" title="'+miaEsc(s.content || '')+'">'
       + '<div style="font-weight:700">#'+(s.id ? Number(s.id) : '...')+'</div>'
@@ -2694,13 +3551,10 @@ function miaRenderStatusHistoryItem(s){
     + '</div>'
     + '<div style="font-size:10px; color:#94a3b8">'+dt.day+' '+dt.time+'</div>'
     + '<div style="display:flex; flex-direction:column; align-items:center">'
-      + '<span class="sbadge '+badge+'" style="font-size:9px; padding:2px 6px">'+label+'</span>'
+      + '<span class="sbadge '+badge+'" style="font-size:9px; padding:2px 6px; '+(hasTimeout ? 'background:#fef3c7; color:#92400e; border:1px solid #fde68a' : '')+'">'+label+'</span>'
       + (isSending ? '<div class="status-progress-container" style="height:3px; width:100%; margin-top:4px"><div class="status-progress-bar loading"></div></div>' : '')
     + '</div>'
-    + '<div style="display:flex; gap:4px; justify-content: flex-end">' 
-      + (isPending ? '<button class="icon-btn fire" title="Disparar agora" onclick="miaSendStatusNow('+s.id+')" style="width:22px;height:22px"><i class="fa fa-bolt" style="font-size:10px"></i></button>' : '') 
-      + (s.id ? '<button class="icon-btn danger" title="Excluir" onclick="miaDeleteStatus('+s.id+')" style="width:22px;height:22px"><i class="fa fa-trash" style="font-size:10px"></i></button>' : '') 
-    + '</div>'
+    + actionsHtml
   + '</div>';
 }
 
@@ -3192,14 +4046,14 @@ function miaOpenStatusDetails(id){
         + '<div style="font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px">Ciclo de Repostagem</div>'
         + '<div style="margin-bottom:12px">'
           + '<label style="font-size:10px; color:#475569; text-transform:uppercase; margin-bottom:8px; display:block">Dias da Semana</label>'
-          + '<div class="day-selector" id="mia-edit-status-days" style="display:flex; justify-content:space-between; gap:2px">'
-            + '<button type="button" class="day-btn" data-day="0" onclick="toggleMiaEditDay(this)" title="Domingo">D</button>'
-            + '<button type="button" class="day-btn" data-day="1" onclick="toggleMiaEditDay(this)" title="Segunda">S</button>'
-            + '<button type="button" class="day-btn" data-day="2" onclick="toggleMiaEditDay(this)" title="Terça">T</button>'
-            + '<button type="button" class="day-btn" data-day="3" onclick="toggleMiaEditDay(this)" title="Quarta">Q</button>'
-            + '<button type="button" class="day-btn" data-day="4" onclick="toggleMiaEditDay(this)" title="Quinta">Q</button>'
-            + '<button type="button" class="day-btn" data-day="5" onclick="toggleMiaEditDay(this)" title="Sexta">S</button>'
-            + '<button type="button" class="day-btn" data-day="6" onclick="toggleMiaEditDay(this)" title="Sábado">S</button>'
+          + '<div class="day-selector day-selector-wide" id="mia-edit-status-days">'
+            + '<button type="button" class="day-btn" data-day="0" onclick="toggleMiaEditDay(this)" title="Domingo">Dom</button>'
+            + '<button type="button" class="day-btn" data-day="1" onclick="toggleMiaEditDay(this)" title="Segunda-feira">Seg</button>'
+            + '<button type="button" class="day-btn" data-day="2" onclick="toggleMiaEditDay(this)" title="Terça-feira">Ter</button>'
+            + '<button type="button" class="day-btn" data-day="3" onclick="toggleMiaEditDay(this)" title="Quarta-feira">Qua</button>'
+            + '<button type="button" class="day-btn" data-day="4" onclick="toggleMiaEditDay(this)" title="Quinta-feira">Qui</button>'
+            + '<button type="button" class="day-btn" data-day="5" onclick="toggleMiaEditDay(this)" title="Sexta-feira">Sex</button>'
+            + '<button type="button" class="day-btn" data-day="6" onclick="toggleMiaEditDay(this)" title="Sábado">Sáb</button>'
           + '</div>'
         + '</div>'
         + '<div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:12px">'

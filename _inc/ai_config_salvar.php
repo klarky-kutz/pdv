@@ -32,6 +32,10 @@ try {
         'ai_notify_store_secondary_enabled',
         'ai_api_key',
         'ai_webhook_target_url',
+        'ai_webhook_conversation_url',
+        'ai_groups_dispatch_webhook_url',
+        'ai_status_dispatch_webhook_url',
+        'ai_groups_suggestions_webhook_url',
         'ai_name',
         'ai_personality',
         'ai_greeting',
@@ -82,7 +86,12 @@ try {
 
     foreach ($allowed_keys as $key) {
         if (isset($request->post[$key])) {
-            ai_save_setting($key, $request->post[$key], $tid);
+            $value = (string)$request->post[$key];
+            if (strpos($key, 'webhook') !== false || strpos($key, 'url') !== false) {
+                $value = trim($value);
+                $value = trim($value, '`"\' ');
+            }
+            ai_save_setting($key, $value, $tid);
         }
     }
 

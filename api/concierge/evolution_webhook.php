@@ -259,11 +259,16 @@ try {
             ?? ai_evolution_array_path($payload, ['state'])
             ?? ''
         );
+        $updateData = [];
         if ($state !== '') {
-            $updateData = [
-                'ai_evolution_status' => ai_evolution_status_label($state),
-            ];
-
+            $updateData['ai_evolution_status'] = ai_evolution_status_label($state);
+        }
+        // Extract and save instance owner number
+        $ownerNumber = ai_evolution_extract_instance_number($payload);
+        if ($ownerNumber !== '') {
+            $updateData['ai_whatsapp_number'] = $ownerNumber;
+        }
+        if (!empty($updateData)) {
             ai_evolution_save_connection($updateData, $tid);
         }
     }
