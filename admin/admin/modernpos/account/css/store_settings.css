@@ -1,0 +1,162 @@
+/*
+ * store_settings.css
+ * UI/Estilos para account/pages/store_settings.php (AdminLTE 4 / Bootstrap 5)
+ */
+
+.mp-card {
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.mp-settings-alert {
+  border-radius: 1rem;
+  border: 1px solid rgba(207, 229, 255, 1);
+  background: rgba(238, 246, 255, 0.95);
+  color: #084298;
+}
+
+.mp-settings-alert-icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(207, 229, 255, 1);
+}
+
+.mp-settings-shell {
+  border: 1px solid rgba(226, 232, 240, 1);
+}
+
+.mp-settings-navbar {
+  background: rgba(248, 250, 252, 1);
+  border-bottom: 1px solid rgba(226, 232, 240, 1);
+}
+
+.mp-settings-shopicon {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 1);
+  border: 1px solid rgba(226, 232, 240, 1);
+}
+
+/* Tabs */
+#storeSettingsTabs .nav-link {
+  border-top-left-radius: .85rem;
+  border-top-right-radius: .85rem;
+}
+
+#storeSettingsTabs .nav-link i {
+  margin-right: .35rem;
+}
+
+.mp-mini-navbar {
+  padding: .25rem;
+  border-radius: .9rem;
+  background: rgba(248, 250, 252, 1);
+  border: 1px solid rgba(226, 232, 240, 1);
+}
+
+.mp-mini-navbar .nav-link {
+  padding: .35rem .6rem;
+  border-radius: .75rem;
+}
+
+.mp-form-section {
+  padding: 16px;
+  border-radius: 1rem;
+  border: 1px solid rgba(226, 232, 240, 1);
+  background: rgba(255, 255, 255, 1);
+  margin-bottom: 14px;
+}
+
+.mp-section-title {
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+/* Logo dropzone */
+.mp-dropzone {
+  border-radius: 1rem;
+  border: 1px dashed rgba(148, 163, 184, 1);
+  background: rgba(241, 245, 249, 0.65);
+  cursor: pointer;
+  transition: transform .12s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease;
+  padding: 18px;
+}
+
+.mp-dropzone:hover {
+  background: rgba(255, 255, 255, 1);
+  transform: translateY(-1px);
+  box-shadow: 0 .75rem 1.25rem rgba(2, 6, 23, 0.08);
+  border-color: rgba(59, 130, 246, 0.8);
+}
+
+.mp-logo-preview {
+  width: 110px;
+  height: 110px;
+  border-radius: 1rem;
+  background: #fff;
+  border: 1px solid rgba(226, 232, 240, 1);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mp-logo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mp-logo-empty {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(100, 116, 139, 1);
+}
+
+.mp-logo-empty i {
+  font-size: 2rem;
+}
+
+.mp-dropzone-title {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.mp-dropzone-subtitle {
+  color: rgba(100, 116, 139, 1);
+  font-size: .9rem;
+}
+
+/* Impressora (quando PHP Server) */
+.mp-printer-required select {
+  border-color: rgba(245, 158, 11, 0.9) !important;
+  box-shadow: 0 0 0 .2rem rgba(245, 158, 11, .12);
+}
+
+/* Melhor espaçamento visual em telas pequenas */
+@media (max-width: 576px) {
+  .mp-dropzone {
+    padding: 14px;
+  }
+
+  .mp-logo-preview {
+    width: 96px;
+    height: 96px;
+  }
+
+  .mp-form-section {
+    padding: 14px;
+  }
+}

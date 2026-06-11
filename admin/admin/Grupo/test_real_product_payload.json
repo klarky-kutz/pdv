@@ -1,0 +1,135 @@
+{
+  "event": "generate_suggestions",
+  "tenant_id": 347,
+  "products": [
+    {
+      "id": 124,
+      "nome": "Blusa de Linho Leve",
+      "preco": 45.90,
+      "descricao": "Blusa de linho leve, ideal para dias quentes. Disponível em 4 cores diferentes!",
+      "categoria": {
+        "id": 3,
+        "nome": "Blusas"
+      },
+      "sku": "PRP-595",
+      "variants": [
+        {
+          "id": 1241,
+          "sku": "PRP-595-1",
+          "size": "M",
+          "color": "Branco",
+          "price": 45.90,
+          "descricao": "Blusa de linho branco, tamanho M - perfeito para looks minimalistas!",
+          "media_url": "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop"
+        },
+        {
+          "id": 1242,
+          "sku": "PRP-595-2",
+          "size": "M",
+          "color": "Preto",
+          "price": 45.90,
+          "descricao": "Blusa de linho preto, tamanho M - básico que combina com tudo!",
+          "media_url": "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400&h=400&fit=crop"
+        },
+        {
+          "id": 1243,
+          "sku": "PRP-595-3",
+          "size": "G",
+          "color": "Azul Marinho",
+          "price": 49.90,
+          "descricao": "Blusa de linho azul marinho, tamanho G - elegante para o trabalho!",
+          "media_url": "https://images.unsplash.com/photo-1516826957135-700dedea698c?w=400&h=400&fit=crop"
+        },
+        {
+          "id": 1244,
+          "sku": "PRP-595-4",
+          "size": "G",
+          "color": "Bege",
+          "price": 49.90,
+          "descricao": "Blusa de linho bege, tamanho G - super versátil para o dia a dia!",
+          "media_url": "https://images.unsplash.com/photo-1485462537746-965f33f7f6a7?w=400&h=400&fit=crop"
+        }
+      ],
+      "tamanhos": ["M", "G"],
+      "cores": ["Branco", "Preto", "Azul Marinho", "Bege"],
+      "media_urls": [
+        "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop"
+      ]
+    }
+  ],
+  "suggestions": [
+    {
+      "product_id": 124,
+      "texto_card": "✨ Blusa de Linho Branco (M)\n\nTamanho M · R$ 45,90.\n📲 Fale com a gente para garantir o seu!",
+      "texto_boas_vindas": "Olá! Temos uma blusa de linho branco super fresca para você hoje 😊",
+      "cta": "📲 Quero essa branca!",
+      "modo": "single",
+      "product": {
+        "id": 1241,
+        "nome": "Blusa de Linho Branco (Tamanho M)",
+        "preco": 45.90,
+        "sku": "PRP-595-1",
+        "size": "M",
+        "color": "Branco",
+        "media_urls": [
+          "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop"
+        ]
+      }
+    },
+    {
+      "product_id": 124,
+      "texto_card": "✨ Blusa de Linho Preto (M)\n\nTamanho M · R$ 45,90.\n📲 Fale com a gente para garantir o seu!",
+      "texto_boas_vindas": "Olá! Temos uma blusa de linho preto super versátil para você hoje 😊",
+      "cta": "📲 Quero essa preta!",
+      "modo": "single",
+      "product": {
+        "id": 1242,
+        "nome": "Blusa de Linho Preto (Tamanho M)",
+        "preco": 45.90,
+        "sku": "PRP-595-2",
+        "size": "M",
+        "color": "Preto",
+        "media_urls": [
+          "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400&h=400&fit=crop"
+        ]
+      }
+    },
+    {
+      "product_id": 124,
+      "texto_card": "✨ Blusa de Linho Azul Marinho (G)\n\nTamanho G · R$ 49,90.\n📲 Fale com a gente para garantir o seu!",
+      "texto_boas_vindas": "Olá! Temos uma blusa de linho azul marinho super elegante para você hoje 😊",
+      "cta": "📲 Quero essa azul!",
+      "modo": "single",
+      "product": {
+        "id": 1243,
+        "nome": "Blusa de Linho Azul Marinho (Tamanho G)",
+        "preco": 49.90,
+        "sku": "PRP-595-3",
+        "size": "G",
+        "color": "Azul Marinho",
+        "media_urls": [
+          "https://images.unsplash.com/photo-1516826957135-700dedea698c?w=400&h=400&fit=crop"
+        ]
+      }
+    },
+    {
+      "product_id": 124,
+      "texto_card": "✨ Blusa de Linho Bege (G)\n\nTamanho G · R$ 49,90.\n📲 Fale com a gente para garantir o seu!",
+      "texto_boas_vindas": "Olá! Temos uma blusa de linho bege super versátil para você hoje 😊",
+      "cta": "📲 Quero essa bege!",
+      "modo": "single",
+      "product": {
+        "id": 1244,
+        "nome": "Blusa de Linho Bege (Tamanho G)",
+        "preco": 49.90,
+        "sku": "PRP-595-4",
+        "size": "G",
+        "color": "Bege",
+        "media_urls": [
+          "https://images.unsplash.com/photo-1485462537746-965f33f7f6a7?w=400&h=400&fit=crop"
+        ]
+      }
+    }
+  ],
+  "source_url": "https://n8n.seudominio.com/webhook/teste"
+}

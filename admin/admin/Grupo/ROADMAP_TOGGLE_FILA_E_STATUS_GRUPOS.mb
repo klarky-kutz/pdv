@@ -1,0 +1,153 @@
+# ROADMAP IA — Toggle de retorno à fila + badges + correção de status (Grupos IA)
+## Contexto do pedido
+Tela alvo: `admin/Grupo/concierge_grupos.php` (URL: `/modernpos/admin/Grupo/concierge_grupos.php`).
+Objetivo funcional:
+- Ter controle por Toggle no drawer (ao lado de `Fechar`) para permitir/bloquear retorno do item ao final da fila de disparo.
+- Exibir badge de confirmação de fila ativada no formato `Enviado 22/05/2026 08:48`.
+- Exibir ícone pequeno antes do “done/check” na lista para sinalizar fila ativada.
+- Em `Produto / Campanha` e no drawer de grupos (`Próximos na fila`), item que já foi enviado e retornou para fila deve aparecer como `Agendado` (não `Enviado`), quando estiver elegível para nova volta na fila.
+
+## O que foi pesquisado
+- Front principal:
+  - `admin/Grupo/concierge_grupos.php`
+  - `admin/Grupo/JS/concierge_grupos.js`
+  - `admin/Grupo/CSS/concierge_grupos.css`
+- APIs:
+  - `api/concierge/groups.php`
+  - `api/concierge/campaigns.php`
+  - `api/concierge/campaign_status_webhook.php`
+  - `api/concierge/dispatch.php`
+- Helpers:
+  - `_inc/helper/ai_groups_helper.php`
+- Verificação de duplicidade de helper:
+  - `_inc/helper/ai_groups_helper.php`
+  - `admin/_inc/helper/ai_groups_helper.php`
+  - Resultado: hashes diferentes (risco de manutenção com lógica divergente).
+
+## Estado atual identificado (com pontos técnicos)
+### 1) Toggle de retorno à fila já existe parcialmente no drawer de campanha
+- O botão ao lado de `Fechar` já existe e persiste `allow_requeue`:
+  - `admin/Grupo/JS/concierge_grupos.js:2767`
+  - `admin/Grupo/JS/concierge_grupos.js:2848`
+  - `admin/Grupo/JS/concierge_grupos.js:2861`
+- Hoje ele está como botão-ícone, não como toggle visual explícito (switch com estado textual).
+
+### 2) Ícone de fila já existe em parte da lista de fila do grupo
+- O card da fila já adiciona ícone `fa-repeat` quando `allow_requeue=1`:
+  - `admin/Grupo/JS/concierge_grupos.js:178`
+- Falta padronizar para aparecer no ponto exato solicitado (“à frente do done”) e também em `Produto / Campanha` na listagem principal.
+
+### 3) Inconsistência principal de status (origem do bug reportado)
+- O status global da campanha é atualizado para `sent` quando conclui entregas:
+  - `api/concierge/campaign_status_webhook.php:159`
+  - `api/concierge/campaign_status_webhook.php:160`
+- A fila do grupo usa `c.status` diretamente para montar `next_items`:
+  - `_inc/helper/ai_groups_helper.php:2942`
+  - `_inc/helper/ai_groups_helper.php:3004` (status preenchido no item)
+- Mesmo quando o item volta ao fim da fila via `allow_requeue`, o status permanece `sent`, causando visual “Enviado” em `Próximos na fila`:
+  - `_inc/helper/ai_groups_helper.php:3060` (rotação da fila condicionada a `allow_requeue`)
+  - `admin/Grupo/JS/concierge_grupos.js:98` (render que interpreta status e pinta badge)
+
+### 4) Badge “Enviado dd/mm/aaaa hh:mm” usa referência temporal inconsistente no drawer
+- No drawer de campanha, o badge adicional usa `dt` derivado de `scheduled_at || created_at`, não de `sent_at`:
+  - `admin/Grupo/JS/concierge_grupos.js:2739`
+- Isso pode exibir data/hora incorreta como “Enviado”.
+
+### 5) Risco estrutural por arquivos helper duplicados
+- `admin/_inc/helper/ai_groups_helper.php` e `_inc/helper/ai_groups_helper.php` não são idênticos.
+- APIs de `api/concierge/*` carregam helper do contexto do `_init.php` raiz; tela admin pode carregar contexto admin.
+- Sem unificar origem da regra, mudanças podem “funcionar em um fluxo e quebrar em outro”.
+
+## Inconsistências de lógica (resumo objetivo)
+- Estado de negócio misturado:
+  - `status` da campanha (global/final) está sendo reutilizado como estado de fila do grupo (dinâmico), gerando conflito visual.
+- Badge de enviado sem fonte canônica:
+  - Usa data agendada/criação em vez de `sent_at`.
+- UX parcial:
+  - Toggle existe, porém não está apresentado como controle claro de “permite voltar à fila”.
+- Sinalização incompleta:
+  - Ícone de fila não está padronizado nos dois pontos solicitados (lista principal e done/queue list).
+- Potencial divergência de código:
+  - Dois helpers com mesmo nome e conteúdos diferentes.
+
+## Estratégia recomendada (sem quebrar comportamento atual)
+### Princípio
+Separar:
+- `campaign_status_global` (sent, sending, etc.) para histórico/relatórios.
+- `queue_display_status` (agendado, próximo, enviando) para UI de fila por grupo.
+
+### Ajustes de dados (backend)
+1. Em `_inc/helper/ai_groups_helper.php` (`ai_groups_get_group_dispatch_queue`):
+- Manter `status` original da campanha.
+- Adicionar campo derivado para UI, ex.: `queue_display_status`.
+- Regra:
+  - Se item está em `next_items` e `allow_requeue=1` e já teve envio (`total_sent_count > 0`), exibir `queue_display_status='scheduled'`.
+  - Se estiver realmente em envio, `queue_display_status='sending'`.
+  - Em `last_sent_item`, manter semântica de enviado.
+
+2. Opcional (recomendado): adicionar `requeue_enabled` boolean explícito no payload para o front (evita parsing repetitivo).
+
+### Ajustes de render (frontend)
+1. Em `admin/Grupo/JS/concierge_grupos.js`:
+- `miaBuildGroupQueueItemCard` deve priorizar `queue_display_status` (se existir) em vez de `status`.
+- Para `mode='next'`, quando item voltou à fila, exibir badge `Agendado` conforme solicitado.
+
+2. Drawer de campanha (`miaOpenCampaign`):
+- Trocar badge-ícone atual por toggle visual claro (switch + label) ao lado de `Fechar`.
+- Persistir via `PATCH /api/concierge/campaigns.php` com `allow_requeue`.
+- Badge `Enviado dd/mm/aaaa hh:mm` deve usar `sent_at` real da campanha; fallback controlado quando não houver envio.
+
+3. Lista `Produto / Campanha` (`miaLoadCampaigns`):
+- Incluir microícone de fila ativa junto ao título/status quando `allow_requeue=1`.
+- Adicionar estilo dedicado no CSS para manter legibilidade.
+
+4. Lista de fila/done:
+- Padronizar ícone “fila ativa” antes do marcador de done/check, conforme pedido visual.
+
+### Ajustes de estilo
+- `admin/Grupo/CSS/concierge_grupos.css`:
+  - Classe para toggle (`.mia-requeue-toggle*`).
+  - Classe para microícone de fila ativa em `brow` e queue cards.
+  - Ajustar espaçamento/alinhamento para não quebrar layout mobile.
+
+## Roadmap de implementação para IA (tarefas executáveis)
+### Fase 1 — Segurança de base
+1. Confirmar arquivo helper efetivo carregado em runtime (raiz/admin) e definir fonte única da regra de fila.
+2. Criar teste rápido manual de regressão da fila antes da mudança (cenário com 2 campanhas e 1 grupo).
+
+### Fase 2 — Backend da fila
+1. Alterar `ai_groups_get_group_dispatch_queue` para gerar `queue_display_status`.
+2. Garantir que `last_sent_item` continue refletindo envio concluído.
+3. Validar payload retornado em `GET api/concierge/groups.php?action=queue&group_id=...`.
+
+### Fase 3 — Frontend drawer/listas
+1. Converter botão atual de `allow_requeue` em toggle visual com rótulo.
+2. Atualizar `miaBuildGroupQueueItemCard` para usar `queue_display_status`.
+3. Inserir ícone de fila ativa:
+   - na lista `Produto / Campanha`;
+   - na lista com done/check conforme solicitado.
+4. Corrigir badge “Enviado dd/mm/yyyy hh:mm” para usar `sent_at`.
+
+### Fase 4 — QA funcional
+1. Cenário A: `allow_requeue=0` → item enviado não volta à fila.
+2. Cenário B: `allow_requeue=1` → item enviado volta ao final da fila e aparece como `Agendado` em “Próximos na fila”.
+3. Cenário C: badge de enviado mostra data/hora real de envio.
+4. Cenário D: ícones aparecem nos pontos corretos sem quebrar filtros/ordenação.
+
+### Fase 5 — Hardening
+1. Revisar duplicidade de helper (`_inc` vs `admin/_inc`) e decidir estratégia:
+   - unificar em uma única fonte;
+   - ou sincronizar mudanças em ambos com política explícita.
+2. Registrar regra de negócio de “status global vs status de fila” para evitar regressão futura.
+
+## Critérios de aceite (objetivos)
+- Existe toggle claro ao lado de `Fechar` no drawer da campanha.
+- Com toggle ativo, item pode retornar ao final da fila (comportamento atual preservado e controlável).
+- “Próximos na fila” mostra item reencolado como `Agendado`, não `Enviado`.
+- Badge `Enviado dd/mm/yyyy hh:mm` reflete horário real de envio.
+- Ícone de fila ativa aparece na lista `Produto / Campanha` e antes do done/check na fila.
+
+## Riscos e observações
+- Se a lógica for alterada apenas no helper errado (admin vs raiz), o comportamento ficará inconsistente entre front e API.
+- Se `sent_at` estiver nulo em parte dos registros antigos, necessário fallback visual (“Enviado recentemente”) sem bloquear interface.
+- Recomenda-se validação em base com dados reais para confirmar timezone do `sent_at`.

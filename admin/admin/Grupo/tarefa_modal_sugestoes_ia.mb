@@ -1,0 +1,177 @@
+# Tarefa IA — Modal "Ver Sugestões" (Grupos IA)
+## Objetivo principal
+Ajustar o fluxo da modal de sugestões em `admin/Grupo/concierge_grupos.php` para:
+- Manter a busca de sugestões ao abrir a modal.
+- NÃO disparar webhook automaticamente na abertura.
+- Disparar webhook apenas ao clicar em **Reanalisar** (ou Analisar/Reanalisar).
+- Controlar consumo de “tokens” (chamadas IA) com custo proporcional à quantidade de variações do produto.
+- Exibir loading de análise com o mesmo padrão visual/textual da sincronização.
+- Atualizar estado “Sugerido pela IA · Aguardando aprovação” sem reload de página.
+- Exibir contador de tokens na modal.
+- Desativar botão de análise enquanto houver sugestões pendentes (até aprovar/rejeitar tudo).
+- Trocar ação/botão “Regenerar” para “Rejeitar”.
+
+## Requisitos funcionais consolidados
+1. Abrir modal `ia-campanhas`:
+- Executar apenas listagem (`list`) das sugestões pendentes.
+- Não acionar webhook de geração.
+2. Clicar em reanalisar:
+- Acionar geração (`generate`) com webhook.
+- Exibir tela de carregamento com texto:
+  - "Sincronizando grupos com o WhatsApp..."
+  - "A busca pode levar até 1 minuto. Aguarde enquanto os grupos são localizados."
+3. Consumo proporcional:
+- Produto com 1 variação: custo menor que produto com 5 variações.
+- Cobrança deve reutilizar lógica de consumo já existente de chamadas IA.
+4. Estado de aprovação:
+- Botão de análise deve ficar desativado enquanto houver itens pendentes.
+- Somente habilitar quando todos os itens da rodada estiverem aprovados ou rejeitados.
+5. UI de tokens:
+- Mostrar saldo/contador de tokens e “usados nesta criação” na modal.
+6. Botões:
+- Substituir rótulo/ação “Regenerar” por “Rejeitar” no card de sugestão.
+
+## Mapeamento atual encontrado (código)
+### Front-end
+- Arquivo: `admin/Grupo/JS/concierge_grupos_novas_funcionalidades.js`
+  - `abrirMiaModal('ia-campanhas')` atualmente chama `miaLoadSuggestions(true)`.
+  - `miaLoadSuggestions(forceGenerate)`:
+    - `true` => action `generate`
+    - `false` => action `list`
+  - `miaReanalizarCatalogo()` chama `miaLoadSuggestions(true)`.
+  - `miaRejectSuggestionGroup()` atualmente recarrega com `miaLoadSuggestions(true)` (erro para novo requisito).
+  - Render do card usa botão com texto `Regenerar`.
+  - `miaRenderPendingSuggestionsOnMainPage()` já atualiza faixa “Sugerido pela IA · Aguardando aprovação” sem reload.
+- Arquivo: `admin/Grupo/concierge_grupos.php`
+  - Modal `mia-ov-ia-campanhas` possui header/summary e botão de reanalisar.
+  - Ainda não possui contador de tokens visível.
+- Arquivo: `admin/Grupo/CSS/concierge_grupos.css`
+  - Já existe estilo do loading “sync” (`.mia-sync-loading-box`) e pode ser reaproveitado na modal de sugestões.
+
+### Back-end
+- Arquivo: `api/concierge/suggestions.php`
+  - `action=generate`:
+    - Se já houver pendentes, retorna lista sem gerar.
+    - Caso contrário, seleciona produtos, prepara payload e chama webhook.
+    - Persiste sugestões em `concierge_ai_suggestions`.
+  - `action=list`: retorna pendências.
+  - `action=accept_group` e `action=reject_group`: resolvem sugestões.
+  - Atualmente não há consumo proporcional por variação nesse fluxo.
+- Helpers relevantes:
+  - `\_inc/helper/ai_tokens.php`
+    - `ai_consume_call($tid)` já implementa consumo da cota base + tokens extras.
+    - `ai_get_token_balance($tid)`.
+  - `\_inc/helper/ai_concierge.php`
+    - `ai_get_usage($tenantId)` retorna `webhook_calls`.
+    - `ai_get_active_plan($tenantId)` via plano.
+  - `\_inc/helper/ai_plan_gate.php`
+    - Usa `ai_webhook_calls` e tokens extras para gate do plano.
+
+## Gap entre atual e esperado
+1. Abertura da modal dispara geração (indevido).
+2. Botão “rejeitar/regenerar” recarrega com geração (indevido).
+3. Sem contador de tokens na modal.
+4. Sem cobrança proporcional por variação no `generate`.
+5. Sem bloqueio de botão “reanalisar” baseado em pendências.
+6. Sem loading “estilo sincronização” no fluxo de análise.
+
+## Estratégia técnica recomendada
+## 1) Ajuste do fluxo front-end
+- Alterar `abrirMiaModal('ia-campanhas')` para chamar `miaLoadSuggestions(false)`.
+- Manter `miaReanalizarCatalogo()` como único gatilho de `generate`.
+- Alterar `miaRejectSuggestionGroup()` para recarregar com `miaLoadSuggestions(false)`.
+- Alterar botão de card:
+  - de “Regenerar” para “Rejeitar”.
+  - manter ação de rejeição do grupo atual.
+- Incluir estado de loading dedicado ao “reanalisar” com delay mínimo visual.
+- Implementar atualização de estado do botão reanalisar:
+  - desabilitado quando `miaSuggestions.length > 0`.
+  - habilitado quando lista estiver vazia.
+
+## 2) Token usage proporcional no back-end
+- Em `suggestions.php` no `action=generate`:
+  - Calcular custo por produto com base em variações:
+    - custo produto = `max(1, quantidade_variacoes_ativas)`.
+    - custo total = soma dos produtos selecionados no payload.
+  - Validar disponibilidade antes da cobrança:
+    - cota base remanescente (`plan.ai_webhook_calls - usage.webhook_calls`) + tokens extras.
+  - Após sucesso da geração (webhook retornou sugestões válidas), consumir chamadas:
+    - loop em `ai_consume_call($tid)` para cada unidade de custo.
+  - Retornar `token_stats` na resposta:
+    - `used_this_generation`
+    - `used_month`
+    - `monthly_limit`
+    - `extra_tokens_balance`
+    - `base_remaining`
+    - `total_available`
+    - `is_unlimited`
+
+## 3) Exibição de tokens na modal
+- Em `concierge_grupos.php`, adicionar placeholders na barra de resumo:
+  - saldo atual.
+  - usados nesta criação.
+- Em JS, após resposta de `miaLoadSuggestions`, atualizar UI com `token_stats`.
+
+## 4) Loading UX na análise
+- Reaproveitar padrão visual de `.mia-sync-loading-box`.
+- Inserir bloco no modal `ia-campanhas` com os textos exigidos.
+- Mostrar somente durante `generate`.
+
+## Regras de negócio propostas para cobrança
+1. Cobrar apenas no clique de reanalisar.
+2. Não cobrar ao abrir modal/listar.
+3. Custo por produto conforme número de variações ativas.
+4. Se produto sem variação ativa, custo mínimo 1.
+5. Se não houver saldo/cota suficiente:
+- bloquear geração.
+- retornar mensagem clara com saldo atual e custo necessário.
+
+## Decisões de implementação (propostas)
+- `generate` só deve ocorrer por ação explícita do usuário (reanalisar).
+- Enquanto existir pendência, botão reanalisar permanece desativado (evita nova geração concorrente).
+- Lista principal pendente deve continuar sendo atualizada por JS sem reload (já existente, manter).
+
+## Pontos pendentes de pesquisa/validação antes de fechar 100%
+1. Confirmar se o total de variações deve considerar:
+- apenas `is_active = 1` (recomendado), ou
+- todas as variações cadastradas.
+2. Confirmar se cobrança deve ocorrer:
+- somente em sucesso total do webhook (recomendado),
+- ou em qualquer tentativa de análise.
+3. Confirmar nomenclatura no UI:
+- “Tokens” vs “Chamadas IA”.
+4. Verificar impacto de concorrência:
+- dois cliques rápidos em reanalisar.
+- sugestão: lock de botão + estado `isAnalyzing`.
+5. Checar se existem consumidores externos do endpoint `generate` que dependam do comportamento antigo.
+
+## Arquivos-alvo para alteração
+- `admin/Grupo/concierge_grupos.php`
+- `admin/Grupo/JS/concierge_grupos_novas_funcionalidades.js`
+- `admin/Grupo/CSS/concierge_grupos.css`
+- `api/concierge/suggestions.php`
+
+## Critérios de aceite
+1. Abrir modal não gera webhook.
+2. Reanalisar gera webhook e exibe loading completo.
+3. Token usage varia conforme quantidade de variações.
+4. Card exibe botão “Rejeitar” (não “Regenerar”).
+5. Botão reanalisar desabilita com pendências e habilita sem pendências.
+6. Contadores de tokens atualizam na modal sem reload.
+7. Faixa “Sugerido pela IA · Aguardando aprovação” atualiza dinamicamente.
+
+## Plano de testes manuais sugerido
+1. Abrir modal com sugestões pendentes:
+- não dispara geração.
+- botão reanalisar desabilitado.
+2. Aprovar/rejeitar todas:
+- faixa pendente some.
+- botão reanalisar habilita.
+3. Clicar reanalisar:
+- loading aparece.
+- novas sugestões entram.
+- tokens “usados nesta criação” > 0.
+4. Produto com 1 variação vs 5 variações:
+- conferir diferença no custo.
+5. Saldo insuficiente:
+- geração bloqueada com mensagem apropriada.

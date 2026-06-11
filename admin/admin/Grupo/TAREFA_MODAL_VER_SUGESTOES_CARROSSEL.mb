@@ -1,0 +1,114 @@
+# Especificação da Tarefa — Modal “Ver Sugestões” (Carrossel)
+## Objetivo
+Evoluir a modal de aprovação de sugestões IA em `admin/Grupo/concierge_grupos.php` para permitir visualização e edição de conteúdo por card do carrossel, com foco em clareza visual e aprovação individual.
+
+## Contexto Funcional
+Hoje a modal exibe os cards de sugestão em conjunto, sem painel lateral dedicado para os textos e sem fluxo completo de edição por elemento.
+
+O objetivo é permitir que o usuário:
+1. veja 1 card por vez (individualmente),
+2. veja os textos correspondentes ao card selecionado,
+3. edite cada bloco de texto,
+4. remova cards do carrossel (mantendo no mínimo 1),
+5. aprove o carrossel final com os dados ajustados.
+
+## Requisitos Obrigatórios
+## 1) Blocos de texto na modal “Ver Sugestões”
+Adicionar, ao lado direito do preview existente, os seguintes blocos visuais:
+1. Nome do Produto (em negrito).
+2. Texto de Boas-Vindas (em formato de balão de mensagem estilo WhatsApp).
+3. Texto do Card (em card simples).
+4. CTA (em pequeno card/botão abaixo do card simples).
+
+Cada bloco deve ser visualmente diferente (cor, borda, hierarquia e estrutura clara).
+
+## 2) Ícone de editar em cada bloco
+Cada um dos 4 blocos deve conter um pequeno ícone de editar.
+Ao clicar no ícone, abrir modal de edição do respectivo texto.
+
+Campos editáveis:
+1. Nome do produto.
+2. Texto de boas-vindas.
+3. Texto do card.
+4. CTA.
+
+## 3) Exibição individual por miniatura (1 card por vez)
+Quando houver múltiplos cards:
+1. As miniaturas devem ficar no topo da sugestão.
+2. Ao clicar em uma miniatura, exibir:
+- somente o preview daquele card selecionado,
+- e os 4 blocos de texto referentes ao mesmo card.
+3. Não exibir cards lado a lado.
+4. O usuário deve conseguir navegar card a card sem confusão.
+
+## 4) Remoção de card com trava mínima
+Adicionar ação de remover card no fluxo da modal.
+
+Regra:
+1. Pode remover cards enquanto houver mais de 1.
+2. Quando restar apenas 1 card, remoção deve ficar travada (sem botão de remoção ativo).
+
+## 5) Aprovação considerando edição e remoção
+Ao aprovar:
+1. Enviar apenas os cards que permaneceram ativos.
+2. Respeitar textos editados por card.
+3. Descartar/rejeitar cards removidos do conjunto aprovado.
+
+## Escopo Técnico
+## Frontend (UI/UX e estado)
+Arquivos principais:
+1. `admin/Grupo/JS/concierge_grupos_novas_funcionalidades.js`
+2. `admin/Grupo/CSS/concierge_grupos.css`
+3. `admin/Grupo/concierge_grupos.php` (modal auxiliar de edição dos textos)
+
+Implementar estado por grupo de sugestão contendo:
+1. cards ativos,
+2. card selecionado,
+3. textos editados por card,
+4. ids removidos.
+
+## Backend (aprovação com override)
+Arquivo principal:
+1. `api/concierge/suggestions.php`
+
+Na ação `accept_group`, suportar:
+1. `suggestion_ids` (cards aprovados),
+2. `overrides_json` (textos editados por card),
+3. `reject_ids` (cards removidos no front).
+
+Regras no backend:
+1. usar override quando enviado,
+2. fallback para payload original quando não houver override,
+3. marcar `reject_ids` como rejeitados (quando válidos e pendentes).
+
+## Fluxo Esperado do Usuário
+1. Abrir modal “Ver Sugestões”.
+2. Clicar em miniatura do card.
+3. Visualizar preview individual + painel de textos do mesmo card.
+4. Editar textos pelos ícones de lápis.
+5. Remover cards indesejados (até sobrar 1).
+6. Aprovar carrossel final.
+
+## Critérios de Aceite
+1. Os 4 blocos de texto aparecem ao lado direito do preview.
+2. Cada bloco possui ícone de editar funcional.
+3. Em carrossel com múltiplos cards, apenas 1 card é exibido por vez.
+4. Troca por miniatura atualiza preview e textos corretamente.
+5. Remoção funciona até mínimo de 1 card.
+6. Aprovação considera apenas cards restantes.
+7. Textos editados são aplicados na campanha gerada.
+8. Não há regressão no botão “Regenerar” nem no carregamento das sugestões.
+
+## Ordem Recomendada de Implementação
+1. Modelar estado dos grupos/cards no JS.
+2. Refatorar render da modal para modo individual (miniatura -> card selecionado).
+3. Criar painel lateral com os 4 blocos visuais.
+4. Adicionar modal de edição e handlers de salvar.
+5. Adicionar ação de remover card + trava de mínimo 1.
+6. Ajustar payload de aprovação com overrides e removidos.
+7. Atualizar backend `accept_group`.
+8. Validar cenários:
+- 1 card,
+- 2+ cards,
+- edição sem remoção,
+- remoção + edição + aprovação.

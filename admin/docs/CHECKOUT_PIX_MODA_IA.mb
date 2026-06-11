@@ -1,0 +1,194 @@
+# Checkout PIX Transparente — Moda IA
+**Versão:** 1.0 · **Data:** 2026-04-01 · **Módulo:** ModernPOS / Moda IA
+
+---
+
+## Visão Geral
+
+O Checkout PIX Transparente permite que a IA (via n8n) envie um link de pagamento diretamente para o cliente no WhatsApp ao fechar um pedido. O cliente acessa a página pública, visualiza o QR Code gerado dinamicamente (padrão EMV/BR Code) e faz o pagamento sem precisar acessar nenhum painel.
+
+Assim que o admin confirma o pagamento no painel de pedidos, o polling da página detecta a mudança de status e redireciona o cliente automaticamente para a página de confirmação.
+
+---
+
+## Arquitetura dos Arquivos
+
+```
+modernpos/
+├── checkout_pix.php               ← Página pública de pagamento (sem autenticação)
+├── checkout_pix_obrigado.php      ← Página pública de confirmação (pós-pagamento)
+├── _inc/
+│   ├── ai_checkout_pix_status.php ← Endpoint AJAX público (polling de status)
+│   └── ai_config_salvar.php       ← Salva as configurações de checkout
+└── admin/
+    └── concierge_config.php       ← Aba "Checkout" na tela de configurações
+```
+
+---
+
+## Fluxo Completo
+
+1. **IA fecha pedido** → n8n chama `criar_pedido` via webhook
+2. **ModernPOS** insere registro em `ai_orders` com `payment_method = 'pix'` e `status = 'pendente'`
+3. **Link gerado:** `https://{dominio}/modernpos/checkout_pix.php?order_id={ID}`
+4. **IA envia o link** para o cliente via WhatsApp
+5. **Cliente abre a página** → QR Code EMV gerado on-the-fly com a chave Pix configurada
+6. **Polling automático** a cada 5s chama `_inc/ai_checkout_pix_status.php`
+7. **Admin confirma pagamento** no painel → altera `status` para `pago` (ou `separando`)
+8. **Polling detecta** mudança → redireciona para `checkout_pix_obrigado.php?order_id={ID}`
+
+---
+
+## Tabelas Utilizadas
+
+### `ai_orders`
+| Campo           | Tipo         | Descrição                                              |
+|-----------------|--------------|--------------------------------------------------------|
+| `id`            | INT          | Identificador do pedido                                |
+| `tenant_id`     | INT          | Loja (tenant)                                          |
+| `whatsapp_phone`| VARCHAR      | Telefone do cliente                                    |
+| `customer_name` | VARCHAR      | Nome do cliente                                        |
+| `status`        | ENUM         | `pendente`, `pago`, `separando`, `rota`, `entregue`, `cancelado` |
+| `total_amount`  | DECIMAL      | Valor total                                            |
+| `payment_method`| VARCHAR      | `pix` para ativar o checkout                           |
+
+### `ai_order_items`
+| Campo       | Tipo    | Descrição              |
+|-------------|---------|------------------------|
+| `order_id`  | INT     | FK para `ai_orders.id` |
+| `model_name`| VARCHAR | Nome do produto        |
+| `color`     | VARCHAR | Cor da variante        |
+| `size`      | VARCHAR | Tamanho da variante    |
+| `qty`       | INT     | Quantidade             |
+| `unit_price`| DECIMAL | Preço unitário         |
+| `subtotal`  | DECIMAL | Subtotal do item       |
+
+### `ai_settings`
+Configurações de checkout lidas via `key_name` / `value`:
+
+| Chave                        | Padrão                                              | Descrição                                   |
+|------------------------------|-----------------------------------------------------|---------------------------------------------|
+| `ai_checkout_nome_empresa`   | fallback: `ai_name`                                 | Nome exibido no cabeçalho                   |
+| `ai_checkout_titular`        | fallback: `ai_checkout_nome_empresa`                | Nome do favorecido no QR Code (campo EMV 59)|
+| `ai_checkout_cidade`         | `BRASILIA`                                          | Cidade no payload EMV (campo 60, máx 15ch)  |
+| `ai_checkout_whatsapp`       | `5511999999999`                                     | Número para botão "Enviar comprovante"       |
+| `ai_checkout_minutos`        | `10`                                                | Minutos do timer de expiração do QR          |
+| `ai_checkout_cor_acento`     | `#22c55e`                                           | Cor hex dos botões e badges                  |
+| `ai_checkout_msg_pago`       | `Pagamento confirmado! Obrigado...`                 | Mensagem na página de confirmação            |
+| `ai_pix_keys_json`           | —                                                   | JSON com array de chaves Pix `[{type,key}]` |
+
+---
+
+## Endpoints
+
+### `checkout_pix.php?order_id={ID}`
+- **Método:** GET
+- **Autenticação:** nenhuma
+- **Comportamento:**
+  - Busca pedido em `ai_orders`
+  - Valida `payment_method = 'pix'`
+  - Se status já é `pago/separando/rota/entregue` → redireciona para obrigado
+  - Se `cancelado` → exibe mensagem de cancelamento
+  - Gera QR Code EMV (CRC16-CCITT) via biblioteca `endroid/qr-code`
+  - Exibe timer + polling AJAX
+
+### `checkout_pix_obrigado.php?order_id={ID}`
+- **Método:** GET
+- **Autenticação:** nenhuma
+- **Comportamento:** Exibe resumo do pedido + mensagem personalizada + botão WhatsApp
+
+### `_inc/ai_checkout_pix_status.php`
+- **Método:** POST
+- **Parâmetros:** `order_id` (int)
+- **Resposta JSON:**
+  ```json
+  { "success": true, "status": "pago" }
+  ```
+- **Segurança:** sem autenticação — segurança por obscuridade (ID numérico opaco). Não expõe dados sensíveis.
+
+---
+
+## Geração do QR Code EMV (BR Code)
+
+O payload segue o padrão **EMV QRCPS-MPM** exigido pelo Banco Central do Brasil:
+
+```
+00 — Payload Format Indicator: 01
+01 — Point of Initiation: 11 (estático)
+26 — Merchant Account Information:
+     00 — GUI: br.gov.bcb.pix
+     01 — Chave PIX
+52 — Merchant Category Code: 0000
+53 — Transaction Currency: 986 (BRL)
+54 — Transaction Amount: {valor}
+58 — Country Code: BR
+59 — Merchant Name: {titular, máx 25ch}
+60 — Merchant City: {cidade, máx 15ch}
+62 — Additional Data:
+     05 — Reference Label: {order_id, máx 25ch}
+63 — CRC16: {checksum CCITT}
+```
+
+Funções PHP em `checkout_pix.php`: `ckpix_buildEmvPayload()`, `ckpix_emvField()`, `ckpix_crc16()`.
+
+A imagem do QR é gerada via `endroid/qr-code` (biblioteca do SaaS em `saas/PIX/vendor/autoload.php`). Se a biblioteca não estiver disponível, o código "copia e cola" ainda é exibido.
+
+---
+
+## Configuração (Aba Checkout no Painel)
+
+Acesse: **ModernPOS → Moda IA → Configurações → aba Checkout**
+
+Campos disponíveis:
+- **Nome da Empresa** — exibido no cabeçalho da página
+- **Titular do Pix** — favorecido no app do banco (campo EMV 59)
+- **Cidade (EMV)** — campo obrigatório no padrão, máx. 15 caracteres
+- **WhatsApp do Suporte** — número para envio do comprovante (DDI+DDD, só dígitos)
+- **Minutos para expirar QR** — timer visual (5–60 min, padrão 10)
+- **Cor de Destaque** — hex color picker + campo texto (padrão `#22c55e`)
+- **Mensagem pós-pagamento** — texto da página de confirmação
+
+As configurações são salvas em `ai_settings` via `_inc/ai_config_salvar.php` com autenticação de sessão.
+
+---
+
+## Dependências
+
+| Dependência               | Localização                        | Obrigatória |
+|---------------------------|-------------------------------------|-------------|
+| `config.php` (PDO/MySQL)  | `modernpos/config.php`             | Sim         |
+| `endroid/qr-code`         | `saas/PIX/vendor/autoload.php`     | Não*        |
+| `ai_settings` (MySQL)     | Tabela do banco de dados           | Sim         |
+| `ai_orders`               | Tabela do banco de dados           | Sim         |
+| `ai_order_items`          | Tabela do banco de dados           | Sim         |
+| `/saas/landing/css/checkout.css` | CSS compartilhado com landing pages | Sim |
+
+*Sem a biblioteca, o QR Code não é gerado mas o código "copia e cola" permanece funcional.
+
+---
+
+## Segurança
+
+- As páginas de checkout **não exigem autenticação** (acesso público por link)
+- O endpoint de polling não expõe dados além do `status` do pedido
+- Nenhum dado financeiro (chaves, tokens, CPF) é retornado pelo endpoint público
+- `htmlspecialchars()` aplicado em todos os outputs PHP
+- Validações de tipo (`(int)`, `preg_match`) em todos os inputs de entrada
+
+---
+
+## Limitações Conhecidas
+
+- O QR Code é **estático** (sem expiração no BC) — a expiração é apenas visual (timer JS)
+- Não há confirmação automática via webhook do banco — depende de ação manual do admin
+- Sem geração de cobrança via gateway (Asaas/MP) nesta versão — fluxo 100% manual
+- A biblioteca QR deve estar instalada via Composer no path do SaaS
+
+---
+
+## Roadmap / Próximos Passos
+
+- Integração com Asaas API para geração de cobrança Pix com QR dinâmico e webhook de confirmação automática
+- Integração com Mercado Pago (Pix via API)
+- Envio automático de notificação WhatsApp ao confirmar pagamento (via Evolution API)
+- Hash de segurança no link (token HMAC por pedido)

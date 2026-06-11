@@ -1815,7 +1815,7 @@ function miaUpdateNextScheduled(items){
   const scheduled = (items || [])
     .filter(function(c){ 
       const s = String(c.status || '');
-      return (s === 'scheduled' || s === 'pending' || s === 'sending') && !!c.scheduled_at; 
+      return (s === 'scheduled' || s === 'pending' || s === 'queued' || s === 'sending') && !!c.scheduled_at; 
     })
     .sort(function(a,b){ return new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime(); });
 
@@ -2292,7 +2292,11 @@ function miaTriggerLazyCron(){
           miaLoadStatusHistory();
         }
       })
-      .catch(() => {})
+      .catch(err => {
+        if (window.console && typeof window.console.error === 'function') {
+          console.error('[MIA] Falha no lazy cron de dispatch:', err);
+        }
+      })
       .finally(() => {
         miaIsDispatching = false;
       });

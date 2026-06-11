@@ -226,12 +226,30 @@ try {
                 exit;
             }
 
-            $ok = ai_dispatch_concierge_campaign_now($tenantId, $campaignId, (int)(function_exists('user_id') ? user_id() : 0));
-            if (!$ok) {
-                throw new Exception('Não foi possível iniciar o disparo.');
+            // Try to dispatch
+            $dispatchException = '';
+            try {
+                $userId = (int)(function_exists('user_id') ? user_id() : 0);
+                $ok = ai_dispatch_concierge_campaign_now($tenantId, $campaignId, $userId);
+            } catch (Throwable $e) {
+                $ok = false;
+                $dispatchException = trim((string)$e->getMessage());
             }
 
             $campaign = ai_get_concierge_campaign($tenantId, $campaignId);
+            if (!$ok) {
+                $reason = '';
+                if (is_array($campaign)) {
+                    $reason = trim((string)($campaign['last_error'] ?? ''));
+                    if ($reason === '' && strtolower(trim((string)($campaign['status'] ?? ''))) === 'scheduled') {
+                        $reason = 'Não foi possível iniciar o disparo imediato agora. Já existe um envio em andamento para este tenant.';
+                    }
+                }
+                if ($reason === '' && $dispatchException !== '') {
+                    $reason = $dispatchException;
+                }
+                throw new Exception($reason !== '' ? $reason : 'Não foi possível iniciar o disparo imediato.');
+            }
             if (is_array($campaign)) {
                 $campaign = concierge_campaigns_normalize_campaign($campaign);
             }

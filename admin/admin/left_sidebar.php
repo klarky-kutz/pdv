@@ -1202,7 +1202,7 @@
             </a>
           </li>
           <li class="<?php echo current_nav()=='concierge_grupos'?'active':null;?>">
-            <a href="../Grupo/concierge_grupos.php" style="color:#9f6ae3;padding:8px 12px 8px 20px;">
+            <a href="Grupo/concierge_grupos.php" style="color:#9f6ae3;padding:8px 12px 8px 20px;">
               <i class="fa fa-bullhorn" style="color:#a78bfa;width:16px;text-align:center;font-size:12px;margin-right:6px;"></i>
               <span>Grupos IA</span>
             </a>

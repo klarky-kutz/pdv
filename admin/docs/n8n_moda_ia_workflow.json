@@ -1,0 +1,227 @@
+{
+  "name": "Moda IA — Concierge WhatsApp",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "moda-ia",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-webhook-trigger",
+      "name": "Webhook ModernPOS",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "moda-ia-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ── Extrair e validar payload do ModernPOS ─────────────────────────────────\nconst body = $input.first().json.body ?? $input.first().json;\n\nconst lojaId       = body.loja_id ?? 0;\nconst instanceName = body.instance_name ?? '';\nconst event        = body.event ?? '';\nconst receivedAt   = body.received_at ?? new Date().toISOString();\n\n// Mensagem do cliente\nconst inbound      = body.inbound ?? {};\nconst remoteJid    = inbound.remoteJid ?? '';\nconst pushName     = inbound.pushName  ?? 'Cliente';\nconst messageType  = inbound.messageType ?? 'text';\nconst messageText  = inbound.messageText ?? '';\n\n// Contexto fornecido pelo ModernPOS\nconst consulta       = body.consulta ?? {};\nconst customerMemory = consulta.ia_customer_memory ?? null;\nconst catalogVariants= consulta.ia_catalog_variants ?? [];\nconst atendimento    = consulta.ia_status_atendimento ?? { status: 'Ativo' };\n\n// Construir contexto de catálogo para o prompt\nlet catalogContext = '';\nif (catalogVariants.length > 0) {\n  catalogContext = '\\n\\n📦 PRODUTOS DISPONÍVEIS NO ESTOQUE (relevantes à mensagem):\\n';\n  catalogVariants.forEach((v, i) => {\n    catalogContext += `${i + 1}. ${v.product_name} — Cor: ${v.color ?? '?'}, Tam: ${v.size ?? '?'}, R$ ${Number(v.price).toFixed(2)}, Estoque: ${v.stock_qty} un.\\n`;\n  });\n} else {\n  catalogContext = '\\n\\n⚠️ Nenhum produto encontrado para a busca atual. Sugira alternativas disponíveis ou peça mais detalhes.';\n}\n\n// Construir histórico / memória do cliente\nlet customerContext = '';\nif (customerMemory) {\n  const prefs = customerMemory.preferences ?? {};\n  customerContext = `\\n\\n👤 PERFIL DA CLIENTE:\\n`;\n  customerContext += `- Nome: ${customerMemory.pushName ?? pushName}\\n`;\n  if (customerMemory.usual_size) customerContext += `- Tamanho habitual: ${customerMemory.usual_size}\\n`;\n  if (prefs.cores?.length)    customerContext += `- Cores favoritas: ${prefs.cores.join(', ')}\\n`;\n  if (prefs.estilos?.length)  customerContext += `- Estilos favoritos: ${prefs.estilos.join(', ')}\\n`;\n  customerContext += `- Total de interações: ${customerMemory.total_interactions ?? 0}\\n`;\n}\n\nreturn [{\n  json: {\n    lojaId, instanceName, event, receivedAt,\n    remoteJid, pushName, messageType, messageText,\n    catalogContext, customerContext,\n    catalogVariants, customerMemory, atendimento,\n    rawBody: body\n  }\n}];"
+      },
+      "id": "node-extract-context",
+      "name": "Extrair Contexto",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "cond-has-message",
+              "leftValue": "={{ $json.messageText }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEmpty" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "node-if-has-message",
+      "name": "Tem Mensagem?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"replyType\": \"none\", \"text\": \"\" }",
+        "options": { "responseCode": 200 }
+      },
+      "id": "node-respond-empty",
+      "name": "Resposta Vazia",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 480]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ── Montar mensagens para a OpenAI ────────────────────────────────────────\nconst d = $input.first().json;\n\nconst systemPrompt = `Você é a assistente virtual da loja de moda. Seu nome é Sofia.\nVocê é especialista em moda feminina e conhece cada peça do catálogo.\nSeja calorosa, consultiva e use emojis com moderação.\n\nREGRAS IMPORTANTES:\n- Nunca invente preços ou disponibilidade — use apenas os dados do estoque fornecidos.\n- Se uma peça estiver esgotada, sugira imediatamente uma alternativa similar.\n- Lembre das preferências da cliente e use-as nas sugestões.\n- Ao fechar pedido, confirme os itens antes de gerar qualquer link.\n- Máximo de 3 produtos por mensagem.\n- Use linguagem natural e feminina, como uma amiga consultiva.\n- Para pedidos, instrua a cliente a confirmar respondendo com OK.\n${d.customerContext}${d.catalogContext}`;\n\nreturn [{\n  json: {\n    ...d,\n    messages: [\n      { role: \"system\",  content: systemPrompt },\n      { role: \"user\",    content: d.messageText }\n    ]\n  }\n}];"
+      },
+      "id": "node-build-prompt",
+      "name": "Montar Prompt IA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer {{ $credentials.openAiApiKey }}" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "model",       "value": "gpt-4o-mini" },
+            { "name": "messages",    "value": "={{ $json.messages }}" },
+            { "name": "max_tokens",  "value": "600" },
+            { "name": "temperature", "value": "0.7" }
+          ]
+        },
+        "options": { "timeout": 30000 }
+      },
+      "id": "node-openai-call",
+      "name": "OpenAI GPT-4o-mini",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ── Extrair resposta da OpenAI e formatar para o ModernPOS ─────────────────\nconst d        = $input.first().json;\nconst aiResult = d.choices?.[0]?.message?.content ?? '';\nconst text     = aiResult.trim();\n\n// Detectar se a resposta inclui uma imagem (formato especial: [IMG:url])\nconst imgMatch = text.match(/\\[IMG:(https?:\\/\\/[^\\]]+)\\]/);\n\nif (imgMatch) {\n  const mediaUrl = imgMatch[1];\n  const caption  = text.replace(imgMatch[0], '').trim();\n  return [{\n    json: {\n      replyType:  'media',\n      mediatype:  'image',\n      mimetype:   'image/jpeg',\n      media:      mediaUrl,\n      caption:    caption || text,\n      fileName:   'produto.jpg',\n      _debug: { lojaId: d.lojaId, remoteJid: d.remoteJid, aiRaw: text }\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    replyType: 'text',\n    text:      text,\n    _debug: { lojaId: d.lojaId, remoteJid: d.remoteJid, tokensUsed: d.usage?.total_tokens ?? 0 }\n  }\n}];"
+      },
+      "id": "node-format-reply",
+      "name": "Formatar Resposta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [{ "name": "Content-Type", "value": "application/json" }]
+          }
+        }
+      },
+      "id": "node-respond-ai",
+      "name": "Resposta IA",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"replyType\": \"text\", \"text\": \"Desculpe, tive uma dificuldade técnica. Pode repetir sua mensagem? 🙏\" }",
+        "options": { "responseCode": 200 }
+      },
+      "id": "node-respond-error",
+      "name": "Resposta de Erro",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1340, 480]
+    }
+  ],
+  "connections": {
+    "Webhook ModernPOS": {
+      "main": [
+        [{ "node": "Extrair Contexto", "type": "main", "index": 0 }]
+      ]
+    },
+    "Extrair Contexto": {
+      "main": [
+        [{ "node": "Tem Mensagem?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Tem Mensagem?": {
+      "main": [
+        [{ "node": "Montar Prompt IA",  "type": "main", "index": 0 }],
+        [{ "node": "Resposta Vazia",    "type": "main", "index": 0 }]
+      ]
+    },
+    "Montar Prompt IA": {
+      "main": [
+        [{ "node": "OpenAI GPT-4o-mini", "type": "main", "index": 0 }]
+      ]
+    },
+    "OpenAI GPT-4o-mini": {
+      "main": [
+        [{ "node": "Formatar Resposta", "type": "main", "index": 0 }],
+        [{ "node": "Resposta de Erro",  "type": "main", "index": 0 }]
+      ]
+    },
+    "Formatar Resposta": {
+      "main": [
+        [{ "node": "Resposta IA", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "meta": {
+    "instanceId": "moda-ia-modernpos",
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {},
+  "versionId": "1.0.0",
+  "tags": ["moda-ia", "whatsapp", "concierge", "evolution-api"],
+  "_comment": {
+    "description": "Fluxo Moda IA — Concierge WhatsApp (ModernPOS + Evolution API v2.3 + n8n)",
+    "how_to_import": "Em n8n: Workflows > Import from file > selecionar este JSON",
+    "credentials_needed": ["OpenAI API Key (HTTP Header Auth: Authorization = Bearer <key>)"],
+    "webhook_url": "Configure em ModernPOS > Moda IA > Configurações > WhatsApp > Webhook n8n",
+    "payload_received_from_modernpos": {
+      "loja_id": "int",
+      "instance_name": "string",
+      "event": "MESSAGES_UPSERT",
+      "inbound": {
+        "remoteJid": "5511999999999@s.whatsapp.net",
+        "pushName": "Nome do Cliente",
+        "messageType": "text",
+        "messageText": "Texto da mensagem"
+      },
+      "consulta": {
+        "ia_customer_memory": "object|null",
+        "ia_catalog_variants": "array",
+        "ia_status_atendimento": "object"
+      }
+    },
+    "response_expected_by_modernpos": {
+      "replyType": "text | media | none",
+      "text": "Texto da resposta (replyType=text)",
+      "media": "URL da imagem (replyType=media)",
+      "mediatype": "image | video | audio | document",
+      "mimetype": "image/jpeg",
+      "caption": "Legenda da mídia",
+      "fileName": "nome-do-arquivo.jpg"
+    },
+    "optional_modernpos_apis": {
+      "buscar_produto":       "POST /api/concierge/webhook.php?action=buscar_produto&loja_id=X",
+      "perfil_cliente":       "POST /api/concierge/webhook.php?action=perfil_cliente&loja_id=X",
+      "criar_pedido":         "POST /api/concierge/webhook.php?action=criar_pedido&loja_id=X",
+      "confirmar_pagamento":  "POST /api/concierge/webhook.php?action=confirmar_pagamento&loja_id=X",
+      "header_required":      "X-Concierge-Token: <token_da_loja>"
+    }
+  }
+}

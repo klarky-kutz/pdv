@@ -1,0 +1,375 @@
+## ModernPOS Briefing — Módulo Moda IA
+## Arquivo: MODAIA_ROADMAP.mb  |  Versão: 1.1  |  Data: 2026-03-29
+## Formato: ModernPOS Briefing (.mb) — documentação técnica + roadmap de produto
+##
+## ÍNDICE
+##   1. Visão geral do módulo
+##   2. Arquitetura e fluxo de dados
+##   3. Endpoints da Evolution API v2.3 utilizados
+##   4. Endpoints do ModernPOS (n8n chama → ModernPOS)
+##   5. Tabelas do banco de dados
+##   6. Configurações salvas em ai_settings
+##   7. Mapa de nós n8n
+##   8. Checklist de configuração (passo a passo)
+##   9. Roadmap por fases
+##   10. Notas técnicas e convenções
+## ─────────────────────────────────────────────────────────────────────────────
+
+# 1. VISÃO GERAL DO MÓDULO
+# ─────────────────────────────────────────────────────────────────────────────
+# Moda IA é o módulo de atendimento automático via WhatsApp para lojas de moda
+# no ModernPOS (multi-tenant SaaS). A IA atende clientes, apresenta o catálogo,
+# gera pedidos e confirma pagamentos sem intervenção humana.
+#
+# Stack tecnológica:
+#   - Backend:  PHP 8.x (ModernPOS + helpers ai_*)
+#   - WhatsApp: Evolution API v2.3 (self-hosted, protocolo Baileys)
+#   - Orquestração: n8n (self-hosted ou cloud)
+#   - IA:        OpenAI GPT-4o-mini (via HTTP Request no n8n)
+#   - BD:        MySQL 8.x / MariaDB 10.6+
+
+# 2. ARQUITETURA E FLUXO DE DADOS
+# ─────────────────────────────────────────────────────────────────────────────
+#
+#  Cliente WhatsApp
+#       │
+#       ▼ mensagem
+#  Evolution API v2.3 (self-hosted)
+#       │
+#       │  POST /api/concierge/evolution_webhook.php?loja_id=X
+#       │  Header: X-Concierge-Token: <token_da_loja>
+#       ▼
+#  ModernPOS — evolution_webhook.php
+#       │  1. Valida token (ai_webhook_token da tabela stores)
+#       │  2. Verifica plano (ai_check_plan_gate)
+#       │  3. Verifica atendimento manual (ai_status_atendimento)
+#       │  4. Busca memória do cliente (ai_chat_profiles)
+#       │  5. Busca variantes relevantes (ai_catalogo_variants LIKE '%query%')
+#       │  6. Monta payload normalizado
+#       ▼
+#  n8n Webhook Trigger
+#       │  Processa com IA (GPT-4o-mini)
+#       │  Retorna JSON: { replyType, text } ou { replyType, media, caption }
+#       ▼
+#  ModernPOS — evolution_webhook.php (retorno do n8n)
+#       │  Se replyType=text   → POST /message/sendText/{instance}
+#       │  Se replyType=media  → POST /message/sendMedia/{instance}
+#       ▼
+#  Evolution API v2.3 → entrega mensagem ao cliente WhatsApp
+#
+#  (Paralelo) n8n → ModernPOS API (ações opcionais)
+#       POST /api/concierge/webhook.php?action=buscar_produto&loja_id=X
+#       POST /api/concierge/webhook.php?action=perfil_cliente&loja_id=X
+#       POST /api/concierge/webhook.php?action=criar_pedido&loja_id=X
+#       POST /api/concierge/webhook.php?action=confirmar_pagamento&loja_id=X
+#       Header: X-Concierge-Token: <token_da_loja>
+
+# 3. ENDPOINTS DA EVOLUTION API v2.3 UTILIZADOS
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# Todos os endpoints usam header:  apikey: <GLOBAL_TOKEN>
+# Base URL configurável por loja:  ai_evolution_base_url
+#
+# GERENCIAMENTO DE INSTÂNCIA
+#   POST   /instance/create
+#     Body: { instanceName, qrcode:true, integration:"WHATSAPP-BAILEYS",
+#              webhook:{url, byEvents, base64, headers, events:[...]} }
+#     Resp: { instance:{instanceName, apikey, status}, qrcode:{base64} }
+#
+#   GET    /instance/connect/{instanceName}
+#     Resp: { base64:"data:image/png;base64,..." }   ← QR Code
+#
+#   GET    /instance/connectionState/{instanceName}
+#     Resp: { instance:{state:"open"|"close"|"connecting"} }
+#
+#   DELETE /instance/delete/{instanceName}
+#     Resp: { status:"DELETE" }
+#
+#   GET    /instance/fetchInstances
+#     Resp: [ {instance:{instanceName, status, ...}} ]
+#
+# WEBHOOK
+#   POST   /webhook/set/{instanceName}
+#     Body: { enabled:true, url, webhookByEvents:false, webhookBase64:true,
+#             events:["QRCODE_UPDATED","CONNECTION_UPDATE","MESSAGES_UPSERT",
+#                     "MESSAGES_UPDATE","MESSAGES_DELETE"] }
+#
+#   GET    /webhook/find/{instanceName}
+#     Resp: { enabled, url, events:[...] }
+#
+# ENVIO DE MENSAGENS (outbound — chamado pelo evolution_webhook.php)
+#   POST   /message/sendText/{instanceName}
+#     Body: { number:"5511999999999", text:"Olá!" }
+#
+#   POST   /message/sendMedia/{instanceName}
+#     Body: { number, mediatype:"image", mimetype:"image/jpeg",
+#             caption:"legenda", media:" `https://url/foto.jpg` ", fileName:"p.jpg" }
+
+# 4. ENDPOINTS DO MODERNPOS (n8n chama → ModernPOS)
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# Base:   {ROOT_URL}/api/concierge/webhook.php
+# Header: X-Concierge-Token: {ai_webhook_token da tabela stores}
+# Auth:   hash_equals(token_da_loja, token_recebido)
+#
+# action=buscar_produto
+#   POST { loja_id, query, limit? }
+#   Resp: { products:[{id,name,color,size,price,stock_qty,photo_webp}] }
+#
+# action=perfil_cliente
+#   POST { loja_id, phone }
+#   Resp: { profile:{id,name,usual_size,preferences,total_interactions} }
+#
+# action=criar_pedido
+#   POST { loja_id, phone, items:[{variant_id,qty}], customer_name? }
+#   Resp: { order:{id,total_amount,payment_link,status} }
+#
+# action=confirmar_pagamento
+#   POST { loja_id, order_id, payment_ref }
+#   Resp: { order:{id,status:"pago",paid_at} }
+#
+# AJAX interno (admin, requer sessão logada):
+# _inc/ai_evolution_actions.php
+#   action=get_config       → retorna config da conexão Evolution
+#   action=create_instance  → cria/recria instância na Evolution
+#   action=get_status       → consulta connectionState + QR Code
+#   action=refresh_qrcode   → força novo QR Code via /instance/connect
+#   action=update_webhook   → reaplica configuração de webhook
+#   action=delete_instance  → DELETE /instance/delete/{name}
+#   action=get_logs         → ai_evolution_get_recent_logs(tid, limit)
+
+# 5. TABELAS DO BANCO DE DADOS
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# ai_catalogo_models          Modelos do catálogo (produto-raiz)
+#   id, tenant_id, name, description, tags, cover_webp,
+#   is_active, demand_count, created_at, updated_at
+#
+# ai_catalogo_variants        Variantes (cor + tamanho + preço)
+#   id, model_id, tenant_id, color, color_hex, size,
+#   price, stock_qty, photo_webp, sku, is_active, created_at
+#
+# ai_chat_profiles            Memória de perfil WhatsApp (long-term)
+#   id, tenant_id, whatsapp_phone, name, usual_size,
+#   preferences_json (JSON), last_interaction, total_interactions,
+#   is_blocked, created_at, updated_at
+#
+# ai_orders                   Pedidos via WhatsApp
+#   id, tenant_id, profile_id, whatsapp_phone, customer_name,
+#   status (pendente|pago|separando|rota|entregue|cancelado),
+#   total_amount, payment_method, payment_link, payment_ref,
+#   uber_proof_path, notes, moved_by_ia, paid_at, delivered_at,
+#   created_at, updated_at
+#
+# ai_order_items              Itens do pedido (snapshot de preço)
+#   id, order_id, variant_id, model_name, color, size,
+#   qty, unit_price, subtotal
+#
+# ai_usage_log                Contador de uso por loja/mês (controle SaaS)
+#   id, tenant_id, year_month (CHAR 7), webhook_calls,
+#   storage_mb_used, updated_at
+#
+# ai_evolution_webhook_logs   Logs de eventos recebidos da Evolution
+#   id, tenant_id, instance_name, event_name, remote_jid,
+#   push_name, message_type,
+#   status (Sucesso|Erro|Ignorado), error_message,
+#   payload_json, response_json, created_at
+#
+# ai_status_atendimento       Controle Ativo/Manual por contato
+#   id, tenant_id, remote_jid,
+#   status (Ativo|Manual), takeover_by_user_id, updated_at
+#
+# stores (alterada)           + ai_webhook_token VARCHAR(64)
+# plans  (alterada)           + ai_concierge_enabled, ai_webhook_calls,
+#                               ai_catalog_limit
+#
+# VIEWS DE COMPATIBILIDADE (n8n pode consultar diretamente via MySQL node):
+#   ia_customer_memory    ← SELECT de ai_chat_profiles
+#   ia_catalog_variants   ← JOIN ai_catalogo_variants + ai_catalogo_models
+#   ia_status_atendimento ← SELECT de ai_status_atendimento
+
+# 6. CONFIGURAÇÕES EM ai_settings (chave→valor por tenant_id)
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# Identidade da IA
+#   ai_enabled              1 | 0
+#   ai_name                 "Sofia"
+#   ai_greeting             "Olá, [nome]! 😊"
+#   ai_offline_msg          texto de boas-vindas (≤600 chars)
+#   ai_personality          system prompt da IA (≤2000 chars)
+#
+# Conexão WhatsApp / Evolution
+#   ai_whatsapp_provider    "Evolution API (self-hosted)"
+#   ai_evolution_base_url   "https://evo.dominio.com"     (sem barra)
+#   ai_evolution_instance_name  "moda-loja-1"
+#   ai_evolution_webhook_url    URL de entrada (auto-gerada)
+#   ai_evolution_status         "Conectado" | "Aguardando leitura" | "Desconectado"
+#   ai_evolution_last_qrcode    base64 do último QR Code
+#   ai_evolution_global_token_enc   token global criptografado (Encryption class)
+#   ai_evolution_instance_token_enc token de instância criptografado
+#   ai_webhook_target_url       URL do webhook n8n (destino)
+#   ai_instance_url             alias de ai_evolution_base_url
+#   ai_instance_name            alias de ai_evolution_instance_name
+#   ai_api_key                  exibe token mascarado (não secret puro)
+#   ai_whatsapp_number          "+55 11 99999-9999"
+#
+# Comportamento
+#   ai_response_delay       segundos de delay (0–10)
+#   ai_max_products         máx produtos por mensagem (1–10)
+#   ai_max_photos           máx fotos por produto (1–5)
+#   ai_send_high_res        1 | 0
+#   ai_remember_history     1 | 0
+#   ai_suggest_complementary 1 | 0
+
+# 7. MAPA DE NÓS N8N (docs/n8n_moda_ia_workflow.json)
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# ID                    Tipo                      Função
+# ──────────────────    ─────────────────────     ────────────────────────────
+# node-webhook-trigger  n8n-nodes-base.webhook    Recebe POST do ModernPOS
+# node-extract-context  n8n-nodes-base.code       Extrai mensagem + contexto
+# node-if-has-message   n8n-nodes-base.if         Ignora eventos sem texto
+# node-respond-empty    n8n-nodes-base.respondToWebhook  Retorna 200 vazio
+# node-build-prompt     n8n-nodes-base.code       Monta system prompt + messages[]
+# node-openai-call      n8n-nodes-base.httpRequest       POST OpenAI /chat/completions
+# node-format-reply     n8n-nodes-base.code       Extrai texto; detecta [IMG:url]
+# node-respond-ai       n8n-nodes-base.respondToWebhook  Retorna {replyType,text}
+# node-respond-error    n8n-nodes-base.respondToWebhook  Fallback de erro amigável
+#
+# Credencial necessária:
+#   HTTP Header Auth → Authorization: Bearer <OPENAI_API_KEY>
+#   (atribuir ao node "OpenAI GPT-4o-mini")
+#
+# Formato de resposta esperado pelo ModernPOS:
+#   text:   { "replyType": "text",  "text": "Mensagem da IA" }
+#   media:  { "replyType": "media", "mediatype": "image",
+#             "mimetype": "image/jpeg", "media": "https://url",
+#             "caption": "Legenda", "fileName": "foto.jpg" }
+
+# 8. CHECKLIST DE CONFIGURAÇÃO (passo a passo)
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# INFRAESTRUTURA
+# [ ] Servidor Evolution API v2.3 instalado e acessível via HTTPS
+# [ ] Variável AUTHENTICATION_API_KEY definida no .env da Evolution
+# [ ] n8n instalado (self-hosted ou cloud) com HTTPS público
+# [ ] ModernPOS acessível via HTTPS (necessário para webhooks)
+#
+# BANCO DE DADOS — rodar UMA VEZ
+# [ ] migrations/2026_03_28_create_ai_concierge_tables.sql
+# [ ] migrations/2026_03_29_evolution_whatsapp_bridge.sql
+#
+# CONFIGURAÇÃO NO MODERNPOS (admin > Moda IA > Configurações)
+# [ ] Aba Geral: nome da IA, saudação, mensagem de boas-vindas
+# [ ] Aba WhatsApp: provedor = "Evolution API (self-hosted)", números
+# [ ] Aba Conexão:
+#     [ ] URL Base da Evolution API
+#     [ ] Nome da Instância (ex: moda-feminina-loja)
+#     [ ] Token Global (AUTHENTICATION_API_KEY da Evolution)
+#     [ ] Webhook n8n (URL do workflow importado)
+#     [ ] Clicar em "Conectar / Criar Instância"
+#     [ ] Escanear QR Code com o WhatsApp Business
+#     [ ] Aguardar status "Conectado"
+# [ ] Aba Respostas: revisar system prompt da IA
+# [ ] Aba Pix: configurar chaves Pix e gateway
+#
+# N8N
+# [ ] Importar docs/n8n_moda_ia_workflow.json
+# [ ] Configurar credencial HTTP Header Auth com OpenAI API Key
+# [ ] Ativar o workflow
+# [ ] Copiar URL do Webhook Trigger e colar na aba Conexão (campo n8n)
+# [ ] Testar via "Testar Envio" ou enviar mensagem real pelo WhatsApp
+
+# 9. ROADMAP POR FASES
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# FASE 0 — Infraestrutura base                              STATUS: CONCLUÍDA
+#   ✅ Tabelas do banco (concierge + evolution bridge)
+#   ✅ Helper ai_evolution.php (HTTP, crypto, logs, status)
+#   ✅ AJAX ai_evolution_actions.php (7 actions)
+#   ✅ Webhook de entrada evolution_webhook.php
+#   ✅ Webhook de saída webhook.php (4 actions: buscar/criar/confirmar/perfil)
+#   ✅ Tela de configurações (concierge_config.php) — abas Geral/WhatsApp/etc.
+#
+# FASE 1 — Conexão interativa + n8n                         STATUS: CONCLUÍDA
+#   ✅ Aba "Conexão" em concierge_config.php
+#       ✅ Status hero card (Conectado/Aguardando/Desconectado)
+#       ✅ QR Code widget com countdown
+#       ✅ Formulário de credenciais (base_url, instance_name, token, phone)
+#       ✅ Botões: Conectar, Status, Atualizar Webhook, Desconectar
+#       ✅ Tabela de logs recentes (ai_evolution_webhook_logs)
+#       ✅ Auto-poll a cada 10s quando aguardando QR
+#   ✅ n8n workflow JSON (8 nós, contexto de catálogo + perfil + OpenAI)
+#   ✅ Documentação técnica MODAIA_ROADMAP.mb
+#
+# FASE 2 — Catálogo IA e pedidos                            STATUS: EM ANDAMENTO
+#   [ ] Tela admin/concierge_catalogo.php — gestão de modelos + variantes
+#   [ ] Upload WebP de fotos via FileManager integrado
+#   [ ] admin/concierge_pedidos.php — visualização + handoff manual
+#   [ ] Takeover manual (ai_status_atendimento = Manual)
+#   [ ] Notificação push/WhatsApp para lojista em novo pedido
+#
+# FASE 3 — Pagamentos e automação avançada                  STATUS: PLANEJADA
+#   [ ] Integração Mercado Pago (QR Code dinâmico via API)
+#   [ ] Integração Asaas (boleto + PIX)
+#   [ ] Confirmação automática de pagamento via webhook do gateway
+#   [ ] Link de rastreamento de entrega (Uber Flash / Loggi)
+#   [ ] Relatório semanal por e-mail (concierge_relatorio.php)
+#
+# FASE 4 — IA avançada e personalização                     STATUS: PLANEJADA
+#   [ ] Memória vetorial (embeddings de conversas anteriores)
+#   [ ] Sugestão de "look completo" (upsell automático)
+#   [ ] Horário de atendimento automático (schedule_grid na tela)
+#   [ ] Multiidioma (pt-BR, en, es)
+#   [ ] Dashboard de métricas: conversas, pedidos, taxa de conversão
+#   [ ] Treinamento personalizado por loja (fine-tuning ou RAG)
+#
+# FASE 5 — SaaS e escala                                    STATUS: PLANEJADA
+#   [ ] Limite de webhook_calls por plano (ai_usage_log + ai_check_plan_gate)
+#   [ ] Upgrade de plano inline na tela de Limites
+#   [ ] Onboarding guiado multi-step para novas lojas
+#   [ ] Métricas por tenant no painel SaaS
+#   [ ] Suporte a múltiplas instâncias WhatsApp por loja
+
+# 10. NOTAS TÉCNICAS E CONVENÇÕES
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# TOKENS E SEGURANÇA
+#   - O token global da Evolution (apikey) é CRIPTOGRAFADO antes de salvar
+#     em ai_settings usando a classe Encryption do ModernPOS.
+#     Chave de criptografia: "ai_evolution_global_token_{tenant_id}"
+#   - O ai_webhook_token (stores.ai_webhook_token) autentica chamadas n8n→ModernPOS
+#     e Evolution→ModernPOS. Gerado automaticamente na migration.
+#   - NUNCA salvar tokens em texto puro no BD.
+#
+# NOMENCLATURA
+#   - tenant_id = store_id do ModernPOS (mesma chave)
+#   - remoteJid = identificador WhatsApp (ex: 5511999@s.whatsapp.net)
+#   - loja_id   = usado em URLs de webhook (= tenant_id)
+#
+# MULTI-TENANT
+#   - Toda query ao BD filtra por tenant_id (ou loja_id)
+#   - Cada loja tem sua própria instância Evolution separada
+#   - FileManager: fotos em storage/products/{tenant_id}/MODA AI/
+#
+# EVOLUTION API v2.3 — DIFERENÇAS DE VERSÃO
+#   - v2.3+: campo `integration: "WHATSAPP-BAILEYS"` obrigatório no create
+#   - v2.3+: webhook.headers como objeto, não array
+#   - v2.3+: QR Code retornado em connectResult.base64 (não qrcode.base64)
+#   - Compatível com: /instance/create, /instance/connect, /webhook/set
+#
+# CONVENÇÕES DE RESPOSTA DO N8N
+#   - Retornar sempre HTTP 200 (ModernPOS valida o campo "error" no JSON)
+#   - Campo "replyType": "text" | "media" | "none"
+#   - Campo "_debug" é ignorado pelo ModernPOS (apenas para log)
+#   - Para imagens inline: usar [IMG:https://url] no texto do GPT
+#
+# MANUTENÇÃO
+#   - Logs de webhook: ai_evolution_webhook_logs (purge após 30 dias recomendado)
+#   - QR Code expira em 60s; o auto-poll refresca via /instance/connect
+#   - Se status ficar em "Aguardando leitura" > 5 min: reiniciar instância
+##
+## ─────────────────────────────────────────────────────────────────────────────
+## Fim do arquivo MODAIA_ROADMAP.mb
+## ModernPOS Moda IA © 2026 — Integração Evolution API v2.3 + n8n + OpenAI
+## ─────────────────────────────────────────────────────────────────────────────

@@ -105,9 +105,13 @@ function concierge_groups_attach_campaign_metrics(int $tenantId, array $groups):
             try {
                 $stmt = db()->prepare("
                     SELECT
-                        COUNT(DISTINCT CASE WHEN b.status IN ('pending','scheduled','sending') THEN c.id END) AS scheduled_campaigns,
+                        COUNT(DISTINCT CASE
+                            WHEN c.status IN ('pending','scheduled','queued','sending')
+                              OR b.status IN ('pending','queued','scheduled','sending')
+                            THEN c.id
+                        END) AS scheduled_campaigns,
                         COUNT(DISTINCT CASE WHEN b.status IN ('sent','completed') THEN c.id END) AS completed_campaigns,
-                        COUNT(DISTINCT CASE WHEN b.status NOT IN ('canceled','draft') THEN c.id END) AS total_campaigns,
+                        COUNT(DISTINCT c.id) AS total_campaigns,
                         SUM(CASE WHEN b.status = 'sent' AND DATE(COALESCE(b.sent_at, b.updated_at, b.created_at)) = CURDATE() THEN 1 ELSE 0 END) AS sent_today_count
                     FROM concierge_broadcasts b
                     INNER JOIN concierge_campaigns c
@@ -167,7 +171,9 @@ function concierge_groups_attach_campaign_metrics(int $tenantId, array $groups):
             }
         }
         $group['settings_json'] = $settings;
-        $group['dispatch_interval_minutes'] = max(0, (int)($settings['dispatch_interval_minutes'] ?? $settings['interval_between_dispatches'] ?? 0));
+        $groupIntervalRaw = max(0, (int)($settings['dispatch_interval_minutes'] ?? $settings['interval_between_dispatches'] ?? 0));
+        $groupIntervalDefault = max(1, (int)ai_get_setting('mia_group_delay', 5, $tenantId));
+        $group['dispatch_interval_minutes'] = $groupIntervalRaw > 0 ? $groupIntervalRaw : $groupIntervalDefault;
     }
     unset($group);
 

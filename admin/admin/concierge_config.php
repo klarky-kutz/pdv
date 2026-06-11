@@ -14,6 +14,12 @@ $tid = ai_tenant_id();
 $settings = ai_get_settings($tid);
 $webhookToken = ai_evolution_store_token($tid);
 $schedule = ai_get_schedule($tid);
+
+// Try to fetch and save instance number if not set
+$aiWhatsappNumber = ai_get_setting('ai_whatsapp_number', '', $tid);
+if (empty($aiWhatsappNumber) && function_exists('ai_evolution_fetch_and_save_instance_number')) {
+    ai_evolution_fetch_and_save_instance_number($tid);
+}
 $pixKeys = [];
 $pixRaw = (string)($settings['ai_pix_keys_json'] ?? '');
 if ($pixRaw !== '') {
@@ -38,6 +44,10 @@ if (!in_array($statusPostingMode, ['n8n', 'system'], true)) {
   $statusPostingMode = 'n8n';
 }
 $isStatusPostingSystem = $statusPostingMode === 'system';
+$conversationWebhookUrl = (string)($settings['ai_webhook_conversation_url'] ?? $settings['ai_webhook_target_url'] ?? '');
+$campaignDispatchWebhookUrl = (string)($settings['ai_groups_dispatch_webhook_url'] ?? '');
+$statusDispatchWebhookUrl = (string)($settings['ai_status_dispatch_webhook_url'] ?? '');
+$suggestionsWebhookUrl = (string)($settings['ai_groups_suggestions_webhook_url'] ?? '');
 
 $document->setTitle('Configurações IA · Moda IA');
 $document->setBodyClass('concierge_config');
@@ -468,12 +478,36 @@ include ("left_sidebar.php");
                 <small class="form-hint">Token interno da loja para validar chamadas entre ModernPOS e n8n.</small>
               </div>
               <div class="form-group">
-                <label class="form-label">Webhook n8n (ModernPOS &rarr; n8n) <span class="req">*</span></label>
+                <label class="form-label">Webhook conversa IA (ModernPOS &rarr; n8n) <span class="req">*</span></label>
                 <div class="form-control-copy">
-                  <input id="evo_webhook_n8n" name="evo_webhook_n8n" class="form-control" type="url" placeholder="https://n8n.seudominio.com/webhook/moda-ia" value="<?= htmlspecialchars($settings['ai_webhook_target_url'] ?? '') ?>" autocomplete="off">
-                  <button class="btn btn-secondary btn-sm" onclick="testarWebhookConexao(this)"><i class="fa fa-paper-plane"></i> Testar</button>
+                  <input id="ai_webhook_conversation_url" name="ai_webhook_conversation_url" class="form-control" type="url" placeholder="https://n8n.seudominio.com/webhook/moda-ia-conversa" value="<?= htmlspecialchars($conversationWebhookUrl) ?>" autocomplete="off">
+                  <button class="btn btn-secondary btn-sm" onclick="testarWebhookConexao(this, 'conversation', 'ai_webhook_conversation_url')"><i class="fa fa-paper-plane"></i> Testar</button>
                 </div>
-                <small class="form-hint">URL do fluxo n8n que processa mensagens e retorna respostas da IA.</small>
+                <small class="form-hint">URL do fluxo n8n que processa mensagens e retorna respostas da IA (compatível com legado).</small>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Webhook campanhas (Grupos IA &rarr; n8n)</label>
+                <div class="form-control-copy">
+                  <input id="ai_groups_dispatch_webhook_url" name="ai_groups_dispatch_webhook_url" class="form-control" type="url" placeholder="https://n8n.seudominio.com/webhook/moda-ia-campaigns" value="<?= htmlspecialchars($campaignDispatchWebhookUrl) ?>" autocomplete="off">
+                  <button class="btn btn-secondary btn-sm" onclick="testarWebhookConexao(this, 'campaign', 'ai_groups_dispatch_webhook_url')"><i class="fa fa-paper-plane"></i> Testar</button>
+                </div>
+                <small class="form-hint">Webhook dedicado para disparos de campanhas de grupos.</small>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Webhook status (Status WhatsApp &rarr; n8n)</label>
+                <div class="form-control-copy">
+                  <input id="ai_status_dispatch_webhook_url" name="ai_status_dispatch_webhook_url" class="form-control" type="url" placeholder="https://n8n.seudominio.com/webhook/moda-ia-status" value="<?= htmlspecialchars($statusDispatchWebhookUrl) ?>" autocomplete="off">
+                  <button class="btn btn-secondary btn-sm" onclick="testarWebhookConexao(this, 'status', 'ai_status_dispatch_webhook_url')"><i class="fa fa-paper-plane"></i> Testar</button>
+                </div>
+                <small class="form-hint">Webhook dedicado para postagens de status via fluxo n8n.</small>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Webhook Sugestões IA (Modal de Sugestões &rarr; n8n)</label>
+                <div class="form-control-copy">
+                  <input id="ai_groups_suggestions_webhook_url" name="ai_groups_suggestions_webhook_url" class="form-control" type="url" placeholder="https://n8n.seudominio.com/webhook/moda-ia-suggestions" value="<?= htmlspecialchars($suggestionsWebhookUrl) ?>" autocomplete="off">
+                  <button class="btn btn-secondary btn-sm" onclick="testarWebhookConexao(this, 'suggestions', 'ai_groups_suggestions_webhook_url')"><i class="fa fa-paper-plane"></i> Testar</button>
+                </div>
+                <small class="form-hint">Webhook dedicado para geração de sugestões de campanhas via IA.</small>
               </div>
             </div>
 
@@ -576,6 +610,12 @@ include ("left_sidebar.php");
               'desc' => 'Retorna categorias reais da loja para o filtro de categorias permitidas da IA.',
               'endpoint' => $groupsApiBase . 'products.php?action=categories',
             ],
+            [
+              'id' => 'suggestions_webhook',
+              'label' => 'Retornar Sugestões IA (POST)',
+              'desc' => 'API para o N8N enviar de volta as sugestões geradas pela IA (recebe payload JSON e salva no sistema).',
+              'endpoint' => $groupsApiBase . 'suggestions.php?loja_id=' . $tid . '&action=webhook',
+            ],
           ];
           foreach ($groupsApis as $api):
             $inputId = 'api-groups-url-' . $api['id'];
@@ -599,6 +639,16 @@ include ("left_sidebar.php");
           </div>
         </div>
         <?php endif; ?>
+        
+        <div class="api-tool-card">
+          <div class="api-tool-title"><i class="fa fa-link" style="color:#7c3aed"></i>Retornar Sugestões IA (POST)</div>
+          <div class="api-tool-desc">API para o N8N enviar de volta as sugestões geradas pela IA (recebe payload JSON e salva no sistema).</div>
+          <div class="form-control-copy">
+            <input id="api-groups-url-suggestions_webhook" name="api-groups-url-suggestions_webhook" class="form-control" type="text" readonly value="<?= htmlspecialchars(rtrim(ROOT_URL, '/') . '/api/concierge/suggestions.php?loja_id=' . $tid . '&action=webhook') ?>" style="font-family:monospace;font-size:11.5px" autocomplete="off">
+            <button class="btn-copy" onclick="copyText('api-groups-url-suggestions_webhook')"><i class="fa fa-copy"></i> Copiar</button>
+          </div>
+        </div>
+        
         <div class="cfg-section-title" style="margin-top:18px"><i class="fa fa-bolt"></i> APIs operacionais (Status, Disparos, Cronjobs e Webhooks)</div>
         <?php
           $opsApiBase = rtrim(ROOT_URL, '/') . '/api/concierge/';
@@ -1363,7 +1413,8 @@ function salvarConfig(btnEl){
   const fields = [
     'ai_name', 'ai_greeting', 'ai_offline_msg',
     'ai_whatsapp_provider', 'ai_instance_url', 'ai_instance_name',
-    'ai_whatsapp_number', 'ai_whatsapp_number_2', 'ai_api_key', 'ai_webhook_target_url',
+    'ai_whatsapp_number', 'ai_whatsapp_number_2', 'ai_api_key',
+    'ai_webhook_conversation_url', 'ai_groups_dispatch_webhook_url', 'ai_status_dispatch_webhook_url', 'ai_groups_suggestions_webhook_url',
     'ai_personality',
     'ai_language',
     'ai_mp_access_token_enc',
@@ -1387,6 +1438,11 @@ function salvarConfig(btnEl){
     const el = document.getElementById(id);
     if (el) formData.append(id, el.value);
   });
+
+  const conversationWebhookInput = document.getElementById('ai_webhook_conversation_url');
+  if (conversationWebhookInput) {
+    formData.append('ai_webhook_target_url', conversationWebhookInput.value);
+  }
 
   // Toggles de Comportamento e Notificação (Lojista)
    const toggles = [
@@ -1656,7 +1712,8 @@ function maskPhone(el) {
 function conectarInstanciaModal() {
   const instanceName = document.getElementById('evo_modal_instance_name').value.trim();
   let phoneNumber  = document.getElementById('evo_modal_phone').value.replace(/\D/g, "");
-  const webhookN8n   = document.getElementById('evo_webhook_n8n').value.trim();
+  const conversationWebhookInput = document.getElementById('ai_webhook_conversation_url');
+  const webhookN8n = conversationWebhookInput ? conversationWebhookInput.value.trim() : '';
 
   if (!instanceName) {
     showToast('Informe o nome da instância.');
@@ -1754,26 +1811,30 @@ function carregarLogsEvo(limit) {
 
 // ─── fim Evolution ────────────────────────────────────────────────────────────
 
-function testarWebhookConexao(btnEl){
+function testarWebhookConexao(btnEl, webhookType, inputId){
   const btn = btnEl || null;
   const orig = btn ? btn.innerHTML : '';
   if (btn) {
     btn.disabled = true;
     btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Testando...';
   }
-  const targetUrl = document.getElementById('evo_webhook_n8n').value.trim();
+  const type = ['conversation', 'campaign', 'status', 'suggestions'].includes(webhookType) ? webhookType : 'conversation';
+  const sourceId = inputId || 'ai_webhook_conversation_url';
+  const sourceInput = document.getElementById(sourceId);
+  const targetUrl = sourceInput ? sourceInput.value.trim() : '';
   if (!targetUrl) {
-    showToast('Informe a URL do Webhook n8n primeiro.');
+    showToast('Informe a URL do webhook primeiro.');
     if (btn) { btn.disabled = false; btn.innerHTML = orig; }
     return;
   }
   const fd = new FormData();
   fd.append('webhook_url', targetUrl);
+  fd.append('webhook_type', type);
   fetch('../_inc/ai_config_webhook_test.php', { method: 'POST', body: fd })
   .then(r => r.json())
   .then(data => {
     if (data.errorMsg) showToast('Erro: ' + data.errorMsg);
-    else showToast('✅ n8n respondeu! (HTTP ' + data.http_code + ')');
+    else showToast('✅ Webhook (' + type + ') respondeu! (HTTP ' + data.http_code + ')');
   })
   .catch(() => showToast('Falha ao testar webhook.'))
   .finally(() => { if (btn) { btn.disabled = false; btn.innerHTML = orig; } });
@@ -1788,7 +1849,8 @@ function testarWebhook(btnEl){
   }
 
   // Primeiro salva a URL atual antes de testar
-  const targetUrl = document.getElementById('ai_webhook_target_url').value;
+  const conversationInput = document.getElementById('ai_webhook_conversation_url');
+  const targetUrl = conversationInput ? conversationInput.value : '';
   if (!targetUrl) {
     showToast('Informe a URL do Webhook primeiro.');
     if (btn) {
@@ -1800,6 +1862,7 @@ function testarWebhook(btnEl){
 
   const formData = new FormData();
   formData.append('webhook_url', targetUrl);
+  formData.append('webhook_type', 'conversation');
   fetch('../_inc/ai_config_webhook_test.php', { method: 'POST', body: formData })
   .then(res => res.json())
   .then(data => {

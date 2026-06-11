@@ -1894,6 +1894,17 @@ function ai_process_due_concierge_campaigns(int $tenantId = 0, int $limit = 25):
 
         $targetUrl = ai_groups_dispatch_webhook_url($tid, 'campaign');
         $token = ai_groups_store_token($tid);
+        
+        // Log debug info
+        $logFile = __DIR__ . '/../../../storage/logs/ai_process_due.log';
+        $logEntry = '[' . date('Y-m-d H:i:s') . '] ' . json_encode([
+            'tenant_id' => $tid,
+            'campaign_id' => $campaignId,
+            'target_url' => $targetUrl,
+            'token' => substr($token, 0, 20) . '...',
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL;
+        @file_put_contents($logFile, $logEntry, FILE_APPEND);
+        
         if ($targetUrl === '' || $token === '') {
             ai_update_concierge_campaign($tid, $campaignId, [
                 'status' => 'failed',
@@ -1960,11 +1971,17 @@ function ai_process_due_concierge_campaigns(int $tenantId = 0, int $limit = 25):
                 ],
             ],
         ];
+        
+        // Log the full payload
+        @file_put_contents($logFile, '[' . date('Y-m-d H:i:s') . '] Payload: ' . json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL, FILE_APPEND);
 
         $resp = ai_groups_http_post_json($targetUrl, $payload, [
             'X-Concierge-Token: ' . $token,
             'X-Store-Id: ' . $tid,
         ]);
+        
+        // Log the response
+        @file_put_contents($logFile, '[' . date('Y-m-d H:i:s') . '] Response: ' . json_encode($resp, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL, FILE_APPEND);
 
         if (!empty($resp['ok'])) {
             $result['dispatched']++;
@@ -2723,6 +2740,18 @@ function ai_mark_broadcast_status(
     string $externalMessageId = '',
     string $errorMessage = ''
 ): bool {
+    // Log entry to concierge_campaign_status.log (use concierge_status_append_log but we need to define it here? Wait, no, let's just write to a temp file)
+    $logFile = __DIR__ . '/../../../storage/logs/ai_mark_broadcast_status.log';
+    $logEntry = '[' . date('Y-m-d H:i:s') . '] ' . json_encode([
+        'tenant_id' => $tenantId,
+        'campaign_id' => $campaignId,
+        'group_id' => $groupId,
+        'status' => $status,
+        'external_message_id' => $externalMessageId,
+        'error_message' => $errorMessage,
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL;
+    @file_put_contents($logFile, $logEntry, FILE_APPEND);
+    
     if ($tenantId <= 0 || $campaignId <= 0 || $groupId <= 0 || !ai_groups_table_exists('concierge_broadcasts')) {
         return false;
     }
@@ -2733,6 +2762,24 @@ function ai_mark_broadcast_status(
     $today = date('Y-m-d');
 
     try {
+        // First, check if the broadcast exists
+        $checkExisting = db()->prepare("
+            SELECT *
+            FROM concierge_broadcasts
+            WHERE tenant_id = :tid
+              AND campaign_id = :cid
+              AND group_id = :gid
+            LIMIT 1
+        ");
+        $checkExisting->execute([
+            ':tid' => $tenantId,
+            ':cid' => $campaignId,
+            ':gid' => $groupId,
+        ]);
+        $existingBroadcast = $checkExisting->fetch(PDO::FETCH_ASSOC);
+        
+        @file_put_contents($logFile, '[' . date('Y-m-d H:i:s') . '] existing_broadcast: ' . json_encode($existingBroadcast, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL, FILE_APPEND);
+        
         if ($externalMessageId !== '') {
             $chk = db()->prepare("
                 SELECT id, status
@@ -2754,6 +2801,7 @@ function ai_mark_broadcast_status(
                 return true;
             }
         }
+        
         $sql = "
             INSERT INTO concierge_broadcasts
             (tenant_id, campaign_id, group_id, status, external_message_id, error_message, sent_at, updated_at, created_at)
@@ -2782,6 +2830,8 @@ function ai_mark_broadcast_status(
             ':err' => $errorMessage,
             ':status_sent' => in_array($status, ['sent', 'sending'], true) ? 1 : 0,
         ]);
+        
+        @file_put_contents($logFile, '[' . date('Y-m-d H:i:s') . '] execute_result: row_count=' . $stmt->rowCount() . PHP_EOL, FILE_APPEND);
 
         // Atualiza o success_history_json do grupo se o status for 'sent'
         if ($status === 'sent' && ai_groups_table_exists('concierge_groups')) {
@@ -2836,33 +2886,70 @@ function ai_mark_broadcast_status(
 
 /**
  * Marca campanha para disparo imediato.
+ * Returns array ['success' => bool, 'debug' => array] for debugging
  */
-function ai_dispatch_concierge_campaign_now(int $tenantId, int $campaignId, int $userId = 0): bool
+function ai_dispatch_concierge_campaign_now(int $tenantId, int $campaignId, int $userId = 0)
 {
+    $debug = [
+        'tenantId' => $tenantId,
+        'campaignId' => $campaignId,
+        'userId' => $userId,
+        'checks' => []
+    ];
+
     if ($tenantId <= 0 || $campaignId <= 0 || !ai_groups_table_exists('concierge_campaigns')) {
-        return false;
+        $debug['checks']['invalid_params'] = true;
+        return ['success' => false, 'debug' => $debug];
     }
 
     // Verifica conflito de horário (gap de 5 min)
     $now = date('Y-m-d H:i:s');
     $conflict = ai_groups_find_campaign_schedule_conflict($tenantId, $now, $campaignId, 5);
     if ($conflict) {
-        // Se houver conflito, não podemos disparar agora.
-        // O ideal seria retornar uma mensagem, mas a assinatura da função é booleana.
-        return false;
+        $debug['checks']['conflict'] = $conflict;
+        return ['success' => false, 'debug' => $debug];
     }
+    $debug['checks']['no_conflict'] = true;
 
     try {
+        // Reset broadcasts to pending
+        if (ai_groups_table_exists('concierge_broadcasts')) {
+            $resetBroadcasts = db()->prepare("
+                UPDATE concierge_broadcasts
+                SET status = 'pending',
+                    error_message = NULL,
+                    sent_at = NULL,
+                    external_message_id = NULL,
+                    updated_at = NOW()
+                WHERE tenant_id = :tid AND campaign_id = :cid
+            ");
+            $resetBroadcasts->execute([':tid' => $tenantId, ':cid' => $campaignId]);
+            $debug['broadcasts_reset_count'] = $resetBroadcasts->rowCount();
+        }
+
+        // First, check current status
+        $checkStmt = db()->prepare("SELECT id, status, allow_requeue FROM concierge_campaigns WHERE tenant_id = :tid AND id = :cid LIMIT 1");
+        $checkStmt->execute([':tid' => $tenantId, ':cid' => $campaignId]);
+        $current = $checkStmt->fetch(PDO::FETCH_ASSOC);
+        $debug['current_campaign'] = $current;
+
         $stmt = db()->prepare("
             UPDATE concierge_campaigns
             SET status = 'scheduled',
-                scheduled_at = NOW(),
+                scheduled_at = DATE_SUB(NOW(), INTERVAL 1 MINUTE),
                 updated_by = :uid,
                 webhook_requested_at = NOW(),
-                updated_at = NOW()
+                updated_at = NOW(),
+                sent_at = NULL,
+                last_error = NULL,
+                n8n_execution_id = NULL
             WHERE tenant_id = :tid
               AND id = :cid
-              AND status NOT IN ('sent', 'canceled', 'completed')
+              AND status <> 'canceled'
+              AND (
+                    status NOT IN ('sent', 'completed')
+                    OR allow_requeue = 1
+              )
             LIMIT 1
         ");
         $stmt->execute([
@@ -2871,14 +2958,19 @@ function ai_dispatch_concierge_campaign_now(int $tenantId, int $campaignId, int 
             ':uid' => $userId,
         ]);
 
+        $debug['campaign_update_count'] = $stmt->rowCount();
+
         if ($stmt->rowCount() > 0) {
-            ai_process_due_concierge_campaigns($tenantId, 1);
-            return true;
+            $debug['processing_due'] = true;
+            $processResult = ai_process_due_concierge_campaigns($tenantId, 1);
+            $debug['process_result'] = $processResult;
+            return ['success' => true, 'debug' => $debug];
         }
 
-        return false;
+        return ['success' => false, 'debug' => $debug];
     } catch (Throwable $e) {
-        return false;
+        $debug['exception'] = ['message' => $e->getMessage(), 'trace' => $e->getTraceAsString()];
+        return ['success' => false, 'debug' => $debug];
     }
 }
 
@@ -3061,46 +3153,22 @@ function ai_groups_get_group_dispatch_queue(int $tenantId, int $groupId, int $ne
         $result['last_sent_item'] = $lastSentItem;
     }
 
-    $unsent = array_values(array_filter($orderedItems, static function (array $it): bool {
-        return (int)($it['total_sent_count'] ?? 0) <= 0;
-    }));
-
-    usort($unsent, static function (array $a, array $b): int {
-        $aFirst = $a['first_seen_at'] ?? '';
-        $bFirst = $b['first_seen_at'] ?? '';
-        return strcmp($aFirst, $bFirst);
+    // Sort ALL items by next_dispatch_at (the actual time they will be sent)
+    usort($orderedItems, static function (array $a, array $b): int {
+        $aNext = $a['next_dispatch_at'] ?? '';
+        $bNext = $b['next_dispatch_at'] ?? '';
+        
+        // If either doesn't have next_dispatch_at, use first_seen_at as fallback
+        if ($aNext === '' || $bNext === '') {
+            $aFallback = $a['first_seen_at'] ?? '';
+            $bFallback = $b['first_seen_at'] ?? '';
+            return strcmp($aFallback, $bFallback);
+        }
+        
+        return strcmp($aNext, $bNext);
     });
 
-    $queue = [];
-    if (!empty($unsent)) {
-        $unsentIds = array_map(static function (array $it): int {
-            return (int)($it['id'] ?? 0);
-        }, $unsent);
-        $queue = $unsent;
-        foreach ($orderedItems as $it) {
-            if (!in_array((int)$it['id'], $unsentIds, true)) {
-                $queue[] = $it;
-            }
-        }
-    } else {
-        $queue = $orderedItems;
-        if ($lastSentItem) {
-            $lastCid = (int)$lastSentItem['id'];
-            $idx = -1;
-            foreach ($queue as $i => $it) {
-                if ((int)$it['id'] === $lastCid) {
-                    $idx = $i;
-                    break;
-                }
-            }
-            if ($idx >= 0) {
-                $lastItem = $queue[$idx];
-                if ((int)($lastItem['allow_requeue'] ?? 1) === 1) {
-                    $queue = array_merge(array_slice($queue, $idx + 1), array_slice($queue, 0, $idx + 1));
-                }
-            }
-        }
-    }
+    $queue = $orderedItems;
 
     $nextCount = max(1, min(10, $nextCount));
     $nextItems = array_slice($queue, 0, $nextCount);

@@ -383,15 +383,23 @@ try {
                 } else {
                     $errRaw = $resp['error'] ?? '';
                     $err = trim(is_array($errRaw) || is_object($errRaw) ? (string)json_encode($errRaw, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : (string)$errRaw);
-                    if ($err === '') {
-                        $err = 'Erro desconhecido no disparo via Evolution API (HTTP ' . (int)($resp['http_code'] ?? 0) . ').';
+                    $isTimeout = stripos($err, 'timeout') !== false;
+                    
+                    if ($isTimeout) {
+                        // If it's a timeout, leave status as 'sending' so frontend can show manual confirmation
+                        ai_update_concierge_status($tenantId, $statusId, [
+                            'status' => 'sending',
+                            'error_message' => $err,
+                            'payload_json' => $payloadJson,
+                        ]);
+                    } else {
+                        ai_update_concierge_status($tenantId, $statusId, [
+                            'status' => 'error',
+                            'error_message' => $err,
+                            'sent_at' => null,
+                            'payload_json' => $payloadJson,
+                        ]);
                     }
-                    ai_update_concierge_status($tenantId, $statusId, [
-                        'status' => 'error',
-                        'error_message' => $err,
-                        'sent_at' => null,
-                        'payload_json' => $payloadJson,
-                    ]);
                     $statusItem = concierge_status_get_one($tenantId, $statusId);
                     echo json_encode(ai_groups_response(true, 'Falha no envio: ' . $err, ['status' => $statusItem, 'evolution' => $resp]), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
                     exit;
@@ -496,19 +504,31 @@ try {
                     ]);
                 }
             } else {
-                ai_update_concierge_status($tenantId, $statusId, [
-                    'status' => 'error',
-                    'error_message' => (function ($v) {
-                        if (is_array($v) || is_object($v)) {
-                            $j = json_encode($v, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-                            return is_string($j) ? $j : 'Falha no disparo imediato.';
-                        }
-                        $s = trim((string)$v);
-                        return $s !== '' ? $s : 'Falha no disparo imediato.';
-                    })($resp['error'] ?? ''),
-                    'sent_at' => null,
-                    'payload_json' => $pJson,
-                ]);
+                $errRaw = $resp['error'] ?? '';
+                $err = is_array($errRaw) || is_object($errRaw) ? (string)json_encode($errRaw, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : (string)$errRaw;
+                $isTimeout = stripos($err, 'timeout') !== false;
+                
+                if ($isTimeout) {
+                    ai_update_concierge_status($tenantId, $statusId, [
+                        'status' => 'sending',
+                        'error_message' => $err,
+                        'payload_json' => $pJson,
+                    ]);
+                } else {
+                    ai_update_concierge_status($tenantId, $statusId, [
+                        'status' => 'error',
+                        'error_message' => (function ($v) {
+                            if (is_array($v) || is_object($v)) {
+                                $j = json_encode($v, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                                return is_string($j) ? $j : 'Falha no disparo imediato.';
+                            }
+                            $s = trim((string)$v);
+                            return $s !== '' ? $s : 'Falha no disparo imediato.';
+                        })($resp['error'] ?? ''),
+                        'sent_at' => null,
+                        'payload_json' => $pJson,
+                    ]);
+                }
             }
             $statusItem = concierge_status_get_one($tenantId, $statusId);
         }
@@ -528,6 +548,16 @@ try {
         $statusCurrent = concierge_status_get_one($tenantId, $statusId);
         if (!$statusCurrent) {
             throw new Exception('Postagem de status não encontrada ou sem permissão.');
+        }
+
+        $newStatus = trim((string)($json['status'] ?? ''));
+        
+        // If manually confirming as sent, handle repost logic
+        if ($newStatus === 'sent') {
+            ai_groups_handle_status_repost_logic($tenantId, $statusId, $statusCurrent);
+            $statusItem = concierge_status_get_one($tenantId, $statusId);
+            echo json_encode(ai_groups_response(false, 'Status marcado como enviado com sucesso.', ['status' => $statusItem]), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            exit;
         }
 
         $payload = [];

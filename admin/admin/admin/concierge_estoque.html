@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Estoque IA · Moda IA · ModernPOS</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<style>
+/* ─── RESET ─── */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Source Sans Pro','Helvetica Neue',Helvetica,Arial,sans-serif;font-size:14px;background:#ecf0f5;overflow:hidden;color:#333}
+button{cursor:pointer;font-family:inherit}
+input,select,textarea{font-family:inherit}
+
+/* ─── SHELL ─── */
+.shell{display:flex;height:100vh;overflow:hidden}
+
+/* ─── SIDEBAR ─── */
+.sb{width:230px;background:#222d32;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden}
+.sb-logo{height:50px;background:#2c3b41;display:flex;align-items:center;padding:0 15px;gap:10px;border-bottom:1px solid #1a2226;flex-shrink:0}
+.sb-logo-text{font-size:16px;font-weight:700;color:#fff;letter-spacing:.3px}
+.sb-logo-badge{background:#6d28d9;color:#fff;font-size:9px;font-weight:700;padding:2px 5px;border-radius:2px}
+.sb-user{background:#1a2226;padding:10px 15px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.sb-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#6d28d9,#a78bfa);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;flex-shrink:0}
+.sb-user-name{color:#fff;font-weight:600;font-size:13px}
+.sb-user-role{color:#8aa4af;font-size:11px;display:flex;align-items:center;gap:4px}
+.sb-user-dot{width:7px;height:7px;border-radius:50%;background:#00a65a}
+.sb-scroll{flex:1;overflow-y:auto;overflow-x:hidden}
+.sb-scroll::-webkit-scrollbar{width:4px}
+.sb-scroll::-webkit-scrollbar-track{background:#1a2226}
+.sb-scroll::-webkit-scrollbar-thumb{background:#3d4e54;border-radius:2px}
+.sb-hdr{font-size:10px;font-weight:700;color:#4b646f;text-transform:uppercase;letter-spacing:.5px;padding:14px 15px 5px}
+.mi{display:flex;align-items:center;gap:10px;padding:9px 12px 9px 15px;color:#b8c7ce;border-left:3px solid transparent;transition:all .15s;cursor:pointer;font-size:13.5px}
+.mi:hover{background:#1e282c;color:#ddd6fe;border-left-color:#6d28d9}
+.mi.act{background:#1e282c;color:#fff;border-left-color:#6d28d9}
+.mi i{width:16px;text-align:center;font-size:13px;opacity:.85}
+.sb-pro{background:linear-gradient(180deg,#160a2e,#1a0f35);border-top:1px solid #2d1b5e;flex-shrink:0}
+.sb-pro-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 15px 5px}
+.sb-pro-label{font-size:10px;font-weight:700;color:#7c4aed;text-transform:uppercase;letter-spacing:.5px}
+.pro-badge{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px}
+.mi-pro{display:flex;align-items:center;gap:10px;padding:9px 12px 9px 15px;color:#9f6ae3;border-left:3px solid transparent;cursor:pointer;font-size:13px;transition:all .15s;text-decoration:none}
+.mi-pro:hover{background:rgba(109,40,217,.15);color:#ddd6fe;border-left-color:#a78bfa}
+.mi-pro.act{background:rgba(109,40,217,.2);color:#ddd6fe;border-left-color:#a78bfa}
+.mi-pro i{width:16px;text-align:center;font-size:12px;opacity:.9}
+
+/* ─── MAIN ─── */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+
+/* ─── TOPBAR ─── */
+.tb{height:50px;background:#222d32;display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0;border-bottom:1px solid #1a2226}
+.tb-toggle{color:#b8c7ce;font-size:18px;cursor:pointer}
+.tb-spacer{flex:1}
+.tb-ai-status{display:flex;align-items:center;gap:6px;background:rgba(109,40,217,.15);border:1px solid rgba(109,40,217,.35);border-radius:20px;padding:4px 10px}
+.tb-ai-dot{width:8px;height:8px;border-radius:50%;background:#a78bfa;animation:blink 1.4s infinite}
+.tb-ai-text{color:#c4b5fd;font-size:11px;font-weight:600}
+@keyframes blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.7)}}
+.tb-sep{width:1px;height:20px;background:#3d4e54}
+.tb-icon{width:34px;height:34px;display:flex;align-items:center;justify-content:center;color:#b8c7ce;font-size:16px;cursor:pointer;border-radius:2px;position:relative;transition:color .15s}
+.tb-icon:hover{color:#fff;background:#1e282c}
+.tb-notif-badge{position:absolute;top:4px;right:4px;width:8px;height:8px;background:#dd4b39;border-radius:50%;border:2px solid #222d32}
+.tb-user{display:flex;align-items:center;gap:8px;padding:4px 8px;border-radius:2px;cursor:pointer}
+.tb-user:hover{background:#1e282c}
+.tb-user-av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#6d28d9,#a78bfa);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:11px}
+.tb-user-name{color:#b8c7ce;font-size:12px;font-weight:600}
+
+/* ─── CONTENT ─── */
+.ct{flex:1;padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
+.ct::-webkit-scrollbar{width:6px}
+.ct::-webkit-scrollbar-track{background:#e5e7eb}
+.ct::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:3px}
+
+/* ─── CONTENT HEADER ─── */
+.ch{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.ch-left h1{font-size:20px;font-weight:700;color:#333;line-height:1}
+.ch-left .breadcrumb{display:flex;align-items:center;gap:6px;margin-top:3px;font-size:12px;color:#9ca3af}
+.ch-left .breadcrumb span{color:#6d28d9;font-weight:600}
+.ch-left .breadcrumb i{font-size:9px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:2px;font-size:13px;font-weight:600;border:none;transition:all .18s;cursor:pointer}
+.btn-primary{background:linear-gradient(135deg,#6d28d9,#7c3aed);color:#fff;box-shadow:0 2px 8px rgba(109,40,217,.35)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(109,40,217,.45)}
+.btn-secondary{background:#fff;border:1px solid #d1d5db;color:#374151}
+.btn-secondary:hover{border-color:#a78bfa;color:#6d28d9}
+.btn-danger{background:#fff;border:1px solid #fca5a5;color:#dc2626}
+.btn-danger:hover{background:#fee2e2}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-icon{width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:2px;border:1px solid #d1d5db;background:#fff;color:#6b7280;font-size:13px;cursor:pointer;transition:all .15s;flex-shrink:0}
+.btn-icon:hover{border-color:#a78bfa;color:#6d28d9}
+
+/* ─── INFO BOXES ─── */
+.ib-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.ib{background:#fff;border:1px solid #e5e7eb;border-radius:2px;padding:14px;display:flex;align-items:center;gap:14px;box-shadow:0 1px 8px rgba(0,0,0,.06);position:relative;overflow:hidden}
+.ib-icon{width:62px;height:62px;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;flex-shrink:0}
+.ib-icon.violet{background:linear-gradient(135deg,#6d28d9,#7c3aed)}
+.ib-icon.blue{background:linear-gradient(135deg,#2563eb,#3b82f6)}
+.ib-icon.amber{background:linear-gradient(135deg,#d97706,#f59e0b)}
+.ib-icon.green{background:linear-gradient(135deg,#059669,#10b981)}
+.ib-icon.red{background:linear-gradient(135deg,#dc2626,#ef4444)}
+.ib-content{flex:1;min-width:0}
+.ib-num{font-size:26px;font-weight:900;color:#111827;line-height:1.1}
+.ib-label{font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+.ib-sub{font-size:11px;color:#9ca3af;margin-top:3px}
+.ib-badge{position:absolute;top:10px;right:10px;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px}
+.ib-badge.up{background:#d1fae5;color:#065f46}
+.ib-badge.warn{background:#fef3c7;color:#92400e}
+.ib-badge.crit{background:#fee2e2;color:#991b1b}
+
+/* ─── FILTER BAR ─── */
+.filter-bar{background:#fff;border:1px solid #e5e7eb;border-radius:2px;padding:10px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.fb-label{font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;display:flex;align-items:center;gap:5px}
+.fb-chips{display:flex;gap:6px;flex-wrap:wrap}
+.fb-chip{padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid #d1d5db;color:#6b7280;cursor:pointer;transition:all .15s;background:#fff;display:flex;align-items:center;gap:4px}
+.fb-chip:hover{border-color:#a78bfa;color:#6d28d9;background:#f5f3ff}
+.fb-chip.on{background:#ede9fe;border-color:#c4b5fd;color:#4c1d95}
+.fb-spacer{flex:1}
+.fb-search{display:flex;align-items:center;gap:7px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:2px;padding:5px 10px;transition:border-color .15s}
+.fb-search:focus-within{border-color:#7c3aed;box-shadow:0 0 0 2px rgba(124,58,237,.12)}
+.fb-search i{color:#9ca3af;font-size:13px}
+.fb-search input{border:none;background:transparent;outline:none;font-size:13px;color:#374151;width:180px}
+.fb-search input::placeholder{color:#9ca3af}
+
+/* ─── TABLE BOX ─── */
+.box{background:#fff;border:1px solid #e5e7eb;border-radius:2px;box-shadow:0 1px 8px rgba(0,0,0,.06);overflow:hidden}
+.bh{border-top:3px solid #6d28d9;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f3f4f6}
+.bt{font-size:14px;font-weight:700;color:#374151;display:flex;align-items:center;gap:8px}
+.bt i{color:#6d28d9}
+.bt .count{background:#ede9fe;color:#4c1d95;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px}
+.bt .count-crit{background:#fee2e2;color:#991b1b;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px}
+.bh-actions{display:flex;gap:8px;align-items:center}
+table{width:100%;border-collapse:collapse}
+thead th{background:#f9fafb;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;padding:10px 14px;text-align:left;border-bottom:1px solid #e5e7eb;white-space:nowrap}
+tbody tr{border-bottom:1px solid #f3f4f6;transition:background .12s}
+tbody tr:hover{background:#faf5ff}
+tbody tr.row-crit{background:#fff8f8}
+tbody tr.row-crit:hover{background:#fff0f0}
+tbody tr.row-zero{background:#fafafa;opacity:.7}
+tbody tr:last-child{border-bottom:none}
+td{padding:10px 14px;vertical-align:middle}
+.bf{background:#f9fafb;border-top:1px solid #f3f4f6;padding:10px 16px;display:flex;align-items:center;justify-content:space-between}
+.bf-info{font-size:12px;color:#9ca3af;font-weight:600}
+.pagination{display:flex;gap:4px}
+.pg-btn{width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:2px;border:1px solid #d1d5db;background:#fff;color:#6b7280;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+.pg-btn:hover{border-color:#a78bfa;color:#6d28d9}
+.pg-btn.act{background:linear-gradient(135deg,#6d28d9,#7c3aed);border-color:#6d28d9;color:#fff}
+
+/* ─── PRODUCT CELL ─── */
+.prod-name{font-weight:700;color:#111827;font-size:13px}
+.prod-id{font-size:11px;color:#9ca3af;margin-top:2px}
+.prod-cat{display:inline-block;background:#f3f4f6;color:#6b7280;font-size:10px;padding:2px 6px;border-radius:10px;margin-top:3px;font-weight:600}
+
+/* ─── COLOR CELL ─── */
+.color-cell{display:flex;align-items:center;gap:8px}
+.swatch-lg{width:22px;height:22px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1.5px rgba(0,0,0,.15);flex-shrink:0}
+.color-name{font-size:13px;font-weight:600;color:#374151}
+
+/* ─── SIZE CELL ─── */
+.size-pill{display:inline-flex;align-items:center;justify-content:center;background:#ede9fe;color:#4c1d95;border:1px solid #c4b5fd;border-radius:2px;font-size:11px;font-weight:700;width:34px;height:24px}
+
+/* ─── QTY INLINE EDIT ─── */
+.qty-ctrl{display:flex;align-items:center;gap:4px}
+.qty-val{width:44px;height:28px;border:1px solid #d1d5db;border-radius:2px;text-align:center;font-size:13px;font-weight:700;color:#374151;background:#fff;transition:border-color .15s;outline:none}
+.qty-val:focus{border-color:#7c3aed;box-shadow:0 0 0 2px rgba(124,58,237,.12)}
+.qty-val.crit{border-color:#fca5a5;color:#dc2626;background:#fff8f8}
+.qty-val.zero{border-color:#e5e7eb;color:#9ca3af;background:#f9fafb}
+
+/* ─── STOCK BADGES ─── */
+.badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.badge-ok{background:#d1fae5;color:#065f46}
+.badge-crit{background:#fee2e2;color:#991b1b}
+.badge-zero{background:#f3f4f6;color:#6b7280}
+.badge-low{background:#fef3c7;color:#92400e}
+
+/* ─── DEMAND BAR ─── */
+.demand-num{font-size:18px;font-weight:900;color:#4c1d95;line-height:1}
+.demand-sub{font-size:10px;color:#9ca3af;font-weight:600;margin-top:2px}
+.demand-bar{height:5px;background:#ede9fe;border-radius:3px;margin-top:5px;overflow:hidden}
+.demand-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#a78bfa);border-radius:3px}
+
+/* ─── TOAST ─── */
+.toast{position:fixed;bottom:20px;right:20px;background:#222d32;color:#fff;border-left:3px solid #6d28d9;padding:10px 16px;border-radius:2px;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;z-index:9999;transform:translateX(120%);transition:transform .3s cubic-bezier(.34,1.56,.64,1);min-width:260px;box-shadow:0 4px 20px rgba(0,0,0,.3)}
+.toast.show{transform:translateX(0)}
+.toast i{color:#a78bfa}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ════════ SIDEBAR ════════ -->
+  <aside class="sb">
+    <div class="sb-logo">
+      <i class="fa fa-bolt" style="color:#a78bfa;font-size:18px"></i>
+      <span class="sb-logo-text">ModernPOS</span>
+      <span class="sb-logo-badge">SaaS</span>
+    </div>
+    <div class="sb-user">
+      <div class="sb-avatar">M</div>
+      <div>
+        <div class="sb-user-name">Moda Feminina</div>
+        <div class="sb-user-role"><span class="sb-user-dot"></span>Gerente</div>
+      </div>
+    </div>
+    <div class="sb-scroll">
+      <div class="sb-hdr">Menu Principal</div>
+      <div class="mi"><i class="fa fa-th-large"></i> Dashboard</div>
+      <div class="mi"><i class="fa fa-desktop"></i> PDV</div>
+      <div class="mi"><i class="fa fa-shopping-cart"></i> Vendas</div>
+      <div class="mi"><i class="fa fa-truck"></i> Compras</div>
+      <div class="mi"><i class="fa fa-tag"></i> Produtos</div>
+      <div class="mi"><i class="fa fa-users"></i> Clientes</div>
+      <div class="mi"><i class="fa fa-bar-chart"></i> Relatórios</div>
+      <div class="mi"><i class="fa fa-cog"></i> Configurações</div>
+      <div class="sb-pro">
+        <div class="sb-pro-hdr">
+          <span class="sb-pro-label"><i class="fa fa-magic" style="margin-right:4px"></i>Moda IA</span>
+          <span class="pro-badge">PRO</span>
+        </div>
+        <a class="mi-pro" href="concierge_catalogo.html"><i class="fa fa-tag"></i> Catálogo IA</a>
+        <a class="mi-pro" href="concierge_pedidos.html"><i class="fa fa-trello"></i> Pedidos</a>
+        <div class="mi-pro"><i class="fa fa-comments"></i> Conversas</div>
+        <a class="mi-pro" href="concierge_pix.html"><i class="fa fa-qrcode"></i> Comprovantes Pix</a>
+        <a class="mi-pro act" href="concierge_estoque.html"><i class="fa fa-cubes"></i> Estoque IA</a>
+        <div class="mi-pro"><i class="fa fa-line-chart"></i> Performance</div>
+        <a class="mi-pro" href="concierge_config.html"><i class="fa fa-cog"></i> Configurações IA</a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ════════ MAIN ════════ -->
+  <div class="main">
+    <div class="tb">
+      <div class="tb-toggle"><i class="fa fa-bars"></i></div>
+      <div class="tb-spacer"></div>
+      <div class="tb-ai-status">
+        <div class="tb-ai-dot"></div>
+        <span class="tb-ai-text">IA Online</span>
+      </div>
+      <div class="tb-sep"></div>
+      <div class="tb-icon"><i class="fa fa-bell-o"></i><span class="tb-notif-badge"></span></div>
+      <div class="tb-user">
+        <div class="tb-user-av">M</div>
+        <span class="tb-user-name">Moda Fem.</span>
+        <i class="fa fa-angle-down" style="color:#8aa4af;font-size:11px;margin-left:4px"></i>
+      </div>
+    </div>
+
+    <div class="ct">
+
+      <!-- Header -->
+      <div class="ch">
+        <div class="ch-left">
+          <h1><i class="fa fa-cubes" style="color:#6d28d9;margin-right:8px"></i>Gestão de Estoque IA</h1>
+          <div class="breadcrumb">
+            <i class="fa fa-home"></i> Home
+            <i class="fa fa-angle-right"></i> Moda IA
+            <i class="fa fa-angle-right"></i> <span>Estoque IA</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary btn-sm"><i class="fa fa-download"></i> Exportar</button>
+          <button class="btn btn-primary" onclick="showToast('Estoque sincronizado!')"><i class="fa fa-refresh"></i> Sincronizar</button>
+        </div>
+      </div>
+
+      <!-- INFO BOXES -->
+      <div class="ib-grid">
+        <div class="ib">
+          <div class="ib-icon violet"><i class="fa fa-cubes"></i></div>
+          <div class="ib-content">
+            <div class="ib-num">183</div>
+            <div class="ib-label">Total de SKUs</div>
+            <div class="ib-sub">47 modelos · 3 categorias</div>
+          </div>
+          <div class="ib-badge up">+12 sem.</div>
+        </div>
+        <div class="ib">
+          <div class="ib-icon red"><i class="fa fa-times-circle"></i></div>
+          <div class="ib-content">
+            <div class="ib-num">8</div>
+            <div class="ib-label">SKUs Zerados</div>
+            <div class="ib-sub">sem estoque — IA bloqueia</div>
+          </div>
+          <div class="ib-badge crit">8 zero</div>
+        </div>
+        <div class="ib">
+          <div class="ib-icon amber"><i class="fa fa-exclamation-triangle"></i></div>
+          <div class="ib-content">
+            <div class="ib-num">14</div>
+            <div class="ib-label">SKUs Críticos</div>
+            <div class="ib-sub">menos de 3 unidades</div>
+          </div>
+          <div class="ib-badge warn">atenção</div>
+        </div>
+        <div class="ib">
+          <div class="ib-icon green"><i class="fa fa-money"></i></div>
+          <div class="ib-content">
+            <div class="ib-num">R$ 23.840</div>
+            <div class="ib-label">Valor Total Estoque</div>
+            <div class="ib-sub">preço de venda × qtd</div>
+          </div>
+          <div class="ib-badge up">+R$ 1.2k</div>
+        </div>
+      </div>
+
+      <!-- FILTER BAR -->
+      <div class="filter-bar">
+        <span class="fb-label"><i class="fa fa-filter"></i> Filtrar</span>
+        <div class="fb-chips">
+          <div class="fb-chip on" onclick="filtrar(this)">Todos</div>
+          <div class="fb-chip" onclick="filtrar(this)"><i class="fa fa-exclamation-triangle" style="color:#dc2626;font-size:9px"></i> Críticos</div>
+          <div class="fb-chip" onclick="filtrar(this)"><i class="fa fa-times-circle" style="color:#6b7280;font-size:10px"></i> Zerados</div>
+          <div class="fb-chip" onclick="filtrar(this)"><i class="fa fa-check-circle" style="color:#059669;font-size:10px"></i> OK</div>
+          <div class="fb-chip" onclick="filtrar(this)"><i class="fa fa-fire" style="color:#d97706;font-size:10px"></i> Alta Demanda</div>
+        </div>
+        <div class="fb-spacer"></div>
+        <div class="fb-search">
+          <i class="fa fa-search"></i>
+          <input type="text" placeholder="Buscar produto, cor ou tamanho...">
+        </div>
+      </div>
+
+      <!-- TABLE -->
+      <div class="box">
+        <div class="bh">
+          <span class="bt"><i class="fa fa-cubes"></i> Variantes de Estoque <span class="count">183</span> <span class="count-crit">8 zerados · 14 críticos</span></span>
+          <div class="bh-actions">
+            <button class="btn btn-secondary btn-sm"><i class="fa fa-download"></i> Exportar CSV</button>
+            <button class="btn btn-secondary btn-sm"><i class="fa fa-refresh"></i> Atualizar</button>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Produto</th>
+              <th>Cor</th>
+              <th>Tamanho</th>
+              <th style="color:#6d28d9">Demanda IA</th>
+              <th>Preço</th>
+              <th>Estoque Atual</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Linha Normal -->
+            <tr>
+              <td>
+                <div class="prod-name">Vestido Midi Floral</div>
+                <div class="prod-id">#MOD-001</div>
+                <span class="prod-cat">Vestidos</span>
+              </td>
+              <td>
+                <div class="color-cell">
+                  <span class="swatch-lg" style="background:#f9a8d4"></span>
+                  <span class="color-name">Rosa</span>
+                </div>
+              </td>
+              <td><span class="size-pill">M</span></td>
+              <td>
+                <div class="demand-num" style="color:#7c3aed">82%</div>
+                <div class="demand-sub">mais solicitado</div>
+                <div class="demand-bar"><div class="demand-fill" style="width:82%"></div></div>
+              </td>
+              <td style="font-weight:700;color:#374151">R$ 89,90</td>
+              <td>
+                <div class="qty-ctrl">
+                  <button class="btn-icon" onclick="ajustarQty(this,-1)"><i class="fa fa-minus"></i></button>
+                  <input class="qty-val" type="number" value="12" min="0" onchange="salvarQty(this)">
+                  <button class="btn-icon" onclick="ajustarQty(this,1)"><i class="fa fa-plus"></i></button>
+                </div>
+              </td>
+              <td><span class="badge badge-ok"><i class="fa fa-check-circle"></i> OK</span></td>
+            </tr>
+            <!-- Crítico -->
+            <tr class="row-crit">
+              <td>
+                <div class="prod-name">Vestido Midi Floral</div>
+                <div class="prod-id">#MOD-001</div>
+                <span class="prod-cat">Vestidos</span>
+              </td>
+              <td>
+                <div class="color-cell">
+                  <span class="swatch-lg" style="background:#f9a8d4"></span>
+                  <span class="color-name">Rosa</span>
+                </div>
+              </td>
+              <td><span class="size-pill">P</span></td>
+              <td>
+                <div class="demand-num">54%</div>
+                <div class="demand-sub">solicitações IA</div>
+                <div class="demand-bar"><div class="demand-fill" style="width:54%"></div></div>
+              </td>
+              <td style="font-weight:700;color:#374151">R$ 89,90</td>
+              <td>
+                <div class="qty-ctrl">
+                  <button class="btn-icon" onclick="ajustarQty(this,-1)"><i class="fa fa-minus"></i></button>
+                  <input class="qty-val crit" type="number" value="2" min="0" onchange="salvarQty(this)">
+                  <button class="btn-icon" onclick="ajustarQty(this,1)"><i class="fa fa-plus"></i></button>
+                </div>
+              </td>
+              <td><span class="badge badge-crit"><i class="fa fa-exclamation-triangle"></i> Crítico</span></td>
+            </tr>
+            <!-- Zerado -->
+            <tr class="row-zero">
+              <td>
+                <div class="prod-name">Vestido Midi Floral</div>
+                <div class="prod-id">#MOD-001</div>
+                <span class="prod-cat">Vestidos</span>
+              </td>
+              <td>
+                <div class="color-cell">
+                  <span class="swatch-lg" style="background:#111827"></span>
+                  <span class="color-name">Preto</span>
+                </div>
+              </td>
+              <td><span class="size-pill" style="background:#f3f4f6;color:#9ca3af;border-color:#e5e7eb">G</span></td>
+              <td>
+                <div class="demand-num" style="color:#9ca3af">38%</div>
+                <div class="demand-sub">solicitações IA</div>
+                <div class="demand-bar"><div class="demand-fill" style="width:38%;background:#d1d5db"></div></div>
+              </td>
+              <td style="font-weight:700;color:#9ca3af">R$ 89,90</td>
+              <td>
+                <div class="qty-ctrl">
+                  <button class="btn-icon" onclick="ajustarQty(this,-1)"><i class="fa fa-minus"></i></button>
+                  <input class="qty-val zero" type="number" value="0" min="0" onchange="salvarQty(this)">
+                  <button class="btn-icon" onclick="ajustarQty(this,1)"><i class="fa fa-plus"></i></button>
+                </div>
+              </td>
+              <td><span class="badge badge-zero"><i class="fa fa-times-circle"></i> Zerado</span></td>
+            </tr>
+            <!-- Blusa normal -->
+            <tr>
+              <td>
+                <div class="prod-name">Blusa Cropped Ribana</div>
+                <div class="prod-id">#MOD-002</div>
+                <span class="prod-cat">Blusas</span>
+              </td>
+              <td>
+                <div class="color-cell">
+                  <span class="swatch-lg" style="background:#fff;border:2px solid #d1d5db;box-shadow:none"></span>
+                  <span class="color-name">Branca</span>
+                </div>
+              </td>
+              <td><span class="size-pill">G</span></td>
+              <td>
+                <div class="demand-num">64%</div>
+                <div class="demand-sub">solicitações IA</div>
+                <div class="demand-bar"><div class="demand-fill" style="width:64%"></div></div>
+              </td>
+              <td style="font-weight:700;color:#374151">R$ 39,90</td>
+              <td>
+                <div class="qty-ctrl">
+                  <button class="btn-icon" onclick="ajustarQty(this,-1)"><i class="fa fa-minus"></i></button>
+                  <input class="qty-val" type="number" value="18" min="0" onchange="salvarQty(this)">
+                  <button class="btn-icon" onclick="ajustarQty(this,1)"><i class="fa fa-plus"></i></button>
+                </div>
+              </td>
+              <td><span class="badge badge-ok"><i class="fa fa-check-circle"></i> OK</span></td>
+            </tr>
+            <!-- Calça crítica -->
+            <tr class="row-crit">
+              <td>
+                <div class="prod-name">Calça Wide Leg Premium</div>
+                <div class="prod-id">#MOD-003</div>
+                <span class="prod-cat">Calças</span>
+              </td>
+              <td>
+                <div class="color-cell">
+                  <span class="swatch-lg" style="background:#92400e"></span>
+                  <span class="color-name">Caramelo</span>
+                </div>
+              </td>
+              <td><span class="size-pill">P</span></td>
+              <td>
+                <div class="demand-num" style="color:#7c3aed">71%</div>
+                <div class="demand-sub">solicitações IA</div>
+                <div class="demand-bar"><div class="demand-fill" style="width:71%"></div></div>
+              </td>
+              <td style="font-weight:700;color:#374151">R$ 149,90</td>
+              <td>
+                <div class="qty-ctrl">
+                  <button class="btn-icon" onclick="ajustarQty(this,-1)"><i class="fa fa-minus"></i></button>
+                  <input class="qty-val crit" type="number" value="1" min="0" onchange="salvarQty(this)">
+                  <button class="btn-icon" onclick="ajustarQty(this,1)"><i class="fa fa-plus"></i></button>
+                </div>
+              </td>
+              <td><span class="badge badge-crit"><i class="fa fa-exclamation-triangle"></i> Crítico</span></td>
+            </tr>
+            <!-- Conjunto baixo -->
+            <tr>
+              <td>
+                <div class="prod-name">Conjunto Tule Saia+Blusa</div>
+                <div class="prod-id">#MOD-004</div>
+                <span class="prod-cat">Conjuntos</span>
+              </td>
+              <td>
+                <div class="color-cell">
+                  <span class="swatch-lg" style="background:#c4b5fd"></span>
+                  <span class="color-name">Lilás</span>
+                </div>
+              </td>
+              <td><span class="size-pill">M</span></td>
+              <td>
+                <div class="demand-num">45%</div>
+                <div class="demand-sub">solicitações IA</div>
+                <div class="demand-bar"><div class="demand-fill" style="width:45%"></div></div>
+              </td>
+              <td style="font-weight:700;color:#374151">R$ 219,90</td>
+              <td>
+                <div class="qty-ctrl">
+                  <button class="btn-icon" onclick="ajustarQty(this,-1)"><i class="fa fa-minus"></i></button>
+                  <input class="qty-val crit" type="number" value="3" min="0" onchange="salvarQty(this)">
+                  <button class="btn-icon" onclick="ajustarQty(this,1)"><i class="fa fa-plus"></i></button>
+                </div>
+              </td>
+              <td><span class="badge badge-low"><i class="fa fa-exclamation-circle"></i> Baixo</span></td>
+            </tr>
+            <!-- Saia normal -->
+            <tr>
+              <td>
+                <div class="prod-name">Saia Midi Plissada</div>
+                <div class="prod-id">#MOD-005</div>
+                <span class="prod-cat">Saias</span>
+              </td>
+              <td>
+                <div class="color-cell">
+                  <span class="swatch-lg" style="background:#4ade80"></span>
+                  <span class="color-name">Verde</span>
+                </div>
+              </td>
+              <td><span class="size-pill">P</span></td>
+              <td>
+                <div class="demand-num">29%</div>
+                <div class="demand-sub">solicitações IA</div>
+                <div class="demand-bar"><div class="demand-fill" style="width:29%"></div></div>
+              </td>
+              <td style="font-weight:700;color:#374151">R$ 129,90</td>
+              <td>
+                <div class="qty-ctrl">
+                  <button class="btn-icon" onclick="ajustarQty(this,-1)"><i class="fa fa-minus"></i></button>
+                  <input class="qty-val" type="number" value="7" min="0" onchange="salvarQty(this)">
+                  <button class="btn-icon" onclick="ajustarQty(this,1)"><i class="fa fa-plus"></i></button>
+                </div>
+              </td>
+              <td><span class="badge badge-ok"><i class="fa fa-check-circle"></i> OK</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="bf">
+          <span class="bf-info">Exibindo 1–7 de 183 SKUs · <span style="color:#dc2626;font-weight:700">8 zerados</span> · <span style="color:#d97706;font-weight:700">14 críticos</span></span>
+          <div class="pagination">
+            <div class="pg-btn"><i class="fa fa-chevron-left"></i></div>
+            <div class="pg-btn act">1</div>
+            <div class="pg-btn">2</div>
+            <div class="pg-btn">3</div>
+            <div class="pg-btn">...</div>
+            <div class="pg-btn">27</div>
+            <div class="pg-btn"><i class="fa fa-chevron-right"></i></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /ct -->
+  </div><!-- /main -->
+</div><!-- /shell -->
+
+<!-- TOAST -->
+<div class="toast" id="toast"><i class="fa fa-magic"></i> <span id="toast-msg">Operação concluída</span></div>
+
+<script>
+let _tt;
+function showToast(msg){const t=document.getElementById('toast');document.getElementById('toast-msg').textContent=msg;t.classList.add('show');clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('show'),2800)}
+function filtrar(el){document.querySelectorAll('.fb-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on')}
+function ajustarQty(btn,delta){
+  const input=btn.parentNode.querySelector('.qty-val');
+  const novoVal=Math.max(0,parseInt(input.value||0)+delta);
+  input.value=novoVal;
+  atualizarEstadoQty(input);
+  showToast('Estoque atualizado: '+novoVal+' unidade'+(novoVal!==1?'s':''));
+}
+function salvarQty(input){
+  const v=Math.max(0,parseInt(input.value)||0);
+  input.value=v;
+  atualizarEstadoQty(input);
+  showToast('Quantidade salva: '+v+' unidade'+(v!==1?'s':''));
+}
+function atualizarEstadoQty(input){
+  const v=parseInt(input.value);
+  input.className='qty-val'+(v===0?' zero':v<3?' crit':'');
+  const badge=input.closest('tr').querySelector('.badge');
+  if(v===0){badge.className='badge badge-zero';badge.innerHTML='<i class="fa fa-times-circle"></i> Zerado';}
+  else if(v<3){badge.className='badge badge-crit';badge.innerHTML='<i class="fa fa-exclamation-triangle"></i> Crítico';}
+  else if(v<5){badge.className='badge badge-low';badge.innerHTML='<i class="fa fa-exclamation-circle"></i> Baixo';}
+  else{badge.className='badge badge-ok';badge.innerHTML='<i class="fa fa-check-circle"></i> OK';}
+}
+document.querySelectorAll('.mi,.mi-pro').forEach(m=>m.addEventListener('click',function(){document.querySelectorAll('.mi.act').forEach(x=>x.classList.remove('act'));this.classList.add('act')}))
+</script>
+</body>
+</html>

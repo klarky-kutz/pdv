@@ -86,7 +86,12 @@ try {
 
     foreach ($allowed_keys as $key) {
         if (isset($request->post[$key])) {
-            ai_save_setting($key, $request->post[$key], $tid);
+            $value = (string)$request->post[$key];
+            if (strpos($key, 'webhook') !== false || strpos($key, 'url') !== false) {
+                $value = trim($value);
+                $value = trim($value, '`"\' ');
+            }
+            ai_save_setting($key, $value, $tid);
         }
     }
 

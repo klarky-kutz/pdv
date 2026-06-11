@@ -46,6 +46,106 @@ function concierge_status_extract_token(): string
     }
     return $token;
 }
+function concierge_status_calculate_next_scheduled_at(int $tenantId, int $campaignId): ?string
+{
+    if (
+        $tenantId <= 0
+        || $campaignId <= 0
+        || !ai_groups_table_exists('concierge_broadcasts')
+        || !ai_groups_table_exists('concierge_groups')
+    ) {
+        return null;
+    }
+
+    try {
+        $groupsStmt = db()->prepare("
+            SELECT DISTINCT
+                g.id,
+                g.daily_limit,
+                g.settings_json
+            FROM concierge_broadcasts b
+            INNER JOIN concierge_groups g
+                ON g.id = b.group_id
+               AND g.tenant_id = b.tenant_id
+            WHERE b.tenant_id = :tid
+              AND b.campaign_id = :cid
+        ");
+        $groupsStmt->execute([':tid' => $tenantId, ':cid' => $campaignId]);
+        $groups = $groupsStmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        if (empty($groups)) {
+            return null;
+        }
+
+        $sentTodayStmt = db()->prepare("
+            SELECT SUM(
+                CASE
+                    WHEN b2.status IN ('sent','completed')
+                     AND DATE(COALESCE(b2.sent_at, b2.updated_at, b2.created_at)) = CURDATE()
+                    THEN 1 ELSE 0
+                END
+            ) AS sent_today
+            FROM concierge_broadcasts b2
+            WHERE b2.tenant_id = :tid
+              AND b2.group_id = :gid
+        ");
+        $lastSentStmt = db()->prepare("
+            SELECT MAX(COALESCE(b3.sent_at, b3.updated_at, b3.created_at)) AS last_sent_at
+            FROM concierge_broadcasts b3
+            WHERE b3.tenant_id = :tid
+              AND b3.group_id = :gid
+              AND b3.campaign_id = :cid
+              AND b3.status IN ('sent','completed')
+        ");
+
+        $nextAt = null;
+        foreach ($groups as $groupRow) {
+            $gid = (int)($groupRow['id'] ?? 0);
+            if ($gid <= 0) {
+                continue;
+            }
+
+            $sentTodayStmt->execute([':tid' => $tenantId, ':gid' => $gid]);
+            $sentToday = max(0, (int)$sentTodayStmt->fetchColumn());
+
+            $lastSentStmt->execute([':tid' => $tenantId, ':gid' => $gid, ':cid' => $campaignId]);
+            $lastSentAt = (string)$lastSentStmt->fetchColumn();
+            $lastSentAt = trim($lastSentAt);
+            if ($lastSentAt === '') {
+                $lastSentAt = null;
+            }
+
+            $next = ai_groups_calculate_next_dispatch_time(
+                $groupRow,
+                $sentToday,
+                $lastSentAt,
+                null,
+                true
+            );
+            $candidateRaw = trim((string)($next['datetime'] ?? ''));
+            if ($candidateRaw === '') {
+                continue;
+            }
+
+            try {
+                $candidate = new DateTime($candidateRaw);
+            } catch (Throwable $e) {
+                continue;
+            }
+
+            if ($nextAt === null || $candidate > $nextAt) {
+                $nextAt = $candidate;
+            }
+        }
+
+        if ($nextAt instanceof DateTime) {
+            return $nextAt->format('Y-m-d H:i:s');
+        }
+
+        return null;
+    } catch (Throwable $e) {
+        return null;
+    }
+}
 
 function concierge_status_check_replay(int $tenantId, string $nonce, int $ts): bool
 {
@@ -86,6 +186,13 @@ function concierge_status_append_log(array $entry): void
 try {
     $raw = concierge_status_json_raw();
     $json = concierge_status_json_decode($raw);
+
+    // Log raw input for debugging
+    concierge_status_append_log([
+        'debug_step' => 'raw_input_received',
+        'raw_input' => $raw,
+        'parsed_json' => $json,
+    ]);
 
     $tenantId = (int)($json['tenant_id'] ?? $json['loja_id'] ?? $_GET['tenant_id'] ?? $_GET['loja_id'] ?? 0);
     if ($tenantId <= 0) {
@@ -141,12 +248,14 @@ try {
     }
 
     $ok = ai_mark_broadcast_status($tenantId, $campaignId, $groupId, $status, $externalMessageId, $errorMessage);
+    
     if (!$ok) {
         throw new Exception('Falha ao persistir status de broadcast.');
     }
 
     $summary = ai_get_campaign_delivery_summary($tenantId, $campaignId);
     $campaignStatus = null;
+    $nextScheduledAt = null;
     if (($summary['total'] ?? 0) > 0) {
         $sent = (int)($summary['sent'] ?? 0);
         $error = (int)($summary['error'] ?? 0);
@@ -156,9 +265,37 @@ try {
         $pending = (int)($summary['pending'] ?? 0);
 
         if (($sent + $error + $skipped) >= (int)$summary['total']) {
-            $campaignStatus = $sent > 0 ? 'sent' : 'failed';
-            $sql = "UPDATE concierge_campaigns SET status = :status, sent_at = CASE WHEN :status2 = 'sent' THEN NOW() ELSE sent_at END, updated_at = NOW() WHERE tenant_id = :tid AND id = :cid LIMIT 1";
-            db()->prepare($sql)->execute([':status' => $campaignStatus, ':status2' => $campaignStatus, ':tid' => $tenantId, ':cid' => $campaignId]);
+            $campaignRow = ai_get_concierge_campaign($tenantId, $campaignId);
+            $allowRequeue = (int)(is_array($campaignRow) ? ($campaignRow['allow_requeue'] ?? 0) : 0);
+
+            if ($allowRequeue === 1) {
+                $nextScheduledAt = concierge_status_calculate_next_scheduled_at($tenantId, $campaignId);
+                if (!$nextScheduledAt) {
+                    $nextScheduledAt = date('Y-m-d H:i:s', time() + 300);
+                }
+                $campaignStatus = 'scheduled';
+                
+                $sql = "
+                    UPDATE concierge_campaigns
+                    SET status = 'scheduled',
+                        scheduled_at = :scheduled_at,
+                        sent_at = CASE WHEN :sent > 0 THEN NOW() ELSE sent_at END,
+                        updated_at = NOW()
+                    WHERE tenant_id = :tid
+                      AND id = :cid
+                    LIMIT 1
+                ";
+                db()->prepare($sql)->execute([
+                    ':scheduled_at' => $nextScheduledAt,
+                    ':tid' => $tenantId,
+                    ':cid' => $campaignId,
+                    ':sent' => $sent,
+                ]);
+            } else {
+                $campaignStatus = $sent > 0 ? 'sent' : 'failed';
+                $sql = "UPDATE concierge_campaigns SET status = :status, sent_at = CASE WHEN :status2 = 'sent' THEN NOW() ELSE sent_at END, updated_at = NOW() WHERE tenant_id = :tid AND id = :cid LIMIT 1";
+                db()->prepare($sql)->execute([':status' => $campaignStatus, ':status2' => $campaignStatus, ':tid' => $tenantId, ':cid' => $campaignId]);
+            }
         } elseif ($sending > 0) {
             $campaignStatus = 'sending';
             db()->prepare("UPDATE concierge_campaigns SET status = 'sending', updated_at = NOW() WHERE tenant_id = :tid AND id = :cid LIMIT 1")
@@ -173,6 +310,7 @@ try {
         'status' => $status,
         'external_message_id' => $externalMessageId,
         'campaign_status' => $campaignStatus,
+        'next_scheduled_at' => $nextScheduledAt,
         'summary' => $summary,
     ]);
 
@@ -181,6 +319,7 @@ try {
         'group_id' => $groupId,
         'summary' => $summary,
         'campaign_status' => $campaignStatus,
+        'next_scheduled_at' => $nextScheduledAt,
     ]), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit;
 } catch (Throwable $e) {

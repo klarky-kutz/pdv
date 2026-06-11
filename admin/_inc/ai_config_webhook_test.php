@@ -118,3 +118,4 @@ try {
     http_response_code(422);
     echo json_encode(['errorMsg' => $e->getMessage()]);
 }
+?>

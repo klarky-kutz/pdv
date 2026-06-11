@@ -119,20 +119,25 @@ function ai_evolution_normalize_api_token(string $token): string
 function ai_evolution_global_config(): array
 {
     try {
-        $st = db()->query("SELECT key_name, key_value FROM saas_config_global WHERE key_name IN ('ai_evolution_base_url', 'ai_evolution_global_token', 'ai_evolution_webhook_inbound', 'ai_status_posting_mode')");
+        $st = db()->query("SELECT key_name, key_value FROM saas_config_global WHERE key_name IN ('ai_evolution_base_url', 'ai_evolution_global_token', 'ai_evolution_webhook_inbound', 'ai_status_posting_mode', 'ai_campaign_posting_mode')");
         $rows = $st->fetchAll(PDO::FETCH_KEY_PAIR);
         $baseUrl = rtrim((string)($rows['ai_evolution_base_url'] ?? ''), '/');
         $webhookInbound = trim((string)($rows['ai_evolution_webhook_inbound'] ?? ''));
         $globalToken = ai_evolution_normalize_api_token((string)($rows['ai_evolution_global_token'] ?? ''));
         $statusPostingMode = strtolower(trim((string)($rows['ai_status_posting_mode'] ?? 'n8n')));
+        $campaignPostingMode = strtolower(trim((string)($rows['ai_campaign_posting_mode'] ?? 'n8n')));
         if (!in_array($statusPostingMode, ['n8n', 'system'], true)) {
             $statusPostingMode = 'n8n';
+        }
+        if (!in_array($campaignPostingMode, ['n8n', 'system'], true)) {
+            $campaignPostingMode = 'n8n';
         }
         return [
             'base_url'        => $baseUrl,
             'global_token'    => $globalToken,
             'webhook_inbound' => $webhookInbound,
             'status_posting_mode' => $statusPostingMode,
+            'campaign_posting_mode' => $campaignPostingMode,
         ];
     } catch (Exception $e) {
         return [
@@ -140,6 +145,7 @@ function ai_evolution_global_config(): array
             'global_token'    => '',
             'webhook_inbound' => '',
             'status_posting_mode' => 'n8n',
+            'campaign_posting_mode' => 'n8n',
         ];
     }
 }
@@ -221,12 +227,15 @@ function ai_evolution_get_connection(int $tenantId = 0): array
     $global = ai_evolution_global_config();
     $globalToken = (string)($global['global_token'] ?? '');
 
-    $instanceName     = trim((string) ai_get_setting('ai_evolution_instance_name', ai_get_setting('ai_instance_name', ''), $tid));
-    $webhookTargetN8n = trim((string) ai_get_setting('ai_webhook_target_url', '', $tid));
-    $statusLabel      = trim((string) ai_get_setting('ai_evolution_status', 'Desconectado', $tid));
-    $lastQrCode       = trim((string) ai_get_setting('ai_evolution_last_qrcode', '', $tid));
-    $storeToken       = ai_evolution_store_token($tid);
-    $webhookInbound   = ai_evolution_resolve_webhook_inbound($global['webhook_inbound'], $tid, $storeToken);
+    $instanceName         = trim((string) ai_get_setting('ai_evolution_instance_name', ai_get_setting('ai_instance_name', ''), $tid));
+    $webhookConversation  = trim((string) ai_get_setting('ai_webhook_conversation_url', '', $tid));
+    if ($webhookConversation === '') {
+        $webhookConversation = trim((string) ai_get_setting('ai_webhook_target_url', '', $tid));
+    }
+    $statusLabel          = trim((string) ai_get_setting('ai_evolution_status', 'Desconectado', $tid));
+    $lastQrCode           = trim((string) ai_get_setting('ai_evolution_last_qrcode', '', $tid));
+    $storeToken           = ai_evolution_store_token($tid);
+    $webhookInbound       = ai_evolution_resolve_webhook_inbound($global['webhook_inbound'], $tid, $storeToken);
 
     if ($webhookInbound === '') {
         $webhookInbound = rtrim((string)ROOT_URL, '/') . '/api/concierge/evolution_webhook.php?loja_id=' . $tid . '&token=' . $storeToken;
@@ -238,7 +247,8 @@ function ai_evolution_get_connection(int $tenantId = 0): array
         'instance_name'           => $instanceName,
         'webhook_inbound_url'     => $webhookInbound,
         'webhook_inbound_raw'     => (string)$global['webhook_inbound'],
-        'webhook_target_url'      => $webhookTargetN8n,
+        'webhook_conversation_url'=> $webhookConversation,
+        'webhook_target_url'      => $webhookConversation,
         'status_label'            => $statusLabel ?: 'Desconectado',
         'last_qrcode'             => $lastQrCode,
         'global_token'            => $globalToken,
@@ -266,7 +276,10 @@ function ai_evolution_save_connection(array $data, int $tenantId = 0): void
         'ai_api_key',
         'ai_whatsapp_provider',
         'ai_whatsapp_number',
+        'ai_webhook_conversation_url',
         'ai_webhook_target_url',
+        'ai_groups_dispatch_webhook_url',
+        'ai_status_dispatch_webhook_url',
     ];
 
     foreach ($allowed as $key) {
@@ -1086,6 +1099,42 @@ function ai_evolution_leave_group(int $tenantId, string $groupJid): array
         'error' => (string)($last['error'] ?? 'Falha ao sair do grupo na Evolution'),
         'raw' => is_array($last['json'] ?? null) ? $last['json'] : [],
     ];
+}
+
+/**
+ * Busca detalhes da instância na Evolution API e salva o número do dono.
+ */
+function ai_evolution_fetch_and_save_instance_number(int $tenantId = 0): array
+{
+    $tid = $tenantId ?: ai_tenant_id();
+    $connection = ai_evolution_get_connection($tid);
+    $instance = trim((string)$connection['instance_name'] ?? '');
+    $baseUrl = trim((string)$connection['base_url'] ?? '');
+    $token = trim((string)$connection['global_token'] ?? '');
+
+    if ($instance === '' || $baseUrl === '' || $token === '') {
+        return ['ok' => false, 'error' => 'Configuração Evolution incompleta'];
+    }
+
+    $result = ai_evolution_http_request(
+        'GET',
+        $baseUrl . '/instance/fetchInstance/' . rawurlencode($instance),
+        $token
+    );
+
+    if (!$result['ok']) {
+        return ['ok' => false, 'error' => $result['error'] ?? 'Erro ao buscar instância'];
+    }
+
+    $json = $result['json'] ?? [];
+    $ownerNumber = ai_evolution_extract_instance_number($json);
+
+    if ($ownerNumber !== '') {
+        ai_save_setting('ai_whatsapp_number', $ownerNumber, $tid);
+        return ['ok' => true, 'number' => $ownerNumber];
+    }
+
+    return ['ok' => false, 'error' => 'Não foi possível extrair o número da instância'];
 }
 
 /**

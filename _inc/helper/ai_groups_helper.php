@@ -26,68 +26,112 @@ function ai_groups_calculate_next_dispatch_time(array $group, int $sentToday, ?s
         $repeatDays = array_map('intval', array_filter(explode(',', $repeatDaysStr)));
     }
 
+    $now = new DateTime('now', new DateTimeZone(date_default_timezone_get()));
+
+    // 1) Honra agendamento manual futuro, mas não deixa retornar passado
     $isScheduledByUser = !$hasBeenSent && !empty($scheduledAt);
     if ($isScheduledByUser) {
-        return [
-            'datetime' => $scheduledAt,
-            'type' => 'user',
-            'label' => 'Agendado por você'
-        ];
-    }
-
-    $now = new DateTime();
-    $now->setTimezone(new DateTimeZone(date_default_timezone_get()));
-
-    $baseTime = $now;
-    if (!empty($lastSentAt)) {
         try {
-            $baseTime = new DateTime($lastSentAt);
+            $userDt = new DateTime($scheduledAt);
+            if ($userDt < $now) {
+                $userDt = clone $now;
+            }
+            return [
+                'datetime' => $userDt->format('Y-m-d H:i:s'),
+                'type' => 'user',
+                'label' => 'Agendado por você',
+            ];
         } catch (Throwable $e) {
-            $baseTime = $now;
+            // Se a data manual for inválida, cai para o fluxo automático
         }
     }
 
+    // 2) Base para cálculo automático: último envio ou agora, o que for mais recente
+    $baseTime = clone $now;
+    if (!empty($lastSentAt)) {
+        try {
+            $last = new DateTime($lastSentAt);
+            if ($last > $baseTime) {
+                $baseTime = $last;
+            }
+        } catch (Throwable $e) {
+            // mantém $baseTime = now
+        }
+    }
+
+    // 3) Se já bateu o limite diário, empurra para o próximo dia válido no horário de início
     if ($dailyLimit > 0 && $sentToday >= $dailyLimit) {
         $nextDay = (clone $baseTime)->modify('+1 day');
         $validNextDay = ai_groups_find_next_valid_day($nextDay, $repeatDays);
         [$startHour, $startMin] = explode(':', $startTime);
         $validNextDay->setTime((int)$startHour, (int)$startMin, 0);
+        if ($validNextDay < $now) {
+            $validNextDay = $now;
+        }
         return [
             'datetime' => $validNextDay->format('Y-m-d H:i:s'),
             'type' => 'system',
-            'label' => 'Próximo dia útil'
+            'label' => 'Próximo dia útil',
         ];
     }
 
+    // 4) Gera próximo intervalo bruto com base no último envio (ou agora)
     if ($intervalMinutes > 0) {
         $nextInterval = (clone $baseTime)->modify("+{$intervalMinutes} minutes");
     } else {
-        $nextInterval = (clone $baseTime);
+        $nextInterval = clone $baseTime;
     }
 
-    $validDay = ai_groups_find_next_valid_day($nextInterval, $repeatDays);
-
-    [$startHour, $startMin] = explode(':', $startTime);
-    $startOfDay = (clone $validDay)->setTime((int)$startHour, (int)$startMin, 0);
-    $endOfDay = (clone $validDay)->setTime(23, 59, 59);
-
-    if ($validDay < $startOfDay) {
-        $nextTime = $startOfDay;
-    } else {
-        $nextTime = $validDay;
+    // 5) Força sempre para frente em relação a "agora" para evitar datas expiradas
+    if ($nextInterval < $now) {
+        $nextInterval = clone $now;
     }
 
-    if ($nextTime > $endOfDay) {
-        $nextDay = (clone $endOfDay)->modify('+1 day');
-        $validNextDay = ai_groups_find_next_valid_day($nextDay, $repeatDays);
-        $validNextDay->setTime((int)$startHour, (int)$startMin, 0);
-        $nextTime = $validNextDay;
+    // 6) Itera até achar um dia/hora válido, parando se não encontrar nada razoável
+    $attempts = 0;
+    $maxAttempts = 7 * 24 * 60; // até 7 dias, em passos de 1 minuto
+    $nextTime = null;
+
+    while ($attempts < $maxAttempts) {
+        $validDay = ai_groups_find_next_valid_day($nextInterval, $repeatDays);
+
+        [$startHour, $startMin] = explode(':', $startTime);
+        $startOfDay = (clone $validDay)->setTime((int)$startHour, (int)$startMin, 0);
+        $endOfDay = (clone $validDay)->setTime(23, 59, 59);
+
+        if ($validDay < $startOfDay) {
+            $candidate = $startOfDay;
+        } else {
+            $candidate = $validDay;
+        }
+
+        if ($candidate < $now) {
+            // ainda no passado: avança 1 minuto e tenta de novo
+            $nextInterval = (clone $candidate)->modify('+1 minute');
+            $attempts++;
+            continue;
+        }
+
+        if ($candidate > $endOfDay) {
+            // passou do fim do dia: pula para o próximo dia
+            $nextInterval = (clone $endOfDay)->modify('+1 day');
+            $attempts++;
+            continue;
+        }
+
+        $nextTime = $candidate;
+        break;
+    }
+
+    if ($nextTime === null) {
+        // fallback defensivo: agora
+        $nextTime = clone $now;
     }
 
     return [
         'datetime' => $nextTime->format('Y-m-d H:i:s'),
         'type' => 'system',
-        'label' => 'Fila de produtos'
+        'label' => 'Fila de produtos',
     ];
 }
 
@@ -376,7 +420,7 @@ function ai_groups_find_campaign_schedule_conflict(int $tenantId, string $schedu
     // 1. Verifica Campanhas
     if (ai_groups_table_exists('concierge_campaigns')) {
         try {
-            $sql = "SELECT id, status, scheduled_at, 'campaign' as type FROM concierge_campaigns WHERE tenant_id = :tid AND status IN ('scheduled','sending','pending') AND scheduled_at IS NOT NULL";
+            $sql = "SELECT id, status, scheduled_at, 'campaign' as type FROM concierge_campaigns WHERE tenant_id = :tid AND status IN ('scheduled','queued','sending','pending') AND scheduled_at IS NOT NULL";
             $params = [':tid' => $tenantId, ':target' => $target, ':gap' => $gapSeconds];
             if ($excludeCampaignId > 0) { $sql .= " AND id <> :exclude_id"; $params[':exclude_id'] = $excludeCampaignId; }
             $sql .= " AND ABS(TIMESTAMPDIFF(SECOND, scheduled_at, :target)) < :gap ORDER BY ABS(TIMESTAMPDIFF(SECOND, scheduled_at, :target)) ASC LIMIT 1";
@@ -1890,6 +1934,22 @@ function ai_process_due_concierge_campaigns(int $tenantId = 0, int $limit = 25):
         if ($tid <= 0 || $campaignId <= 0) {
             continue;
         }
+
+        // Reset broadcasts to pending for new cycle
+        if (ai_groups_table_exists('concierge_broadcasts')) {
+            $resetBroadcasts = db()->prepare("
+                UPDATE concierge_broadcasts
+                SET status = 'pending',
+                    error_message = NULL,
+                    sent_at = NULL,
+                    external_message_id = NULL,
+                    updated_at = NOW()
+                WHERE tenant_id = :tid
+                  AND campaign_id = :cid
+            ");
+            $resetBroadcasts->execute([':tid' => $tid, ':cid' => $campaignId]);
+        }
+
         if ($campaignPostingMode === 'system') {
             $stubMsg = 'Disparo de campanhas via sistema está em preparação. Altere para N8N para executar envios.';
             ai_update_concierge_campaign($tid, $campaignId, [
@@ -2093,7 +2153,11 @@ function ai_schedule_concierge_campaign(int $tenantId, int $campaignId, string $
                 updated_at = NOW()
             WHERE tenant_id = :tid
               AND id = :cid
-              AND status NOT IN ('sent', 'canceled', 'completed')
+              AND status <> 'canceled'
+              AND (
+                    status NOT IN ('sent', 'completed')
+                    OR allow_requeue = 1
+              )
             LIMIT 1
         ");
         $stmt->execute([
@@ -2595,6 +2659,10 @@ function ai_update_concierge_campaign(int $tenantId, int $campaignId, array $pay
         $sets[] = 'status = :status';
         $params[':status'] = ai_groups_normalize_campaign_status((string)$payload['status']);
     }
+    if (array_key_exists('last_error', $payload)) {
+        $sets[] = 'last_error = :last_error';
+        $params[':last_error'] = trim((string)$payload['last_error']);
+    }
 
     if (array_key_exists('scheduled_at', $payload)) {
         $sets[] = 'scheduled_at = :scheduled_at';
@@ -2605,6 +2673,16 @@ function ai_update_concierge_campaign(int $tenantId, int $campaignId, array $pay
     if (array_key_exists('updated_by', $payload)) {
         $sets[] = 'updated_by = :updated_by';
         $params[':updated_by'] = (int)$payload['updated_by'];
+    }
+    if (array_key_exists('webhook_requested_at', $payload)) {
+        $sets[] = 'webhook_requested_at = :webhook_requested_at';
+        $requestedAt = trim((string)$payload['webhook_requested_at']);
+        $params[':webhook_requested_at'] = $requestedAt !== '' ? $requestedAt : null;
+    }
+    if (array_key_exists('n8n_execution_id', $payload)) {
+        $sets[] = 'n8n_execution_id = :n8n_execution_id';
+        $executionId = trim((string)$payload['n8n_execution_id']);
+        $params[':n8n_execution_id'] = $executionId !== '' ? $executionId : null;
     }
 
     if (array_key_exists('payload_json', $payload)) {
@@ -2788,7 +2866,15 @@ function ai_mark_broadcast_status(
     $status = ai_groups_normalize_broadcast_status($status);
     $externalMessageId = trim($externalMessageId);
     $errorMessage = trim($errorMessage);
-    $today = date('Y-m-d');
+
+    // Usa timezone da loja para registrar o dia no histórico
+    $tz = ai_get_setting('timezone', 'America/Sao_Paulo', $tenantId);
+    try {
+        $dtNow = new DateTime('now', new DateTimeZone($tz));
+        $today = $dtNow->format('Y-m-d');
+    } catch (Throwable $e) {
+        $today = date('Y-m-d');
+    }
 
     try {
         if ($externalMessageId !== '') {
@@ -2862,12 +2948,44 @@ function ai_mark_broadcast_status(
                     }
                 }
 
-                // Atualiza o success_history_json
+                // Normaliza histórico existente (string simples -> formato rico)
                 $successHistory = $settings['success_history_json'] ?? [];
                 if (!is_array($successHistory)) {
                     $successHistory = [];
                 }
-                $successHistory[$today] = 'sent';
+                foreach ($successHistory as $d => $val) {
+                    if (!is_array($val)) {
+                        $successHistory[$d] = [
+                            'sent' => 1,
+                            'planned' => max(1, (int)($successHistory[$d]['planned'] ?? 1)),
+                            'failed' => 0,
+                        ];
+                    } else {
+                        $sent = max(0, (int)($val['sent'] ?? 0));
+                        $planned = max($sent, (int)($val['planned'] ?? $sent));
+                        $failed = max(0, (int)($val['failed'] ?? 0));
+                        $successHistory[$d] = [
+                            'sent' => $sent,
+                            'planned' => $planned,
+                            'failed' => $failed,
+                        ];
+                    }
+                }
+
+                // Incrementa o dia atual
+                if (!isset($successHistory[$today]) || !is_array($successHistory[$today])) {
+                    $successHistory[$today] = [
+                        'sent' => 1,
+                        'planned' => 1,
+                        'failed' => 0,
+                    ];
+                } else {
+                    $successHistory[$today]['sent'] = max(0, (int)($successHistory[$today]['sent'] ?? 0)) + 1;
+                    $successHistory[$today]['planned'] = max(
+                        $successHistory[$today]['sent'],
+                        (int)($successHistory[$today]['planned'] ?? $successHistory[$today]['sent'])
+                    );
+                }
                 $settings['success_history_json'] = $successHistory;
 
                 // Salva as configurações atualizadas no grupo
@@ -2914,13 +3032,20 @@ function ai_dispatch_concierge_campaign_now(int $tenantId, int $campaignId, int 
         $stmt = db()->prepare("
             UPDATE concierge_campaigns
             SET status = 'scheduled',
-                scheduled_at = NOW(),
+                scheduled_at = DATE_SUB(NOW(), INTERVAL 1 MINUTE),
                 updated_by = :uid,
                 webhook_requested_at = NOW(),
+                last_error = '',
+                n8n_execution_id = NULL,
+                sent_at = NULL,
                 updated_at = NOW()
             WHERE tenant_id = :tid
               AND id = :cid
-              AND status NOT IN ('sent', 'canceled', 'completed')
+              AND status <> 'canceled'
+              AND (
+                    status NOT IN ('sent', 'completed')
+                    OR allow_requeue = 1
+              )
             LIMIT 1
         ");
         $stmt->execute([
@@ -2931,7 +3056,12 @@ function ai_dispatch_concierge_campaign_now(int $tenantId, int $campaignId, int 
 
         if ($stmt->rowCount() > 0) {
             ai_process_due_concierge_campaigns($tenantId, 1);
-            return true;
+            $campaign = ai_get_concierge_campaign($tenantId, $campaignId);
+            if (!is_array($campaign)) {
+                return false;
+            }
+            $status = strtolower(trim((string)($campaign['status'] ?? '')));
+            return in_array($status, ['sending', 'sent', 'completed'], true);
         }
 
         return false;
@@ -2950,7 +3080,7 @@ function ai_get_due_concierge_campaigns(int $tenantId = 0, int $limit = 50): arr
     }
 
     $limit = max(1, min(200, $limit));
-    $where = "status = 'scheduled' AND scheduled_at IS NOT NULL AND scheduled_at <= NOW()";
+    $where = "status IN ('scheduled','pending','queued') AND scheduled_at IS NOT NULL AND scheduled_at <= NOW()";
     $params = [];
 
     if ($tenantId > 0) {
@@ -3009,7 +3139,9 @@ function ai_groups_get_group_dispatch_queue(int $tenantId, int $groupId, int $ne
 
     $settings = ai_groups_decode_json($group['settings_json'] ?? null);
     $dailyLimit = max(0, (int)($group['daily_limit'] ?? 0));
-    $intervalMinutes = max(0, (int)($settings['dispatch_interval_minutes'] ?? $settings['interval_between_dispatches'] ?? 0));
+    $intervalMinutesRaw = max(0, (int)($settings['dispatch_interval_minutes'] ?? $settings['interval_between_dispatches'] ?? 0));
+    $defaultIntervalMinutes = max(1, (int)ai_get_setting('mia_group_delay', 5, $tenantId));
+    $intervalMinutes = $intervalMinutesRaw > 0 ? $intervalMinutesRaw : $defaultIntervalMinutes;
     $startTime = trim((string)($settings['start_time'] ?? '09:00'));
     if (!preg_match('/^\d{2}:\d{2}$/', $startTime)) {
         $startTime = '09:00';
@@ -3041,8 +3173,8 @@ function ai_groups_get_group_dispatch_queue(int $tenantId, int $groupId, int $ne
             WHERE b.tenant_id = ?
               AND b.group_id = ?
               AND c.tenant_id = ?
-              AND c.status IN ('pending','scheduled','sending','sent','completed')
-              AND b.status IN ('pending','scheduled','sending','sent','completed')
+              AND c.status IN ('pending','queued','scheduled','sending','sent','completed')
+              AND b.status IN ('pending','queued','scheduled','sending','sent','completed')
             GROUP BY c.id
             ORDER BY c.scheduled_at ASC, c.id ASC
         ");
@@ -3074,13 +3206,32 @@ function ai_groups_get_group_dispatch_queue(int $tenantId, int $groupId, int $ne
         }
         $thumb = trim((string)($row['media_url'] ?? ''));
         $hasBeenSent = (int)($row['total_sent_count'] ?? 0) > 0;
-        $nextDispatch = ai_groups_calculate_next_dispatch_time(
-            $group,
-            $sentToday,
-            $row['last_sent_at'] ?? null,
-            $row['scheduled_at'] ?? null,
-            $hasBeenSent
-        );
+        $campaignStatus = strtolower(trim((string)($row['status'] ?? 'pending')));
+        $scheduledAt = trim((string)($row['scheduled_at'] ?? ''));
+        $nextDispatch = null;
+
+        if ($scheduledAt !== '' && in_array($campaignStatus, ['pending', 'queued', 'scheduled', 'sending'], true)) {
+            try {
+                $scheduledDt = new DateTime($scheduledAt, new DateTimeZone(date_default_timezone_get()));
+                $nextDispatch = [
+                    'datetime' => $scheduledDt->format('Y-m-d H:i:s'),
+                    'type' => $hasBeenSent ? 'system' : 'user',
+                    'label' => $hasBeenSent ? 'Fila de produtos' : 'Agendado por você',
+                ];
+            } catch (Throwable $e) {
+                $nextDispatch = null;
+            }
+        }
+
+        if ($nextDispatch === null) {
+            $nextDispatch = ai_groups_calculate_next_dispatch_time(
+                $group,
+                $sentToday,
+                $row['last_sent_at'] ?? null,
+                $row['scheduled_at'] ?? null,
+                $hasBeenSent
+            );
+        }
         $orderedItems[] = [
             'id' => $cid,
             'product_id' => $cid,
@@ -3093,9 +3244,9 @@ function ai_groups_get_group_dispatch_queue(int $tenantId, int $groupId, int $ne
             'next_dispatch_at' => $nextDispatch['datetime'] ?? null,
             'next_dispatch_type' => $nextDispatch['type'] ?? 'system',
             'next_dispatch_label' => $nextDispatch['label'] ?? 'Fila de produtos',
-            'status' => trim((string)($row['status'] ?? 'pending')),
-            'campaign_status_global' => trim((string)($row['status'] ?? 'pending')),
-            'queue_display_status' => trim((string)($row['status'] ?? 'pending')),
+            'status' => $campaignStatus !== '' ? $campaignStatus : 'pending',
+            'campaign_status_global' => $campaignStatus !== '' ? $campaignStatus : 'pending',
+            'queue_display_status' => $campaignStatus !== '' ? $campaignStatus : 'pending',
             'allow_requeue' => max(0, (int)($row['allow_requeue'] ?? 1)),
             'requeue_enabled' => max(0, (int)($row['allow_requeue'] ?? 1)),
         ];
@@ -3119,50 +3270,33 @@ function ai_groups_get_group_dispatch_queue(int $tenantId, int $groupId, int $ne
         $result['last_sent_item'] = $lastSentItem;
     }
 
-    $unsent = array_values(array_filter($orderedItems, static function (array $it): bool {
-        return (int)($it['total_sent_count'] ?? 0) <= 0;
-    }));
-
-    usort($unsent, static function (array $a, array $b): int {
-        $aFirst = $a['first_seen_at'] ?? '';
-        $bFirst = $b['first_seen_at'] ?? '';
-        return strcmp($aFirst, $bFirst);
+    // Sort ALL items by next_dispatch_at (the actual time they will be sent)
+    usort($orderedItems, static function (array $a, array $b): int {
+        $aNext = $a['next_dispatch_at'] ?? '';
+        $bNext = $b['next_dispatch_at'] ?? '';
+        
+        // If either doesn't have next_dispatch_at, use first_seen_at as fallback
+        if ($aNext === '' || $bNext === '') {
+            $aFallback = $a['first_seen_at'] ?? '';
+            $bFallback = $b['first_seen_at'] ?? '';
+            return strcmp($aFallback, $bFallback);
+        }
+        
+        return strcmp($aNext, $bNext);
     });
 
-    $queue = [];
-    if (!empty($unsent)) {
-        $unsentIds = array_map(static function (array $it): int {
-            return (int)($it['id'] ?? 0);
-        }, $unsent);
-        $queue = $unsent;
-        foreach ($orderedItems as $it) {
-            if (!in_array((int)$it['id'], $unsentIds, true)) {
-                $queue[] = $it;
-            }
-        }
-    } else {
-        $queue = $orderedItems;
-        if ($lastSentItem) {
-            $lastCid = (int)$lastSentItem['id'];
-            $idx = -1;
-            foreach ($queue as $i => $it) {
-                if ((int)$it['id'] === $lastCid) {
-                    $idx = $i;
-                    break;
-                }
-            }
-            if ($idx >= 0) {
-                $lastItem = $queue[$idx];
-                if ((int)($lastItem['allow_requeue'] ?? 1) === 1) {
-                    $queue = array_merge(array_slice($queue, $idx + 1), array_slice($queue, 0, $idx + 1));
-                }
-            }
-        }
-    }
+    $queue = $orderedItems;
 
     $nextCount = max(1, min(10, $nextCount));
+    if ($lastSentItem && count($queue) > 1) {
+        $queue = array_values(array_filter($queue, static function (array $item) use ($lastSentItem): bool {
+            return (int)($item['id'] ?? 0) !== (int)($lastSentItem['id'] ?? 0);
+        }));
+    }
     $nextItems = array_slice($queue, 0, $nextCount);
-    $result['next_items'] = array_map(static function (array $item): array {
+    $now = new DateTime('now', new DateTimeZone(date_default_timezone_get()));
+
+    $result['next_items'] = array_map(static function (array $item) use ($now): array {
         $status = strtolower(trim((string)($item['status'] ?? 'pending')));
         $allowRequeue = (int)($item['requeue_enabled'] ?? $item['allow_requeue'] ?? 1) === 1;
         $alreadySent = (int)($item['total_sent_count'] ?? 0) > 0;
@@ -3174,6 +3308,21 @@ function ai_groups_get_group_dispatch_queue(int $tenantId, int $groupId, int $ne
             $queueDisplayStatus = 'scheduled';
         } elseif ($status === '') {
             $queueDisplayStatus = 'pending';
+        }
+
+        // Marca como "overdue" se o próximo disparo previsto já estiver no passado
+        $nextAtRaw = trim((string)($item['next_dispatch_at'] ?? ''));
+        if ($nextAtRaw !== '') {
+            try {
+                $nextAt = new DateTime($nextAtRaw, new DateTimeZone(date_default_timezone_get()));
+                if ($nextAt < $now && !in_array($queueDisplayStatus, ['sending', 'sent', 'completed'], true)) {
+                    $queueDisplayStatus = 'overdue';
+                    // Label mais explícito para frontend
+                    $item['next_dispatch_label'] = 'Atrasado · aguardando próxima janela';
+                }
+            } catch (Throwable $e) {
+                // ignora erro de parse e mantém status calculado
+            }
         }
 
         $item['campaign_status_global'] = trim((string)($item['campaign_status_global'] ?? $status));

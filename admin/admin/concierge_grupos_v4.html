@@ -1,0 +1,1600 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Grupos IA · Moda IA · ModernPOS</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans','Helvetica Neue',Arial,sans-serif;font-size:13px;background:#f0f2f5;color:#1a1a2e;overflow:hidden}
+a{text-decoration:none;color:inherit}
+button{cursor:pointer;font-family:inherit}
+input,select,textarea{font-family:inherit}
+.shell{display:flex;height:100vh;overflow:hidden}
+
+/* ──── SIDEBAR ──── */
+.sb{width:216px;background:#16213e;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden}
+.sb-logo{height:50px;background:#0f3460;display:flex;align-items:center;padding:0 15px;gap:9px;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0}
+.sb-logo-text{font-size:15px;font-weight:800;color:#fff;letter-spacing:-.2px}
+.sb-logo-badge{background:#7c3aed;color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px}
+.sb-user{background:rgba(0,0,0,.18);padding:10px 14px;display:flex;align-items:center;gap:9px;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.04)}
+.sb-av{width:31px;height:31px;border-radius:7px;background:linear-gradient(135deg,#7c3aed,#a78bfa);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;flex-shrink:0}
+.sb-user-name{color:#e2e8f0;font-weight:600;font-size:12px}
+.sb-user-role{color:#64748b;font-size:10px;display:flex;align-items:center;gap:4px;margin-top:1px}
+.sb-dot{width:6px;height:6px;border-radius:50%;background:#22c55e}
+.sb-scroll{flex:1;overflow-y:auto;padding:6px 0}
+.sb-scroll::-webkit-scrollbar{width:3px}
+.sb-scroll::-webkit-scrollbar-thumb{background:#2d3748}
+.sb-hdr{font-size:9.5px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.7px;padding:10px 14px 4px}
+.mi{display:flex;align-items:center;gap:9px;padding:7.5px 12px 7.5px 14px;color:#94a3b8;border-left:2px solid transparent;transition:all .12s;cursor:pointer;font-size:12.5px;margin:1px 0}
+.mi:hover{background:rgba(124,58,237,.1);color:#c4b5fd;border-left-color:rgba(124,58,237,.4)}
+.mi.act{background:rgba(124,58,237,.15);color:#a78bfa;border-left-color:#7c3aed;font-weight:600}
+.mi i{width:15px;text-align:center;font-size:11.5px}
+.sb-pro{background:rgba(76,29,149,.13);border-top:1px solid rgba(124,58,237,.14);flex-shrink:0;padding:3px 0 8px}
+.sb-pro-hdr{display:flex;align-items:center;justify-content:space-between;padding:8px 14px 4px}
+.sb-pro-label{font-size:9.5px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.5px}
+.pro-badge{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px}
+.mi-pro{display:flex;align-items:center;gap:9px;padding:7px 12px 7px 14px;color:#8b5cf6;border-left:2px solid transparent;cursor:pointer;font-size:12px;transition:all .12s}
+.mi-pro:hover{background:rgba(124,58,237,.1);color:#c4b5fd}
+.mi-pro i{width:15px;text-align:center;font-size:11px}
+
+/* ──── MAIN ──── */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.tb{height:50px;background:#fff;display:flex;align-items:center;padding:0 18px;gap:10px;flex-shrink:0;border-bottom:1px solid #e8ecf0;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.tb-spacer{flex:1}
+.tb-ai-chip{display:flex;align-items:center;gap:5px;background:#f0fdf4;border:1px solid #86efac;border-radius:20px;padding:4px 11px}
+.tb-ai-dot{width:7px;height:7px;border-radius:50%;background:#22c55e;animation:pdot 1.6s infinite}
+.tb-ai-text{color:#15803d;font-size:11px;font-weight:600}
+@keyframes pdot{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.5)}50%{box-shadow:0 0 0 4px rgba(34,197,94,0)}}
+.tb-wpp-chip{display:flex;align-items:center;gap:5px;background:#fff7ed;border:1px solid #fed7aa;border-radius:20px;padding:4px 11px}
+.tb-wpp-dot{width:7px;height:7px;border-radius:50%;background:#f97316;animation:pdot2 1s infinite}
+@keyframes pdot2{0%,100%{opacity:1}50%{opacity:.4}}
+.tb-wpp-text{color:#c2410c;font-size:11px;font-weight:600}
+.tb-sep{width:1px;height:20px;background:#e8ecf0;margin:0 2px}
+.tb-icon{width:31px;height:31px;display:flex;align-items:center;justify-content:center;color:#64748b;font-size:14px;cursor:pointer;border-radius:6px;position:relative;transition:all .12s}
+.tb-icon:hover{color:#1a1a2e;background:#f1f5f9}
+.tb-badge{position:absolute;top:5px;right:5px;width:7px;height:7px;background:#ef4444;border-radius:50%;border:1.5px solid #fff}
+.tb-user-av{width:29px;height:29px;border-radius:7px;background:linear-gradient(135deg,#7c3aed,#a78bfa);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:11px;cursor:pointer}
+
+/* ──── CONTENT ──── */
+.ct{flex:1;padding:16px 18px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+.ct::-webkit-scrollbar{width:5px}
+.ct::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
+.ch{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ch-title{font-size:18px;font-weight:800;color:#0f172a;display:flex;align-items:center;gap:9px;letter-spacing:-.3px}
+.ch-icon{width:34px;height:34px;background:#ede9fe;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#7c3aed;font-size:14px}
+.breadcrumb{font-size:11px;color:#94a3b8;display:flex;align-items:center;gap:5px;margin-top:3px}
+.bc-active{color:#7c3aed;font-weight:600}
+
+/* ──── BUTTONS ──── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;font-size:12.5px;font-weight:600;border:none;transition:all .14s;cursor:pointer;white-space:nowrap}
+.btn-primary{background:#7c3aed;color:#fff;box-shadow:0 1px 4px rgba(124,58,237,.3)}
+.btn-primary:hover{background:#6d28d9;box-shadow:0 3px 10px rgba(124,58,237,.4);transform:translateY(-1px)}
+.btn-secondary{background:#fff;border:1.5px solid #e2e8f0;color:#475569}
+.btn-secondary:hover{border-color:#a78bfa;color:#7c3aed;background:#faf5ff}
+.btn-danger{background:#fff;border:1.5px solid #fecdd3;color:#e11d48}
+.btn-danger:hover{background:#fff1f2}
+.btn-sm{padding:5px 11px;font-size:11.5px}
+.btn-xs{padding:3px 8px;font-size:11px}
+.btn-wpp{background:linear-gradient(135deg,#128c7e,#22c55e);color:#fff;box-shadow:0 1px 5px rgba(34,197,94,.3)}
+.btn-wpp:hover{box-shadow:0 3px 10px rgba(34,197,94,.4);transform:translateY(-1px)}
+.btn-ai{background:linear-gradient(135deg,#5b21b6,#7c3aed);color:#fff;box-shadow:0 1px 4px rgba(91,33,182,.3)}
+.btn-ai:hover{box-shadow:0 3px 10px rgba(91,33,182,.4);transform:translateY(-1px)}
+.btn-ghost{background:transparent;border:1.5px dashed #d1d5db;color:#9ca3af}
+.btn-ghost:hover{border-color:#a78bfa;color:#7c3aed;background:#faf5ff}
+
+/* ──── AI BAR ──── */
+.ai-bar{background:linear-gradient(135deg,#faf5ff,#ede9fe);border:1px solid #ddd6fe;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px}
+.ai-bar-icon{width:34px;height:34px;background:#7c3aed;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;flex-shrink:0;animation:aip 2s ease-in-out infinite}
+@keyframes aip{0%,100%{box-shadow:0 0 0 0 rgba(124,58,237,.4)}50%{box-shadow:0 0 0 6px rgba(124,58,237,0)}}
+.ai-bar-title{font-size:12px;font-weight:700;color:#4c1d95}
+.ai-bar-sub{font-size:11px;color:#7c3aed;margin-top:1px}
+.ai-bar-prog{height:3px;background:#e9d5ff;border-radius:2px;margin-top:7px;overflow:hidden}
+.ai-bar-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#a78bfa,#7c3aed);background-size:200% 100%;animation:shimmer 1.8s linear infinite;width:60%}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* ──── STAT CARDS ──── */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:11px}
+.sc{background:#fff;border:1px solid #e8ecf0;border-radius:10px;padding:13px 15px;position:relative;overflow:hidden}
+.sc::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:10px 10px 0 0}
+.sc.cp::after{background:linear-gradient(90deg,#7c3aed,#a78bfa)}
+.sc.cg::after{background:linear-gradient(90deg,#15803d,#22c55e)}
+.sc.ca::after{background:linear-gradient(90deg,#d97706,#fbbf24)}
+.sc.cb::after{background:linear-gradient(90deg,#2563eb,#60a5fa)}
+.sc-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px}
+.sc-icon{width:35px;height:35px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:14px}
+.cp .sc-icon{background:#ede9fe;color:#7c3aed}
+.cg .sc-icon{background:#dcfce7;color:#15803d}
+.ca .sc-icon{background:#fef3c7;color:#d97706}
+.cb .sc-icon{background:#dbeafe;color:#2563eb}
+.sc-val{font-size:23px;font-weight:800;color:#0f172a;line-height:1;letter-spacing:-.5px}
+.sc-lbl{font-size:10.5px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+.sc-delta{font-size:11px;font-weight:600;margin-top:6px;display:flex;align-items:center;gap:3px}
+.sc-delta.up{color:#15803d}.sc-delta.n{color:#d97706}
+
+/* ──── FILTER ZONE ──── */
+.filter-zone{background:#fff;border:1px solid #e8ecf0;border-radius:10px;padding:8px 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.fz-label{font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;flex-shrink:0;padding-right:6px;border-right:1.5px solid #f1f5f9}
+.fc{padding:4px 11px;border-radius:20px;font-size:11.5px;font-weight:600;cursor:pointer;border:1.5px solid #e2e8f0;background:#f8fafc;color:#64748b;transition:all .12s;display:flex;align-items:center;gap:4px}
+.fc.on{background:#ede9fe;border-color:#a78bfa;color:#5b21b6}
+.fc:hover:not(.on){border-color:#c4b5fd;color:#7c3aed;background:#faf5ff}
+.fz-sep{width:1px;height:20px;background:#f1f5f9;flex-shrink:0}
+.fz-search{position:relative;flex:1;min-width:160px;max-width:240px}
+.fz-search input{width:100%;padding:5.5px 9px 5.5px 28px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;background:#f8fafc;color:#374151;outline:none;transition:all .12s}
+.fz-search input:focus{border-color:#a78bfa;background:#fff}
+.fz-search i{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:11px;pointer-events:none}
+
+/* ──── LAYOUT ──── */
+.layout{display:grid;grid-template-columns:1fr 308px;gap:12px;min-height:0;flex:1;overflow:hidden}
+
+/* ──── MAIN PANEL WITH TABS ──── */
+.main-panel{background:#fff;border:1px solid #e8ecf0;border-radius:10px;display:flex;flex-direction:column;overflow:hidden}
+
+/* ──── TAB NAV ──── */
+.tab-nav{display:flex;border-bottom:2px solid #f1f5f9;background:#fafbfc;flex-shrink:0;padding:0 14px;gap:0}
+.tab-btn{display:flex;align-items:center;gap:7px;padding:11px 16px;font-size:12.5px;font-weight:600;color:#64748b;cursor:pointer;border-bottom:2.5px solid transparent;margin-bottom:-2px;transition:all .14s;white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none}
+.tab-btn:hover{color:#374151}
+.tab-btn.on{color:#7c3aed;border-bottom-color:#7c3aed}
+.tab-btn i{font-size:13px}
+.tab-count{font-size:10px;font-weight:700;padding:1.5px 6px;border-radius:10px;margin-left:2px}
+.tab-btn.on .tab-count{background:#ede9fe;color:#5b21b6}
+.tab-btn:not(.on) .tab-count{background:#f1f5f9;color:#9ca3af}
+.tab-body{flex:1;overflow:hidden;display:flex;flex-direction:column}
+
+/* ──── GROUPS TAB ──── */
+.groups-grid{flex:1;overflow-y:auto;padding:12px 12px 10px;display:flex;flex-direction:column;gap:8px}
+.groups-grid::-webkit-scrollbar{width:4px}
+.groups-grid::-webkit-scrollbar-thumb{background:#e2e8f0;border-radius:2px}
+
+/* GROUP CARD */
+.gc-card{border:1.5px solid #f1f5f9;border-radius:10px;background:#fff;overflow:hidden;transition:all .14s;cursor:pointer}
+.gc-card:hover{border-color:#c4b5fd;box-shadow:0 2px 12px rgba(124,58,237,.08)}
+.gc-card.active-send{border-color:#22c55e;box-shadow:0 0 0 2px rgba(34,197,94,.12)}
+.gc-card.has-pending{border-color:#a78bfa}
+.gc-header{padding:11px 14px;display:flex;align-items:center;gap:11px}
+.gc-avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;position:relative;color:#fff}
+.gc-avatar .g-st{position:absolute;bottom:0;right:0;width:10px;height:10px;border-radius:50%;border:2px solid #fff}
+.g-st.on{background:#22c55e}
+.g-st.off{background:#94a3b8}
+.gc-name{font-size:13px;font-weight:700;color:#0f172a}
+.gc-members{font-size:10.5px;color:#94a3b8;margin-top:2px;display:flex;align-items:center;gap:4px}
+.gc-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.gc-rate{text-align:right}
+.gc-rate-val{font-size:14px;font-weight:800;color:#15803d;line-height:1}
+.gc-rate-lbl{font-size:9.5px;color:#94a3b8;text-transform:uppercase;letter-spacing:.3px}
+.toggle{position:relative;width:31px;height:17px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0;position:absolute}
+.toggle-sl{position:absolute;inset:0;background:#d1d5db;border-radius:17px;cursor:pointer;transition:.22s}
+.toggle-sl::before{content:'';position:absolute;width:12px;height:12px;background:#fff;border-radius:50%;top:2.5px;left:2.5px;transition:.22s;box-shadow:0 1px 2px rgba(0,0,0,.15)}
+.toggle input:checked+.toggle-sl{background:#22c55e}
+.toggle input:checked+.toggle-sl::before{transform:translateX(14px)}
+
+/* QUEUE STRIP */
+.gc-queue{padding:0 14px 11px}
+.gc-queue-label{font-size:9.5px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:flex;align-items:center;gap:5px;justify-content:space-between}
+.gc-queue-label span{color:#7c3aed;font-weight:600;font-size:10px}
+.queue-strip{display:flex;gap:4px;align-items:center;overflow-x:auto;padding-bottom:2px}
+.queue-strip::-webkit-scrollbar{height:3px}
+.queue-strip::-webkit-scrollbar-thumb{background:#e2e8f0;border-radius:2px}
+
+/* Queue items */
+.qi{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;transition:transform .12s}
+.qi:hover{transform:translateY(-2px)}
+.qi-thumb{width:44px;height:44px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:19px;border:2px solid transparent;position:relative;transition:all .12s}
+.qi.sent .qi-thumb{background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-color:#86efac;opacity:.75}
+.qi.sending .qi-thumb{background:linear-gradient(135deg,#faf5ff,#ede9fe);border-color:#a78bfa;animation:qi-pulse .9s ease-in-out infinite}
+@keyframes qi-pulse{0%,100%{box-shadow:0 0 0 0 rgba(124,58,237,.35)}50%{box-shadow:0 0 0 5px rgba(124,58,237,0)}}
+.qi.pending .qi-thumb{background:linear-gradient(135deg,#f8fafc,#f1f5f9);border-color:#e2e8f0;opacity:.65}
+.qi.pending:first-of-type .qi-thumb{opacity:.9;border-color:#c4b5fd}
+.qi-status{position:absolute;bottom:-4px;right:-4px;width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:7.5px;color:#fff;border:1.5px solid #fff}
+.qi.sent .qi-status{background:#15803d}
+.qi.sending .qi-status{background:#7c3aed}
+.qi.pending .qi-status{background:#94a3b8}
+.qi-time{font-size:9.5px;font-weight:600;color:#94a3b8;white-space:nowrap}
+.qi.sent .qi-time{color:#15803d}
+.qi.sending .qi-time{color:#7c3aed}
+
+/* Queue connector line */
+.q-line{flex-shrink:0;height:1.5px;width:14px;background:#e2e8f0;border-radius:1px;margin-bottom:14px}
+.q-line.done{background:#86efac}
+.q-line.prog{background:linear-gradient(90deg,#86efac,#a78bfa)}
+
+/* Queue empty state */
+.qi-empty{padding:10px 14px;font-size:11.5px;color:#94a3b8;background:#f8f9fa;border-radius:7px;text-align:center;display:flex;align-items:center;gap:7px;justify-content:center}
+
+/* Stats footer */
+.gc-footer{background:#f8f9fa;border-top:1px solid #f1f5f9;padding:8px 14px;display:flex;align-items:center;gap:12px}
+.gc-stat{display:flex;align-items:center;gap:5px;font-size:11px;color:#64748b}
+.gc-stat i{font-size:10px;color:#94a3b8}
+.gc-stat strong{color:#374151;font-weight:700}
+.gc-actions{margin-left:auto;display:flex;gap:5px}
+
+/* Config badge */
+.gc-config-chip{background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:3px 9px;font-size:10.5px;font-weight:600;color:#0369a1;display:flex;align-items:center;gap:4px}
+.gc-config-chip i{font-size:9px}
+
+/* Sending live strip */
+.gc-live{background:linear-gradient(135deg,rgba(237,233,254,.5),rgba(220,252,231,.3));border-top:1.5px solid rgba(124,58,237,.2);padding:7px 14px;display:flex;align-items:center;gap:8px}
+.gc-live-dot{width:7px;height:7px;border-radius:50%;background:#22c55e;animation:pdot 1.2s infinite;flex-shrink:0}
+.gc-live-text{font-size:11px;font-weight:600;color:#4c1d95}
+.gc-live-bar{flex:1;height:5px;background:#e9d5ff;border-radius:3px;overflow:hidden}
+.gc-live-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#22c55e);border-radius:3px;animation:live-fill 3s linear forwards}
+@keyframes live-fill{0%{width:20%}100%{width:85%}}
+.gc-live-pct{font-size:11px;font-weight:700;color:#7c3aed;flex-shrink:0}
+
+/* ──── BROADCAST TABLE (Histórico tab) ──── */
+.panel-hdr{padding:11px 14px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:#fafbfc}
+.panel-hdr-title{font-size:12.5px;font-weight:700;color:#374151;display:flex;align-items:center;gap:7px}
+.panel-hdr-title i{color:#7c3aed}
+.panel-body{flex:1;overflow-y:auto}
+.panel-body::-webkit-scrollbar{width:4px}
+.panel-body::-webkit-scrollbar-thumb{background:#e2e8f0;border-radius:2px}
+.tbl-hdr{display:grid;grid-template-columns:46px 1fr 110px 105px 75px 88px 68px;align-items:center;gap:7px;padding:7px 13px;background:#f8f9fa;border-bottom:1px solid #f1f5f9;font-size:9.5px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;flex-shrink:0}
+.brow{display:grid;grid-template-columns:46px 1fr 110px 105px 75px 88px 68px;align-items:center;gap:7px;padding:9px 13px;border-bottom:1px solid #f8f9fa;cursor:pointer;transition:background .1s;position:relative}
+.brow:hover{background:#fafbff}
+.brow.selected{background:#faf5ff}
+.brow.selected::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:#7c3aed;border-radius:0 3px 3px 0}
+.brow-thumb{width:42px;height:42px;border-radius:8px;background:linear-gradient(135deg,#fce7f3,#fdf2f8);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;border:1px solid #f3e8ff}
+.brow-name{font-size:12.5px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+.brow-meta{font-size:10.5px;color:#94a3b8;margin-top:2px;display:flex;align-items:center;gap:5px}
+.gchip{background:#e0f2fe;color:#0369a1;border-radius:10px;font-size:9.5px;font-weight:600;padding:2px 7px;display:inline-flex;align-items:center;gap:2px;white-space:nowrap}
+.brow-groups{display:flex;gap:3px;flex-wrap:wrap;align-items:center}
+.brow-sched{font-size:11.5px;font-weight:600;color:#374151}
+.brow-sched-sub{font-size:10px;color:#94a3b8;margin-top:1px;display:flex;align-items:center;gap:2px}
+.brow-count{text-align:center}
+.brow-count-val{font-size:16px;font-weight:800;color:#5b21b6;line-height:1}
+.brow-count-lbl{font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.3px;margin-top:1px}
+.brow-actions{display:flex;gap:3px;justify-content:flex-end}
+.icon-btn{width:26px;height:26px;border-radius:6px;border:1px solid #e2e8f0;background:#fff;color:#64748b;display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;transition:all .12s}
+.icon-btn:hover{border-color:#a78bfa;color:#7c3aed;background:#faf5ff}
+.icon-btn.fire:hover{border-color:#22c55e;color:#15803d;background:#f0fdf4}
+.icon-btn.danger:hover{border-color:#fca5a5;color:#dc2626;background:#fff1f2}
+.sbadge{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;white-space:nowrap}
+.sbadge.sent{background:#dcfce7;color:#15803d}
+.sbadge.scheduled{background:#dbeafe;color:#1d4ed8}
+.sbadge.draft{background:#f1f5f9;color:#64748b}
+.sbadge.sending{background:#ede9fe;color:#5b21b6}
+.sbadge.paused{background:#fef3c7;color:#92400e}
+.sbadge.pending{background:#fef9c3;color:#854d0e}
+.sbadge i{font-size:9px}
+.ai-ps{padding:8px 10px 4px}
+.ai-ps-label{font-size:9.5px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;gap:5px;padding:0 4px 6px}
+.ai-pr{background:linear-gradient(135deg,rgba(237,233,254,.5),rgba(250,245,255,.3));border:1.5px dashed #c4b5fd;border-radius:8px;padding:9px 11px;display:flex;align-items:center;gap:9px;cursor:pointer;transition:all .12s;margin-bottom:5px}
+.ai-pr:hover{background:rgba(237,233,254,.7);border-color:#a78bfa}
+.ai-pi{width:34px;height:34px;background:#ede9fe;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;color:#7c3aed;flex-shrink:0}
+.ai-pt{font-size:12px;font-weight:700;color:#4c1d95}
+.ai-ps2{font-size:10.5px;color:#7c3aed;margin-top:1px}
+
+/* ──── RIGHT PANEL ──── */
+.right-panel{display:flex;flex-direction:column;gap:11px;overflow-y:auto;padding-bottom:4px}
+.right-panel::-webkit-scrollbar{width:3px}
+.right-panel::-webkit-scrollbar-thumb{background:#e2e8f0;border-radius:2px}
+.rcard{background:#fff;border:1px solid #e8ecf0;border-radius:10px;overflow:hidden;flex-shrink:0}
+.rcard-hdr{padding:10px 13px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;background:#fafbfc}
+.rcard-hdr-title{font-size:12px;font-weight:700;color:#374151;display:flex;align-items:center;gap:6px}
+.rcard-body{padding:10px 12px}
+.next-hero{background:linear-gradient(150deg,#1e1b4b 0%,#3730a3 45%,#4c1d95 100%);padding:14px 15px;position:relative;overflow:hidden}
+.next-hero::before{content:'';position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:rgba(167,139,250,.12);pointer-events:none}
+.next-label{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#a5b4fc;margin-bottom:9px;display:flex;align-items:center;gap:5px;position:relative;z-index:1}
+.next-product{font-size:12.5px;font-weight:700;color:#e0e7ff;margin-bottom:3px;position:relative;z-index:1}
+.next-time-row{display:flex;align-items:baseline;gap:6px;margin-bottom:3px;position:relative;z-index:1}
+.next-time{font-size:28px;font-weight:800;color:#fff;line-height:1;letter-spacing:-1px}
+.next-ampm{font-size:13px;font-weight:600;color:#a5b4fc}
+.next-date{font-size:10.5px;color:#a5b4fc;margin-bottom:9px;display:flex;align-items:center;gap:4px;position:relative;z-index:1}
+.next-chips{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:11px;position:relative;z-index:1}
+.next-chip{background:rgba(255,255,255,.13);color:#e0e7ff;border-radius:10px;font-size:10px;font-weight:600;padding:3px 9px;display:flex;align-items:center;gap:3px;border:1px solid rgba(255,255,255,.1)}
+.next-actions{display:flex;gap:7px;position:relative;z-index:1}
+.next-actions .btn{font-size:11px;padding:5px 11px}
+.btn-ghost-w{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#e0e7ff;font-size:11px;padding:5px 11px;border-radius:7px;cursor:pointer;transition:all .13s;display:inline-flex;align-items:center;gap:5px;font-weight:600}
+.btn-ghost-w:hover{background:rgba(255,255,255,.2)}
+.group-item{display:flex;align-items:center;gap:8px;padding:7.5px 10px;border:1px solid #f1f5f9;border-radius:8px;cursor:pointer;transition:all .12s;margin-bottom:5px}
+.group-item:last-child{margin-bottom:0}
+.group-item:hover{border-color:#c4b5fd;background:#faf5ff}
+.group-item.active{border-color:#bbf7d0;background:#f0fdf4}
+.g-av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;position:relative;background:linear-gradient(135deg,#128c7e,#25d366);color:#fff}
+.g-st-sm{position:absolute;bottom:-1px;right:-1px;width:9px;height:9px;border-radius:50%;border:2px solid #fff}
+.af-item{display:flex;gap:8px;padding:7.5px 0;border-bottom:1px solid #f8f9fa;align-items:flex-start}
+.af-item:last-child{border:none;padding-bottom:0}
+.af-icon{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0}
+.af-icon.sent{background:#dcfce7;color:#15803d}
+.af-icon.ai{background:#ede9fe;color:#7c3aed}
+.af-icon.group{background:#dbeafe;color:#2563eb}
+.af-icon.sched{background:#fef3c7;color:#d97706}
+.af-text{font-size:11.5px;color:#374151;line-height:1.5}
+.af-text strong{color:#0f172a;font-weight:600}
+.af-time{font-size:10px;color:#94a3b8;margin-top:2px}
+
+/* ═════════════════════════════════════════════════
+   GROUP DRAWER — completamente redesenhado
+═════════════════════════════════════════════════ */
+.drawer-ov{position:fixed;inset:0;background:rgba(15,23,42,.4);backdrop-filter:blur(2px);z-index:200;display:none}
+.drawer-ov.open{display:block}
+.drawer{position:fixed;top:0;right:-560px;width:560px;height:100vh;background:#fff;z-index:201;display:flex;flex-direction:column;transition:right .32s cubic-bezier(.4,0,.2,1);box-shadow:-6px 0 40px rgba(0,0,0,.14)}
+.drawer.open{right:0}
+
+/* Drawer header — rich gradient */
+.dr-head{background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 40%,#312e81 100%);padding:0;flex-shrink:0;position:relative;overflow:hidden}
+.dr-head::before{content:'';position:absolute;top:-40px;right:-40px;width:200px;height:200px;border-radius:50%;background:rgba(167,139,250,.1);pointer-events:none}
+.dr-head::after{content:'';position:absolute;bottom:-30px;left:-20px;width:140px;height:140px;border-radius:50%;background:rgba(99,102,241,.08);pointer-events:none}
+.dr-head-top{display:flex;align-items:flex-start;justify-content:space-between;padding:16px 18px 0;position:relative;z-index:1}
+.dr-close{background:rgba(255,255,255,.1);border:none;color:#a5b4fc;font-size:13px;cursor:pointer;padding:5px 8px;border-radius:7px;transition:all .12s;line-height:1}
+.dr-close:hover{color:#fff;background:rgba(255,255,255,.2)}
+.dr-group-info{display:flex;align-items:center;gap:12px;flex:1}
+.dr-group-av{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;border:2.5px solid rgba(255,255,255,.25);position:relative;color:#fff}
+.dr-group-av .dr-av-st{position:absolute;bottom:1px;right:1px;width:12px;height:12px;border-radius:50%;border:2.5px solid #1e1b4b}
+.dr-av-st.on{background:#22c55e}
+.dr-av-st.off{background:#64748b}
+.dr-group-name{font-size:16px;font-weight:800;color:#fff;letter-spacing:-.3px;line-height:1}
+.dr-group-sub{font-size:11px;color:#a5b4fc;margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dr-group-sub span{display:flex;align-items:center;gap:4px}
+
+/* Stats strip inside header */
+.dr-stats-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;margin-top:14px;background:rgba(255,255,255,.08);position:relative;z-index:1}
+.dr-stat{padding:11px 14px;background:rgba(255,255,255,.04);text-align:center;transition:background .12s}
+.dr-stat:hover{background:rgba(255,255,255,.08)}
+.dr-stat-val{font-size:20px;font-weight:800;color:#fff;line-height:1;letter-spacing:-.5px}
+.dr-stat-lbl{font-size:9.5px;font-weight:600;color:#a5b4fc;text-transform:uppercase;letter-spacing:.4px;margin-top:3px}
+.dr-stat-sub{font-size:10px;color:#818cf8;margin-top:2px}
+
+/* Progress bar under stats */
+.dr-prog-bar{height:3px;background:rgba(255,255,255,.15);position:relative;z-index:1}
+.dr-prog-fill{height:100%;background:linear-gradient(90deg,#22c55e,#a78bfa);transition:width .6s ease}
+
+/* Drawer body */
+.dr-body{flex:1;overflow-y:auto;background:#f8f9fa}
+.dr-body::-webkit-scrollbar{width:4px}
+.dr-body::-webkit-scrollbar-thumb{background:#e2e8f0;border-radius:2px}
+
+/* Drawer section */
+.dr-sec{background:#fff;margin-bottom:8px;border-bottom:1px solid #f1f5f9}
+.dr-sec-hdr{padding:12px 18px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+.dr-sec-title{font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;gap:6px}
+.dr-sec-title i{color:#7c3aed;font-size:11px}
+.dr-sec-body{padding:0 18px 14px}
+
+/* Queue timeline in drawer */
+.dr-queue{display:flex;flex-direction:column;gap:6px}
+.dq-item{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;border:1.5px solid transparent;transition:all .12s;position:relative}
+.dq-item:hover{background:#f8f9fa}
+.dq-item.dq-sent{background:#f0fdf4;border-color:#bbf7d0}
+.dq-item.dq-sending{background:#faf5ff;border-color:#c4b5fd;animation:dq-pulse 1.5s ease-in-out infinite}
+@keyframes dq-pulse{0%,100%{box-shadow:0 0 0 0 rgba(124,58,237,.2)}50%{box-shadow:0 0 0 6px rgba(124,58,237,0)}}
+.dq-item.dq-pending{background:#f8f9fa;border-color:#f1f5f9;opacity:.8}
+.dq-item.dq-next{background:#fffbeb;border-color:#fcd34d;opacity:1}
+.dq-num{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;flex-shrink:0}
+.dq-sent .dq-num{background:#dcfce7;color:#15803d}
+.dq-sending .dq-num{background:#ede9fe;color:#7c3aed}
+.dq-pending .dq-num{background:#f1f5f9;color:#94a3b8}
+.dq-next .dq-num{background:#fef3c7;color:#d97706}
+.dq-thumb{width:38px;height:38px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;background:linear-gradient(135deg,#fce7f3,#fdf2f8);border:1px solid #f3e8ff}
+.dq-info{flex:1;min-width:0}
+.dq-name{font-size:12px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dq-meta{font-size:10px;color:#94a3b8;margin-top:2px;display:flex;align-items:center;gap:6px}
+.dq-time{font-size:11px;font-weight:700;color:#374151;text-align:right;flex-shrink:0;white-space:nowrap}
+.dq-item.dq-sent .dq-time{color:#15803d}
+.dq-item.dq-sending .dq-time{color:#7c3aed}
+.dq-item.dq-next .dq-time{color:#d97706}
+.dq-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;margin-top:3px;display:inline-block}
+.dq-sent .dq-badge{background:#dcfce7;color:#15803d}
+.dq-sending .dq-badge{background:#ede9fe;color:#5b21b6}
+.dq-pending .dq-badge{background:#f1f5f9;color:#64748b}
+.dq-next .dq-badge{background:#fef3c7;color:#92400e}
+
+/* Metrics in drawer */
+.dr-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.dr-metric{background:#f8f9fa;border:1px solid #f1f5f9;border-radius:8px;padding:10px;text-align:center}
+.dr-metric-val{font-size:18px;font-weight:800;color:#0f172a;line-height:1}
+.dr-metric-lbl{font-size:9.5px;color:#94a3b8;text-transform:uppercase;letter-spacing:.3px;margin-top:3px}
+.dr-metric-tag{font-size:9px;font-weight:600;padding:2px 6px;border-radius:5px;margin-top:4px;display:inline-block;background:#dbeafe;color:#1d4ed8}
+
+/* Config section */
+.dr-config-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.dr-cfg-field{display:flex;flex-direction:column;gap:5px}
+.dr-cfg-label{font-size:11.5px;font-weight:700;color:#374151}
+.dr-cfg-hint{font-size:10px;color:#94a3b8;margin-top:2px}
+.finput{width:100%;padding:8px 11px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;color:#374151;outline:none;transition:all .12s;background:#fff}
+.finput:focus{border-color:#a78bfa;box-shadow:0 0 0 3px rgba(167,139,250,.1)}
+
+/* Days selector */
+.days-grid{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px}
+.day-btn{width:36px;height:36px;border-radius:8px;border:1.5px solid #e2e8f0;background:#f8f9fa;color:#64748b;font-size:11px;font-weight:700;cursor:pointer;transition:all .14s;display:flex;align-items:center;justify-content:center}
+.day-btn:hover{border-color:#a78bfa;color:#7c3aed}
+.day-btn.on{background:#7c3aed;border-color:#7c3aed;color:#fff;box-shadow:0 2px 6px rgba(124,58,237,.35)}
+
+/* Engagement chart mini */
+.eng-bars{display:flex;align-items:flex-end;gap:3px;height:48px;padding:0 2px}
+.eng-bar-wrap{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1}
+.eng-bar{width:100%;border-radius:3px 3px 0 0;transition:height .3s ease;cursor:pointer;min-height:4px}
+.eng-bar.best{background:#7c3aed}
+.eng-bar.good{background:#a78bfa;opacity:.8}
+.eng-bar.low{background:#e2e8f0}
+.eng-lbl{font-size:8.5px;color:#94a3b8;font-weight:600}
+.eng-recommended{display:flex;align-items:center;gap:6px;background:#ede9fe;border-radius:7px;padding:6px 10px;margin-top:8px;font-size:11px;color:#5b21b6;font-weight:600}
+
+/* Drawer footer */
+.dr-foot{background:#fff;border-top:1px solid #e2e8f0;padding:12px 18px;display:flex;gap:7px;align-items:center;flex-shrink:0}
+
+/* ── DRAWER SUB-TABS ── */
+.dr-tab-nav{display:flex;border-bottom:1px solid #e8ecf0;background:#fff;flex-shrink:0}
+.dr-tab-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:9px 8px;font-size:11.5px;font-weight:600;color:#64748b;cursor:pointer;border-bottom:2px solid transparent;transition:all .13s;user-select:none}
+.dr-tab-btn:hover{color:#7c3aed;background:rgba(124,58,237,.03)}
+.dr-tab-btn.act{color:#7c3aed;border-bottom-color:#7c3aed;background:rgba(124,58,237,.04)}
+.dr-tab-btn i{font-size:10.5px}
+.dr-pane{display:none;padding:0}
+.dr-pane.act{display:block}
+.dr-live-badge{background:#22c55e;color:#fff;font-size:8.5px;font-weight:800;padding:1px 6px;border-radius:8px;margin-left:5px;letter-spacing:.3px;animation:pdot 1.2s infinite}
+
+/* ═══ MODALS ═══ */
+.overlay{position:fixed;inset:0;background:rgba(15,23,42,.52);backdrop-filter:blur(2px);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px}
+.overlay.hide{display:none}
+.modal{background:#fff;border-radius:12px;box-shadow:0 24px 80px rgba(0,0,0,.22);width:100%;display:flex;flex-direction:column;overflow:hidden;max-height:92vh}
+.modal.md{max-width:700px}
+.modal.lg{max-width:920px}
+.modal.xl{max-width:960px}
+.mh{background:linear-gradient(135deg,#1e1b4b,#4c1d95);padding:15px 20px;display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0}
+.mh-title{color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px}
+.mh-sub{color:#a5b4fc;font-size:11px;margin-top:3px}
+.mh-close{background:rgba(255,255,255,.1);border:none;color:#a5b4fc;font-size:13px;cursor:pointer;padding:5px 8px;border-radius:6px;transition:all .12s;line-height:1}
+.mh-close:hover{color:#fff;background:rgba(255,255,255,.2)}
+.mb{flex:1;overflow-y:auto;padding:18px 20px}
+.mb::-webkit-scrollbar{width:4px}
+.mb::-webkit-scrollbar-thumb{background:#e2e8f0;border-radius:2px}
+.mf{background:#f8f9fa;border-top:1px solid #e2e8f0;padding:11px 20px;display:flex;gap:7px;justify-content:flex-end;flex-shrink:0;border-radius:0 0 12px 12px}
+.fg{margin-bottom:13px}
+.fg label{display:block;font-size:11.5px;font-weight:700;color:#374151;margin-bottom:5px}
+.lbl-badge{font-size:9.5px;font-weight:600;padding:1.5px 6px;border-radius:8px;margin-left:5px;vertical-align:middle}
+.lbl-badge.ai{background:#ede9fe;color:#7c3aed}
+.lbl-badge.req{background:#fee2e2;color:#dc2626}
+.ftextarea{width:100%;padding:8px 11px;border:1.5px solid #e2e8f0;border-radius:7px;font-size:12.5px;color:#374151;outline:none;resize:vertical;min-height:96px;background:#fff;line-height:1.55;transition:all .12s}
+.ftextarea:focus{border-color:#a78bfa;box-shadow:0 0 0 3px rgba(167,139,250,.1)}
+.fselect{width:100%;padding:7.5px 11px;border:1.5px solid #e2e8f0;border-radius:7px;font-size:12.5px;color:#374151;outline:none;background:#fff;cursor:pointer}
+.fg-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.sep{height:1px;background:#f1f5f9;margin:10px 0}
+.wizard{display:flex;align-items:center;margin-bottom:18px;padding-bottom:15px;border-bottom:1px solid #f1f5f9}
+.ws-circle{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;transition:all .2s}
+.ws-circle.pend{background:#f1f5f9;color:#94a3b8;border:1.5px solid #e2e8f0}
+.ws-circle.act{background:linear-gradient(135deg,#7c3aed,#a78bfa);color:#fff;box-shadow:0 0 0 3px rgba(124,58,237,.18)}
+.ws-circle.done{background:#15803d;color:#fff}
+.ws-lbl{font-size:11px;font-weight:700;color:#94a3b8;white-space:nowrap;margin-left:7px}
+.ws-lbl.act{color:#5b21b6}.ws-lbl.done{color:#15803d}
+.ws-line{flex:1;height:2px;background:#e2e8f0;border-radius:1px;margin:0 10px}
+.ws-line.done{background:#15803d}
+.prod-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;max-height:210px;overflow-y:auto;padding-bottom:2px}
+.prod-pick{border:1.5px solid #e2e8f0;border-radius:8px;padding:8px 6px;cursor:pointer;transition:all .12s;text-align:center;background:#fff}
+.prod-pick:hover{border-color:#a78bfa;background:#faf5ff}
+.prod-pick.sel{border-color:#7c3aed;background:#faf5ff;box-shadow:0 0 0 3px rgba(124,58,237,.1)}
+.pp-img{width:100%;aspect-ratio:1;background:linear-gradient(135deg,#fce7f3,#fdf2f8);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:5px;border:1px solid #f3e8ff}
+.pp-name{font-size:10.5px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pp-price{font-size:11px;font-weight:700;color:#7c3aed;margin-top:1px}
+.pp-badge{font-size:9.5px;font-weight:700;padding:2px 6px;border-radius:8px;margin-top:3px;display:inline-block}
+.pp-badge.stock{background:#dcfce7;color:#15803d}
+.pp-badge.low{background:#fef3c7;color:#92400e}
+.pp-badge.ai-sug{background:#ede9fe;color:#7c3aed;display:inline-flex;align-items:center;gap:3px}
+.gc-chk-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:8px;cursor:pointer;transition:all .12s;background:#fff;margin-bottom:5px}
+.gc-chk-item:hover{border-color:#c4b5fd}
+.gc-chk-item.sel{border-color:#22c55e;background:#f0fdf4}
+.gc-chk-item input[type=checkbox]{width:14px;height:14px;accent-color:#22c55e;cursor:pointer;flex-shrink:0}
+.gc-chk-av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#128c7e,#25d366);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;flex-shrink:0}
+.sched-opts{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:10px}
+.sched-opt{border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 8px;cursor:pointer;transition:all .12s;text-align:center;background:#fff}
+.sched-opt:hover{border-color:#a78bfa;background:#faf5ff}
+.sched-opt.sel{border-color:#7c3aed;background:#faf5ff;box-shadow:0 0 0 3px rgba(124,58,237,.1)}
+.sched-opt i{font-size:17px;color:#94a3b8;margin-bottom:4px;display:block}
+.sched-opt.sel i{color:#7c3aed}
+.sched-opt-lbl{font-size:11.5px;font-weight:700;color:#374151}
+.sched-opt-sub{font-size:10px;color:#94a3b8;margin-top:2px}
+.sched-opt.sel .sched-opt-lbl{color:#4c1d95}
+.wpp-wrap{background:#e5ddd5;border-radius:10px;overflow:hidden}
+.wpp-hbar{background:#128c7e;padding:8px 12px;display:flex;align-items:center;gap:8px}
+.wpp-hav{width:30px;height:30px;background:#25d366;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;flex-shrink:0}
+.wpp-hn{font-size:12px;font-weight:700;color:#fff}
+.wpp-hs{font-size:10px;color:rgba(255,255,255,.7)}
+.wpp-hicons{display:flex;gap:10px;color:rgba(255,255,255,.8);font-size:13px;margin-left:auto}
+.wpp-body{padding:10px 12px 8px;display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-height:160px;position:relative}
+.wpp-body::before{content:'';position:absolute;inset:0;opacity:.05;background-image:repeating-linear-gradient(45deg,#888 0,#888 1px,transparent 0,transparent 50%);background-size:18px 18px;pointer-events:none}
+.wpp-bubble{background:#fff;border-radius:2px 10px 10px 10px;box-shadow:0 1px 2px rgba(0,0,0,.12);max-width:90%;overflow:hidden;position:relative;z-index:1}
+.wpp-carousel{display:flex;gap:5px;padding:8px 8px 6px;overflow-x:auto}
+.wpp-carousel-thumb{flex-shrink:0;width:64px;height:64px;border-radius:6px;background:linear-gradient(135deg,#fce7f3,#fdf2f8);display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;border:2px solid transparent;transition:all .12s}
+.wpp-carousel-thumb.sel{border-color:#25d366}
+.wpp-msg{font-size:12px;color:#111;line-height:1.5;padding:6px 11px 4px;white-space:pre-line}
+.wpp-foot{display:flex;align-items:center;justify-content:flex-end;gap:4px;padding:2px 10px 7px;font-size:10px;color:#92a0a4}
+.wpp-foot i{color:#53bdeb;font-size:11px}
+.wpp-cta{border-top:1px solid #f1f5f9;color:#25d366;font-size:12px;font-weight:600;padding:9px 12px;text-align:center;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;background:#fff}
+.wpp-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:8px}
+.wpp-metric{background:#fff;border-radius:7px;padding:7px 8px;text-align:center;border:1px solid #f1f5f9}
+.wpp-metric-val{font-size:14px;font-weight:800;color:#0f172a}
+.wpp-metric-lbl{font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.3px;margin-top:1px}
+.ai-sug-card{background:linear-gradient(135deg,#faf5ff,#f0f9ff);border:1.5px solid #c4b5fd;border-radius:10px;padding:12px;margin-bottom:12px}
+.ai-sug-hdr{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+.ai-sug-badge{background:#7c3aed;color:#fff;font-size:9.5px;font-weight:700;padding:2px 8px;border-radius:10px;display:flex;align-items:center;gap:3px}
+.ai-sug-title{font-size:12.5px;font-weight:700;color:#4c1d95}
+.ai-sug-reason{font-size:10.5px;color:#7c3aed;margin-top:1px}
+.ai-sug-text{font-size:12px;color:#1e1b4b;line-height:1.6;margin-bottom:9px;white-space:pre-line;background:#fff;border-radius:7px;padding:10px;border:1px solid #e9d5ff}
+.ai-sug-foot{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;padding-top:8px;border-top:1px solid #ddd6fe}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;background:#1e293b;color:#fff;border-left:3px solid #7c3aed;padding:9px 15px;border-radius:8px;display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;z-index:9999;transform:translateX(120%);transition:transform .3s cubic-bezier(.34,1.56,.64,1);min-width:230px;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+.toast.show{transform:translateX(0)}
+.toast i{color:#a78bfa;font-size:13px}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+.fa-spin{animation:spin .8s linear infinite}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- SIDEBAR -->
+<nav class="sb">
+  <div class="sb-logo">
+    <div class="sb-logo-text">ModernPOS</div>
+    <div class="sb-logo-badge">IA</div>
+  </div>
+  <div class="sb-user">
+    <div class="sb-av">L</div>
+    <div>
+      <div class="sb-user-name">Loja Fashion SP</div>
+      <div class="sb-user-role"><div class="sb-dot"></div> Online · Plano Pro</div>
+    </div>
+  </div>
+  <div class="sb-scroll">
+    <div class="sb-hdr">Principal</div>
+    <div class="mi"><i class="fas fa-gauge-high"></i> Dashboard</div>
+    <div class="mi"><i class="fas fa-cart-shopping"></i> Pedidos</div>
+    <div class="mi"><i class="fas fa-cubes"></i> Produtos</div>
+    <div class="mi"><i class="fas fa-users"></i> Clientes</div>
+    <div class="sb-hdr">Moda IA</div>
+    <div class="mi"><i class="fas fa-wand-magic-sparkles"></i> Catálogo IA</div>
+    <div class="mi"><i class="fas fa-comments"></i> Conversas</div>
+    <div class="mi"><i class="fas fa-list-check"></i> Pedidos IA</div>
+    <div class="mi"><i class="fas fa-chart-bar"></i> Estoque IA</div>
+    <div class="mi act"><i class="fas fa-bullhorn"></i> Grupos IA</div>
+    <div class="mi"><i class="fas fa-gear"></i> Configurações</div>
+  </div>
+  <div class="sb-pro">
+    <div class="sb-pro-hdr">
+      <span class="sb-pro-label">Módulos Pro</span>
+      <span class="pro-badge">PRO</span>
+    </div>
+    <div class="mi-pro"><i class="fas fa-chart-line"></i> Analytics</div>
+    <div class="mi-pro"><i class="fas fa-tag"></i> Promoções IA</div>
+    <div class="mi-pro"><i class="fas fa-star"></i> Fidelidade</div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="tb">
+    <div class="tb-ai-chip"><div class="tb-ai-dot"></div><span class="tb-ai-text">IA ATIVA</span></div>
+    <div class="tb-wpp-chip" style="margin-left:8px"><div class="tb-wpp-dot"></div><span class="tb-wpp-text">1 enviando agora</span></div>
+    <div class="tb-spacer"></div>
+    <div class="tb-icon" onclick="abrirModal('agenda')"><i class="fas fa-calendar-days"></i></div>
+    <div class="tb-icon"><i class="fas fa-bell"></i><div class="tb-badge"></div></div>
+    <div class="tb-sep"></div>
+    <div class="tb-user-av">A</div>
+  </div>
+
+  <div class="ct">
+
+    <!-- HEADER -->
+    <div class="ch">
+      <div>
+        <div class="ch-title"><div class="ch-icon"><i class="fas fa-bullhorn"></i></div> Grupos IA</div>
+        <div class="breadcrumb">ModernPOS <i class="fas fa-chevron-right" style="font-size:8px"></i> Moda IA <i class="fas fa-chevron-right" style="font-size:8px"></i> <span class="bc-active">Grupos IA</span></div>
+      </div>
+      <div style="display:flex;gap:7px">
+        <button class="btn btn-secondary btn-sm" onclick="abrirModal('agenda')"><i class="fas fa-calendar-days"></i> Agenda</button>
+        <button class="btn btn-secondary btn-sm" onclick="abrirModal('gerenciar')"><i class="fas fa-users"></i> Gerenciar</button>
+        <button class="btn btn-ai btn-sm" onclick="abrirModal('ia-campanhas')"><i class="fas fa-wand-magic-sparkles"></i> Campanhas IA</button>
+        <button class="btn btn-wpp" onclick="abrirModal('novo-disparo')"><i class="fab fa-whatsapp"></i> Novo Disparo</button>
+      </div>
+    </div>
+
+    <!-- AI BAR -->
+    <div class="ai-bar">
+      <div class="ai-bar-icon"><i class="fas fa-wand-magic-sparkles"></i></div>
+      <div style="flex:1">
+        <div class="ai-bar-title">IA analisando catálogo e criando novas campanhas...</div>
+        <div class="ai-bar-sub">3 produtos com estoque parado identificados · 2 campanhas prontas para aprovação</div>
+        <div class="ai-bar-prog"><div class="ai-bar-fill"></div></div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="abrirModal('ia-campanhas')"><i class="fas fa-eye"></i> Ver Sugestões</button>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-row">
+      <div class="sc cp"><div class="sc-top"><div><div class="sc-val">47</div><div class="sc-lbl">Disparos Totais</div></div><div class="sc-icon"><i class="fas fa-bullhorn"></i></div></div><div class="sc-delta up"><i class="fas fa-arrow-up"></i> +8 este mês</div></div>
+      <div class="sc cg"><div class="sc-top"><div><div class="sc-val">6</div><div class="sc-lbl">Grupos Ativos</div></div><div class="sc-icon"><i class="fab fa-whatsapp"></i></div></div><div class="sc-delta up"><i class="fas fa-arrow-up"></i> +1 novo grupo</div></div>
+      <div class="sc ca"><div class="sc-top"><div><div class="sc-val">3</div><div class="sc-lbl">Agendados</div></div><div class="sc-icon"><i class="fas fa-clock"></i></div></div><div class="sc-delta n"><i class="fas fa-calendar"></i> Próximo: hoje 19h</div></div>
+      <div class="sc cb"><div class="sc-top"><div><div class="sc-val">38%</div><div class="sc-lbl">Taxa de Resposta</div></div><div class="sc-icon"><i class="fas fa-reply"></i></div></div><div class="sc-delta up"><i class="fas fa-arrow-up"></i> +5% vs semana ant.</div></div>
+    </div>
+
+    <!-- FILTER ZONE -->
+    <div class="filter-zone">
+      <span class="fz-label"><i class="fas fa-filter" style="font-size:9px;margin-right:3px"></i> Filtrar</span>
+      <div class="fc on" onclick="filtrar(this)">Todos <span style="background:#e2e8f0;border-radius:8px;padding:1px 6px;font-size:10px;margin-left:3px">47</span></div>
+      <div class="fc" onclick="filtrar(this)"><i class="fas fa-wand-magic-sparkles" style="color:#7c3aed;font-size:9px"></i> Aprovação <span style="background:#ede9fe;border-radius:8px;padding:1px 6px;font-size:10px;margin-left:3px;color:#5b21b6">2</span></div>
+      <div class="fc" onclick="filtrar(this)"><i class="fas fa-clock" style="font-size:9px"></i> Agendados <span style="background:#dbeafe;border-radius:8px;padding:1px 6px;font-size:10px;margin-left:3px;color:#1d4ed8">3</span></div>
+      <div class="fc" onclick="filtrar(this)"><i class="fas fa-circle-check" style="color:#15803d;font-size:9px"></i> Enviados <span style="background:#dcfce7;border-radius:8px;padding:1px 6px;font-size:10px;margin-left:3px;color:#15803d">41</span></div>
+      <div class="fc" onclick="filtrar(this)"><i class="fas fa-pen" style="font-size:9px"></i> Rascunhos <span style="background:#f1f5f9;border-radius:8px;padding:1px 6px;font-size:10px;margin-left:3px">1</span></div>
+      <div class="fz-sep"></div>
+      <div class="fz-search">
+        <i class="fas fa-magnifying-glass"></i>
+        <input type="text" placeholder="Buscar campanha ou produto...">
+      </div>
+      <button class="btn btn-secondary btn-sm" style="margin-left:auto" onclick="abrirModal('agenda')"><i class="fas fa-calendar-days"></i> Agenda</button>
+      <button class="btn btn-secondary btn-sm"><i class="fas fa-download"></i></button>
+    </div>
+
+    <!-- TWO COLUMN -->
+    <div class="layout">
+
+      <!-- MAIN PANEL -->
+      <div class="main-panel">
+
+        <!-- ══ TAB NAVIGATION ══ -->
+        <div class="tab-nav">
+          <button class="tab-btn on" id="tab-grupos" onclick="switchTab('grupos')">
+            <i class="fas fa-layer-group"></i> Grupos
+            <span class="tab-count">6</span>
+          </button>
+          <button class="tab-btn" id="tab-historico" onclick="switchTab('historico')">
+            <i class="fas fa-paper-plane"></i> Histórico de Campanhas
+            <span class="tab-count">47</span>
+          </button>
+        </div>
+
+        <!-- ══ TAB: GRUPOS ══ -->
+        <div class="tab-body" id="tab-body-grupos">
+          <div class="groups-grid">
+
+            <!-- GRUPO CARD 1: ENVIANDO AGORA -->
+            <div class="gc-card active-send" onclick="abrirDrawer('vips')">
+              <div class="gc-header">
+                <div class="gc-avatar" style="background:linear-gradient(135deg,#7c3aed,#a78bfa)">
+                  <i class="fas fa-star"></i>
+                  <div class="g-st on"></div>
+                </div>
+                <div style="flex:1;min-width:0">
+                  <div class="gc-name">⭐ Clientes VIPs</div>
+                  <div class="gc-members"><i class="fas fa-users"></i> 142 membros · <span style="color:#15803d;font-weight:600">enviando agora</span></div>
+                </div>
+                <div class="gc-right">
+                  <div class="gc-rate"><div class="gc-rate-val">42%</div><div class="gc-rate-lbl">resp.</div></div>
+                  <div class="gc-config-chip"><i class="fas fa-bolt"></i> 5/dia</div>
+                  <label class="toggle" onclick="event.stopPropagation()"><input type="checkbox" checked><span class="toggle-sl"></span></label>
+                </div>
+              </div>
+              <!-- LIVE SENDING BAR -->
+              <div class="gc-live">
+                <div class="gc-live-dot"></div>
+                <div class="gc-live-text"><i class="fas fa-wand-magic-sparkles"></i> Enviando: Tênis Dad Shoe</div>
+                <div class="gc-live-bar"><div class="gc-live-fill"></div></div>
+                <div class="gc-live-pct">73%</div>
+              </div>
+              <!-- QUEUE STRIP -->
+              <div class="gc-queue">
+                <div class="gc-queue-label">
+                  Fila de disparos
+                  <span><i class="fas fa-clock"></i> 2 agendados · 3 enviados</span>
+                </div>
+                <div class="queue-strip">
+                  <div class="qi sent"><div class="qi-thumb">👗<div class="qi-status"><i class="fas fa-check"></i></div></div><div class="qi-time">05/04</div></div>
+                  <div class="q-line done"></div>
+                  <div class="qi sent"><div class="qi-thumb">🧥<div class="qi-status"><i class="fas fa-check"></i></div></div><div class="qi-time">02/04</div></div>
+                  <div class="q-line done"></div>
+                  <div class="qi sent"><div class="qi-thumb">👒<div class="qi-status"><i class="fas fa-check"></i></div></div><div class="qi-time">30/03</div></div>
+                  <div class="q-line prog"></div>
+                  <div class="qi sending"><div class="qi-thumb">👟<div class="qi-status"><i class="fas fa-spinner fa-spin"></i></div></div><div class="qi-time">agora</div></div>
+                  <div class="q-line"></div>
+                  <div class="qi pending"><div class="qi-thumb">👗<div class="qi-status"><i class="fas fa-clock"></i></div></div><div class="qi-time">19:00</div></div>
+                  <div class="q-line"></div>
+                  <div class="qi pending"><div class="qi-thumb">👠<div class="qi-status"><i class="fas fa-clock"></i></div></div><div class="qi-time">amanhã</div></div>
+                </div>
+              </div>
+              <div class="gc-footer">
+                <div class="gc-stat"><i class="fas fa-check-circle"></i> <strong>8</strong> enviados</div>
+                <div class="gc-stat"><i class="fas fa-clock"></i> <strong>2</strong> agendados</div>
+                <div class="gc-stat"><i class="fas fa-calendar-check"></i> Seg–Sex · 09h</div>
+                <div class="gc-actions">
+                  <button class="btn btn-secondary btn-xs" onclick="event.stopPropagation();abrirModal('novo-disparo')"><i class="fas fa-plus"></i> Disparo</button>
+                  <button class="btn btn-secondary btn-xs" onclick="event.stopPropagation();abrirDrawer('vips')"><i class="fas fa-cog"></i></button>
+                </div>
+              </div>
+            </div>
+
+            <!-- GRUPO CARD 2: AGENDADO -->
+            <div class="gc-card has-pending" onclick="abrirDrawer('promos')">
+              <div class="gc-header">
+                <div class="gc-avatar" style="background:linear-gradient(135deg,#128c7e,#22c55e)">
+                  <i class="fas fa-tag"></i>
+                  <div class="g-st on"></div>
+                </div>
+                <div style="flex:1;min-width:0">
+                  <div class="gc-name">🏷️ Promoções Flash</div>
+                  <div class="gc-members"><i class="fas fa-users"></i> 89 membros</div>
+                </div>
+                <div class="gc-right">
+                  <div class="gc-rate"><div class="gc-rate-val">35%</div><div class="gc-rate-lbl">resp.</div></div>
+                  <div class="gc-config-chip"><i class="fas fa-bolt"></i> 5/dia</div>
+                  <label class="toggle" onclick="event.stopPropagation()"><input type="checkbox" checked><span class="toggle-sl"></span></label>
+                </div>
+              </div>
+              <div class="gc-queue">
+                <div class="gc-queue-label">
+                  Fila de disparos
+                  <span><i class="fas fa-clock"></i> 1 agendado · 2 enviados</span>
+                </div>
+                <div class="queue-strip">
+                  <div class="qi sent"><div class="qi-thumb">🧥<div class="qi-status"><i class="fas fa-check"></i></div></div><div class="qi-time">02/04</div></div>
+                  <div class="q-line done"></div>
+                  <div class="qi sent"><div class="qi-thumb">👗<div class="qi-status"><i class="fas fa-check"></i></div></div><div class="qi-time">05/04</div></div>
+                  <div class="q-line"></div>
+                  <div class="qi pending" style="opacity:1"><div class="qi-thumb" style="border-color:#a78bfa;opacity:1">👗<div class="qi-status" style="background:#7c3aed"><i class="fas fa-clock"></i></div></div><div class="qi-time" style="color:#7c3aed;font-weight:700">19:00</div></div>
+                </div>
+              </div>
+              <div class="gc-footer">
+                <div class="gc-stat"><i class="fas fa-check-circle"></i> <strong>12</strong> enviados</div>
+                <div class="gc-stat"><i class="fas fa-clock"></i> <strong>1</strong> agendado</div>
+                <div class="gc-stat"><i class="fas fa-calendar-check"></i> Diário · 18h</div>
+                <div class="gc-actions">
+                  <button class="btn btn-secondary btn-xs" onclick="event.stopPropagation();abrirModal('novo-disparo')"><i class="fas fa-plus"></i> Disparo</button>
+                  <button class="btn btn-secondary btn-xs" onclick="event.stopPropagation()"><i class="fas fa-cog"></i></button>
+                </div>
+              </div>
+            </div>
+
+            <!-- GRUPO CARD 3: ATIVO NORMAL -->
+            <div class="gc-card" onclick="abrirDrawer('gerais')">
+              <div class="gc-header">
+                <div class="gc-avatar" style="background:linear-gradient(135deg,#0891b2,#22d3ee)">
+                  <i class="fas fa-users"></i>
+                  <div class="g-st on"></div>
+                </div>
+                <div style="flex:1;min-width:0">
+                  <div class="gc-name">👥 Clientes Gerais</div>
+                  <div class="gc-members"><i class="fas fa-users"></i> 317 membros</div>
+                </div>
+                <div class="gc-right">
+                  <div class="gc-rate"><div class="gc-rate-val">31%</div><div class="gc-rate-lbl">resp.</div></div>
+                  <div class="gc-config-chip"><i class="fas fa-bolt"></i> 10/dia</div>
+                  <label class="toggle" onclick="event.stopPropagation()"><input type="checkbox" checked><span class="toggle-sl"></span></label>
+                </div>
+              </div>
+              <div class="gc-queue">
+                <div class="gc-queue-label">Fila de disparos <span><i class="fas fa-circle-check" style="color:#15803d"></i> Fila vazia — próximo disparo às 10h</span></div>
+                <div class="queue-strip">
+                  <div class="qi sent"><div class="qi-thumb">👗<div class="qi-status"><i class="fas fa-check"></i></div></div><div class="qi-time">01/04</div></div>
+                  <div class="q-line done"></div>
+                  <div class="qi sent"><div class="qi-thumb">🧥<div class="qi-status"><i class="fas fa-check"></i></div></div><div class="qi-time">28/03</div></div>
+                  <div class="q-line done"></div>
+                  <div class="qi sent"><div class="qi-thumb">👟<div class="qi-status"><i class="fas fa-check"></i></div></div><div class="qi-time">25/03</div></div>
+                  <div class="q-line"></div>
+                  <div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0"><div style="width:44px;height:44px;border-radius:7px;background:#f8f9fa;border:2px dashed #e2e8f0;display:flex;align-items:center;justify-content:center;color:#d1d5db;font-size:16px;cursor:pointer" onclick="event.stopPropagation();abrirModal('novo-disparo')"><i class="fas fa-plus"></i></div><div style="font-size:9.5px;color:#94a3b8">novo</div></div>
+                </div>
+              </div>
+              <div class="gc-footer">
+                <div class="gc-stat"><i class="fas fa-check-circle"></i> <strong>15</strong> enviados</div>
+                <div class="gc-stat"><i class="fas fa-calendar-check"></i> Seg–Sex · 10h</div>
+                <div class="gc-actions">
+                  <button class="btn btn-secondary btn-xs" onclick="event.stopPropagation();abrirModal('novo-disparo')"><i class="fas fa-plus"></i> Disparo</button>
+                  <button class="btn btn-secondary btn-xs" onclick="event.stopPropagation()"><i class="fas fa-cog"></i></button>
+                </div>
+              </div>
+            </div>
+
+            <!-- GRUPO CARD 4: PAUSADO -->
+            <div class="gc-card" style="opacity:.75" onclick="abrirDrawer('insta')">
+              <div class="gc-header">
+                <div class="gc-avatar" style="background:linear-gradient(135deg,#d97706,#fbbf24)">
+                  <i class="fas fa-heart"></i>
+                  <div class="g-st off"></div>
+                </div>
+                <div style="flex:1;min-width:0">
+                  <div class="gc-name">💛 Seguidoras Insta</div>
+                  <div class="gc-members"><i class="fas fa-users"></i> 54 membros · <span style="color:#d97706;font-weight:600">pausado</span></div>
+                </div>
+                <div class="gc-right">
+                  <div class="gc-rate"><div class="gc-rate-val" style="color:#94a3b8">—</div><div class="gc-rate-lbl">resp.</div></div>
+                  <div class="gc-config-chip" style="background:#fef3c7;border-color:#fde68a;color:#92400e"><i class="fas fa-pause"></i> pausado</div>
+                  <label class="toggle" onclick="event.stopPropagation()"><input type="checkbox"><span class="toggle-sl"></span></label>
+                </div>
+              </div>
+              <div class="gc-queue">
+                <div class="gc-queue-label">Fila de disparos</div>
+                <div class="qi-empty"><i class="fas fa-pause-circle" style="color:#d97706"></i> Grupo pausado — reative o toggle para continuar</div>
+              </div>
+              <div class="gc-footer">
+                <div class="gc-stat" style="color:#94a3b8"><i class="fas fa-check-circle"></i> <strong>4</strong> enviados</div>
+                <div class="gc-stat" style="color:#d97706"><i class="fas fa-pause"></i> Pausado há 10 dias</div>
+                <div class="gc-actions">
+                  <button class="btn btn-secondary btn-xs" onclick="event.stopPropagation();showToast('Grupo reativado!')"><i class="fas fa-play"></i> Reativar</button>
+                  <button class="btn btn-secondary btn-xs" onclick="event.stopPropagation()"><i class="fas fa-cog"></i></button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ══ TAB: HISTÓRICO ══ -->
+        <div class="tab-body" id="tab-body-historico" style="display:none">
+          <div class="panel-hdr">
+            <div class="panel-hdr-title"><i class="fas fa-paper-plane"></i> Histórico de Campanhas</div>
+            <span style="font-size:10px;color:#94a3b8;font-weight:600">47 registros</span>
+          </div>
+          <!-- AI PENDING -->
+          <div class="ai-ps">
+            <div class="ai-ps-label"><i class="fas fa-wand-magic-sparkles"></i> Sugerido pela IA · Aguardando aprovação</div>
+            <div class="ai-pr">
+              <div class="ai-pi">👗</div>
+              <div style="flex:1"><div class="ai-pt">Vestido Midi Floral — "Parado há 12 dias, IA sugere reativar"</div><div class="ai-ps2"><i class="fas fa-wand-magic-sparkles"></i> Grupos: VIPs + Promos · Horário: hoje 19h</div></div>
+              <div style="display:flex;gap:5px">
+                <button class="btn btn-secondary btn-sm" onclick="showToast('Rejeitado')"><i class="fas fa-xmark"></i></button>
+                <button class="btn btn-wpp btn-sm" onclick="showToast('Aprovado e agendado! ✅')"><i class="fas fa-check"></i> Aprovar</button>
+              </div>
+            </div>
+            <div class="ai-pr">
+              <div class="ai-pi">👠</div>
+              <div style="flex:1"><div class="ai-pt">Scarpin Nude Premium — "Últimas 3 unidades, urgência"</div><div class="ai-ps2"><i class="fas fa-wand-magic-sparkles"></i> Grupos: VIPs · Tom: urgência máxima</div></div>
+              <div style="display:flex;gap:5px">
+                <button class="btn btn-secondary btn-sm" onclick="showToast('Rejeitado')"><i class="fas fa-xmark"></i></button>
+                <button class="btn btn-wpp btn-sm" onclick="showToast('Aprovado!')"><i class="fas fa-check"></i> Aprovar</button>
+              </div>
+            </div>
+          </div>
+          <div class="tbl-hdr" style="margin-top:4px"><div></div><div>Produto</div><div>Grupos</div><div>Agendamento</div><div style="text-align:center">Alcance</div><div style="text-align:center">Status</div><div></div></div>
+          <div class="panel-body">
+            <div class="brow" style="cursor:pointer"><div class="brow-thumb">👟</div><div><div class="brow-name">Tênis Dad Shoe Colorido</div><div class="brow-meta"><i class="fas fa-wand-magic-sparkles" style="color:#7c3aed"></i> IA · 3 fotos</div></div><div class="brow-groups"><span class="gchip"><i class="fas fa-users"></i> VIPs</span><span class="gchip"><i class="fas fa-users"></i> Clientes</span></div><div><div class="brow-sched">Agora</div><div class="brow-sched-sub"><i class="fas fa-spinner fa-spin"></i> 1/2</div></div><div class="brow-count"><div class="brow-count-val">142</div><div class="brow-count-lbl">alcance</div></div><div><span class="sbadge sending"><i class="fas fa-spinner fa-spin"></i> Enviando</span></div><div class="brow-actions"><div class="icon-btn danger" onclick="showToast('Cancelado')"><i class="fas fa-xmark"></i></div></div></div>
+            <div class="brow selected" style="cursor:pointer"><div class="brow-thumb">👗</div><div><div class="brow-name">Vestido Midi Floral — Novidade</div><div class="brow-meta"><i class="fas fa-wand-magic-sparkles" style="color:#7c3aed"></i> IA · 3 fotos</div></div><div class="brow-groups"><span class="gchip"><i class="fas fa-users"></i> VIPs</span><span class="gchip"><i class="fas fa-users"></i> Promos</span></div><div><div class="brow-sched">Hoje, 19:00</div><div class="brow-sched-sub"><i class="fas fa-calendar"></i> 07/04</div></div><div class="brow-count"><div class="brow-count-val">231</div><div class="brow-count-lbl">alcance</div></div><div><span class="sbadge scheduled"><i class="fas fa-clock"></i> Agendado</span></div><div class="brow-actions"><div class="icon-btn fire" onclick="showToast('Disparando!')"><i class="fas fa-bolt"></i></div><div class="icon-btn" onclick="abrirModal('novo-disparo')"><i class="fas fa-pen"></i></div></div></div>
+            <div class="brow" style="cursor:pointer"><div class="brow-thumb">👗</div><div><div class="brow-name">Blusa Off Shoulder Branca — Verão</div><div class="brow-meta"><i class="fas fa-wand-magic-sparkles" style="color:#7c3aed"></i> IA · 4 fotos · <span style="color:#15803d;font-weight:600">42%</span></div></div><div class="brow-groups"><span class="gchip"><i class="fas fa-users"></i> VIPs</span><span class="gchip"><i class="fas fa-users"></i> Promos</span><span class="gchip"><i class="fas fa-users"></i> Clientes</span></div><div><div class="brow-sched">05/04</div><div class="brow-sched-sub"><i class="fas fa-clock"></i> 18:30</div></div><div class="brow-count"><div class="brow-count-val">548</div><div class="brow-count-lbl">alcance</div></div><div><span class="sbadge sent"><i class="fas fa-circle-check"></i> Enviado</span></div><div class="brow-actions"><div class="icon-btn" onclick="showToast('Reenviando...')"><i class="fas fa-rotate"></i></div><div class="icon-btn"><i class="fas fa-chart-bar"></i></div></div></div>
+            <div class="brow" style="cursor:pointer"><div class="brow-thumb">🧥</div><div><div class="brow-name">Jaqueta Jeans Destroyed — Hit</div><div class="brow-meta"><i class="fas fa-wand-magic-sparkles" style="color:#7c3aed"></i> IA · 2 fotos · <span style="color:#15803d;font-weight:600">35%</span></div></div><div class="brow-groups"><span class="gchip"><i class="fas fa-users"></i> Clientes</span><span class="gchip"><i class="fas fa-users"></i> Promos</span></div><div><div class="brow-sched">02/04</div><div class="brow-sched-sub"><i class="fas fa-clock"></i> 15:00</div></div><div class="brow-count"><div class="brow-count-val">406</div><div class="brow-count-lbl">alcance</div></div><div><span class="sbadge sent"><i class="fas fa-circle-check"></i> Enviado</span></div><div class="brow-actions"><div class="icon-btn"><i class="fas fa-rotate"></i></div><div class="icon-btn"><i class="fas fa-chart-bar"></i></div></div></div>
+          </div>
+        </div>
+
+      </div><!-- /main-panel -->
+
+      <!-- RIGHT PANEL -->
+      <div class="right-panel">
+
+        <div class="rcard">
+          <div class="next-hero">
+            <div class="next-label"><i class="fas fa-clock"></i> Próximo Disparo</div>
+            <div class="next-product">👗 Vestido Midi Floral</div>
+            <div class="next-time-row"><div class="next-time">19:00</div><div class="next-ampm">hoje</div></div>
+            <div class="next-date"><i class="fas fa-calendar"></i> Terça, 07 de Abril de 2026</div>
+            <div class="next-chips">
+              <span class="next-chip"><i class="fas fa-users"></i> VIPs (142)</span>
+              <span class="next-chip"><i class="fas fa-users"></i> Promos (89)</span>
+            </div>
+            <div class="next-actions">
+              <button class="btn-ghost-w" onclick="showToast('Disparo cancelado!')"><i class="fas fa-ban"></i> Cancelar</button>
+              <button class="btn btn-wpp btn-sm" onclick="showToast('Disparando agora!')"><i class="fas fa-bolt"></i> Disparar Agora</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="rcard">
+          <div class="rcard-hdr">
+            <div class="rcard-hdr-title" style="color:#15803d"><i class="fab fa-whatsapp" style="color:#22c55e"></i> Grupos</div>
+            <button class="btn btn-secondary btn-sm" onclick="abrirModal('gerenciar')"><i class="fas fa-gear"></i></button>
+          </div>
+          <div class="rcard-body">
+            <div class="group-item active" onclick="abrirDrawer('vips')">
+              <div class="g-av" style="background:linear-gradient(135deg,#7c3aed,#a78bfa)"><i class="fas fa-star"></i><div class="g-st-sm on"></div></div>
+              <div style="flex:1;min-width:0"><div style="font-size:11.5px;font-weight:700;color:#0f172a">⭐ Clientes VIPs</div><div style="font-size:10px;color:#94a3b8;margin-top:1px"><i class="fas fa-users"></i> 142</div></div>
+              <div style="text-align:right;flex-shrink:0;margin-right:6px"><div style="font-size:10px;color:#64748b">há 2d</div><div style="font-size:10px;font-weight:700;color:#7c3aed">8 disp.</div></div>
+              <label class="toggle" onclick="event.stopPropagation()"><input type="checkbox" checked><span class="toggle-sl"></span></label>
+            </div>
+            <div class="group-item active" onclick="abrirDrawer('promos')">
+              <div class="g-av" style="background:linear-gradient(135deg,#128c7e,#22c55e)"><i class="fas fa-tag"></i><div class="g-st-sm on"></div></div>
+              <div style="flex:1;min-width:0"><div style="font-size:11.5px;font-weight:700;color:#0f172a">🏷️ Promoções Flash</div><div style="font-size:10px;color:#94a3b8;margin-top:1px"><i class="fas fa-users"></i> 89</div></div>
+              <div style="text-align:right;flex-shrink:0;margin-right:6px"><div style="font-size:10px;color:#64748b">há 5d</div><div style="font-size:10px;font-weight:700;color:#7c3aed">12 disp.</div></div>
+              <label class="toggle" onclick="event.stopPropagation()"><input type="checkbox" checked><span class="toggle-sl"></span></label>
+            </div>
+            <div class="group-item active" onclick="abrirDrawer('gerais')">
+              <div class="g-av" style="background:linear-gradient(135deg,#0891b2,#22d3ee)"><i class="fas fa-users"></i><div class="g-st-sm on"></div></div>
+              <div style="flex:1;min-width:0"><div style="font-size:11.5px;font-weight:700;color:#0f172a">👥 Clientes Gerais</div><div style="font-size:10px;color:#94a3b8;margin-top:1px"><i class="fas fa-users"></i> 317</div></div>
+              <div style="text-align:right;flex-shrink:0;margin-right:6px"><div style="font-size:10px;color:#64748b">há 1d</div><div style="font-size:10px;font-weight:700;color:#7c3aed">15 disp.</div></div>
+              <label class="toggle" onclick="event.stopPropagation()"><input type="checkbox" checked><span class="toggle-sl"></span></label>
+            </div>
+            <div class="group-item" onclick="abrirDrawer('insta')">
+              <div class="g-av" style="background:linear-gradient(135deg,#d97706,#fbbf24)"><i class="fas fa-heart"></i><div class="g-st-sm off"></div></div>
+              <div style="flex:1;min-width:0"><div style="font-size:11.5px;font-weight:700;color:#0f172a">💛 Seguidoras Insta</div><div style="font-size:10px;color:#94a3b8;margin-top:1px"><i class="fas fa-users"></i> 54</div></div>
+              <div style="text-align:right;flex-shrink:0;margin-right:6px"><div style="font-size:10px;color:#d97706">pausado</div></div>
+              <label class="toggle" onclick="event.stopPropagation()"><input type="checkbox"><span class="toggle-sl"></span></label>
+            </div>
+            <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:6px;justify-content:center" onclick="abrirModal('gerenciar')"><i class="fas fa-plus"></i> Adicionar grupo</button>
+          </div>
+        </div>
+
+        <div class="rcard">
+          <div class="rcard-hdr"><div class="rcard-hdr-title"><i class="fas fa-clock-rotate-left" style="color:#7c3aed"></i> Atividade</div></div>
+          <div class="rcard-body" style="padding:4px 12px 10px">
+            <div class="af-item"><div class="af-icon ai"><i class="fas fa-wand-magic-sparkles"></i></div><div><div class="af-text">IA criou campanha para <strong>Vestido Midi Floral</strong></div><div class="af-time"><i class="fas fa-clock"></i> há 35 min</div></div></div>
+            <div class="af-item"><div class="af-icon sent"><i class="fas fa-paper-plane"></i></div><div><div class="af-text">Disparo → <strong>Clientes VIPs</strong> · Tênis Dad</div><div class="af-time"><i class="fas fa-clock"></i> há 1h</div></div></div>
+            <div class="af-item"><div class="af-icon group"><i class="fas fa-reply"></i></div><div><div class="af-text"><strong>12 pessoas</strong> responderam em Promoções</div><div class="af-time"><i class="fas fa-clock"></i> há 2h</div></div></div>
+            <div class="af-item"><div class="af-icon ai"><i class="fas fa-wand-magic-sparkles"></i></div><div><div class="af-text">IA identificou <strong>Scarpin Nude</strong> com baixo giro</div><div class="af-time"><i class="fas fa-clock"></i> há 3h</div></div></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     GROUP DRAWER — v4 com Sub-Tabs
+═══════════════════════════════════════════════════════ -->
+<div class="drawer-ov" id="drawer-ov" onclick="fecharDrawer()"></div>
+<div class="drawer" id="drawer">
+
+  <!-- RICH HEADER -->
+  <div class="dr-head">
+    <div class="dr-head-top">
+      <div class="dr-group-info">
+        <div class="dr-group-av" style="background:linear-gradient(135deg,#7c3aed,#a78bfa)">
+          <i class="fas fa-star"></i>
+          <div class="dr-av-st on"></div>
+        </div>
+        <div>
+          <div class="dr-group-name">⭐ Clientes VIPs</div>
+          <div class="dr-group-sub">
+            <span><i class="fab fa-whatsapp"></i> 142 membros</span>
+            <span><i class="fas fa-circle-dot" style="color:#22c55e;font-size:8px"></i> Online</span>
+            <span><i class="fas fa-bolt"></i> 5 produtos/dia</span>
+          </div>
+        </div>
+      </div>
+      <button class="dr-close" onclick="fecharDrawer()"><i class="fas fa-xmark"></i></button>
+    </div>
+
+    <!-- STATS STRIP -->
+    <div class="dr-stats-strip">
+      <div class="dr-stat">
+        <div class="dr-stat-val">8</div>
+        <div class="dr-stat-lbl">Realizados</div>
+        <div class="dr-stat-sub">Agendados: 2 · Progresso: 62%</div>
+      </div>
+      <div class="dr-stat">
+        <div class="dr-stat-val">42%</div>
+        <div class="dr-stat-lbl">Resposta</div>
+        <div class="dr-stat-sub" style="color:#86efac">↑ média</div>
+      </div>
+      <div class="dr-stat">
+        <div class="dr-stat-val">231</div>
+        <div class="dr-stat-lbl">Alcance</div>
+        <div class="dr-stat-sub">mensal</div>
+      </div>
+      <div class="dr-stat">
+        <div class="dr-stat-val">Hoje</div>
+        <div class="dr-stat-lbl">Próximo</div>
+        <div class="dr-stat-sub">19:00</div>
+      </div>
+    </div>
+    <div class="dr-prog-bar"><div class="dr-prog-fill" style="width:62%"></div></div>
+  </div>
+
+  <!-- SUB-TAB NAV -->
+  <div class="dr-tab-nav">
+    <div class="dr-tab-btn act" id="drtab-fila" onclick="switchDrTab('fila')">
+      <i class="fas fa-layer-group"></i> Fila &amp; Histórico
+    </div>
+    <div class="dr-tab-btn" id="drtab-perf" onclick="switchDrTab('perf')">
+      <i class="fas fa-chart-bar"></i> Performance
+    </div>
+    <div class="dr-tab-btn" id="drtab-cfg" onclick="switchDrTab('cfg')">
+      <i class="fas fa-gear"></i> Configuração
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div class="dr-body">
+
+
+    <!-- ═══ SUB-TAB: FILA & HISTÓRICO ═══ -->
+    <div id="drpane-fila" class="dr-pane act">
+
+      <!-- ENVIANDO AGORA (live) -->
+      <div class="dr-sec" style="border-left:3px solid #7c3aed">
+        <div class="dr-sec-hdr">
+          <div class="dr-sec-title" style="color:#5b21b6"><i class="fas fa-spinner fa-spin" style="color:#22c55e"></i> Enviando Agora <span class="dr-live-badge">LIVE</span></div>
+          <span style="font-size:10.5px;color:#7c3aed;font-weight:700">73%</span>
+        </div>
+        <div class="dr-sec-body" style="padding-top:0">
+          <div class="dq-item dq-sending" style="margin-bottom:0">
+            <div class="dq-num">●</div>
+            <div class="dq-thumb">👟</div>
+            <div class="dq-info">
+              <div class="dq-name">Tênis Dad Shoe Colorido</div>
+              <div class="dq-meta"><i class="fas fa-users"></i> 142 membros · <i class="fas fa-images"></i> 3 fotos</div>
+              <span class="dq-badge">Enviando...</span>
+            </div>
+            <div style="text-align:right">
+              <div class="dq-time"><i class="fas fa-spinner fa-spin"></i> agora</div>
+              <div style="font-size:9px;color:#7c3aed;margin-top:3px">73% concluído</div>
+            </div>
+          </div>
+          <div style="margin-top:8px;background:#f0fdf4;border-radius:8px;padding:8px 12px">
+            <div style="font-size:9.5px;font-weight:700;color:#15803d;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">Progresso por grupo</div>
+            <div style="display:flex;flex-direction:column;gap:5px">
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="font-size:10.5px;color:#374151;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">⭐ Clientes VIPs (142)</div>
+                <div style="flex:2;height:5px;background:#dcfce7;border-radius:3px;overflow:hidden"><div style="height:100%;background:#22c55e;border-radius:3px;width:100%"></div></div>
+                <div style="font-size:10px;color:#15803d;font-weight:700;width:28px;text-align:right">100%</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="font-size:10.5px;color:#374151;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">👥 Clientes Gerais (317)</div>
+                <div style="flex:2;height:5px;background:#dcfce7;border-radius:3px;overflow:hidden"><div style="height:100%;background:#22c55e;border-radius:3px;width:60%"></div></div>
+                <div style="font-size:10px;color:#15803d;font-weight:700;width:28px;text-align:right">60%</div>
+              </div>
+            </div>
+            <div style="font-size:10.5px;color:#15803d;margin-top:6px;font-weight:600;display:flex;align-items:center;gap:4px"><i class="fas fa-clock"></i> ~2 min restantes</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PRÓXIMOS NA FILA -->
+      <div class="dr-sec">
+        <div class="dr-sec-hdr">
+          <div class="dr-sec-title"><i class="fas fa-clock"></i> Próximos na Fila <span style="background:#ede9fe;color:#5b21b6;font-size:9.5px;padding:1px 8px;border-radius:8px;margin-left:6px;font-weight:700">2 pendentes</span></div>
+          <button class="btn btn-ai btn-xs" onclick="abrirModal('novo-disparo')"><i class="fas fa-plus"></i> Adicionar</button>
+        </div>
+        <div class="dr-sec-body">
+          <div class="dr-queue">
+            <div class="dq-item dq-next">
+              <div class="dq-num">1</div>
+              <div class="dq-thumb">👗</div>
+              <div class="dq-info">
+                <div class="dq-name">Vestido Midi Floral — Novidade</div>
+                <div class="dq-meta"><i class="fas fa-wand-magic-sparkles" style="color:#7c3aed"></i> IA gerou · 3 fotos · 265 chars</div>
+                <span class="dq-badge">Próximo</span>
+              </div>
+              <div style="text-align:right">
+                <div class="dq-time">19:00</div>
+                <div style="font-size:9px;color:#92400e;margin-top:2px">hoje</div>
+                <div style="display:flex;gap:4px;justify-content:flex-end;margin-top:5px">
+                  <div class="icon-btn" style="width:22px;height:22px;font-size:10px" onclick="showToast('Disparando!')"><i class="fas fa-bolt"></i></div>
+                  <div class="icon-btn" style="width:22px;height:22px;font-size:10px"><i class="fas fa-pen"></i></div>
+                </div>
+              </div>
+            </div>
+            <div class="dq-item dq-pending">
+              <div class="dq-num">2</div>
+              <div class="dq-thumb">👠</div>
+              <div class="dq-info">
+                <div class="dq-name">Scarpin Nude Premium</div>
+                <div class="dq-meta"><i class="fas fa-wand-magic-sparkles" style="color:#7c3aed"></i> IA gerou · 2 fotos</div>
+                <span class="dq-badge">Agendado</span>
+              </div>
+              <div style="text-align:right">
+                <div class="dq-time">10:00</div>
+                <div style="font-size:9px;color:#64748b;margin-top:2px">amanhã</div>
+                <div style="display:flex;gap:4px;justify-content:flex-end;margin-top:5px">
+                  <div class="icon-btn" style="width:22px;height:22px;font-size:10px" onclick="showToast('Disparando!')"><i class="fas fa-bolt"></i></div>
+                  <div class="icon-btn danger" style="width:22px;height:22px;font-size:10px"><i class="fas fa-trash"></i></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px;justify-content:center" onclick="abrirModal('novo-disparo')"><i class="fas fa-plus"></i> Adicionar à fila</button>
+        </div>
+      </div>
+
+      <!-- ÚLTIMO ENVIADO -->
+      <div class="dr-sec">
+        <div class="dr-sec-hdr">
+          <div class="dr-sec-title" style="color:#15803d"><i class="fas fa-circle-check" style="color:#22c55e"></i> Último Enviado</div>
+          <span style="font-size:10px;color:#94a3b8;font-weight:600">8 no total</span>
+        </div>
+        <div class="dr-sec-body">
+          <div class="dr-queue">
+            <div class="dq-item dq-sent">
+              <div class="dq-num"><i class="fas fa-check" style="font-size:9px"></i></div>
+              <div class="dq-thumb">👗</div>
+              <div class="dq-info">
+                <div class="dq-name">Blusa Off Shoulder Branca</div>
+                <div class="dq-meta"><i class="fas fa-reply" style="color:#15803d"></i> 42% resp. · 548 alcançados · 3 grupos</div>
+                <span class="dq-badge">Enviado</span>
+              </div>
+              <div style="text-align:right">
+                <div class="dq-time">05/04</div>
+                <div style="font-size:9px;color:#64748b;margin-top:2px">18:30</div>
+                <div style="display:flex;gap:4px;justify-content:flex-end;margin-top:5px">
+                  <div class="icon-btn" style="width:22px;height:22px;font-size:10px" onclick="showToast('Reenviando!')"><i class="fas fa-rotate"></i></div>
+                  <div class="icon-btn" style="width:22px;height:22px;font-size:10px"><i class="fas fa-chart-bar"></i></div>
+                </div>
+              </div>
+            </div>
+            <div class="dq-item dq-sent">
+              <div class="dq-num"><i class="fas fa-check" style="font-size:9px"></i></div>
+              <div class="dq-thumb">🧥</div>
+              <div class="dq-info">
+                <div class="dq-name">Jaqueta Jeans Destroyed</div>
+                <div class="dq-meta"><i class="fas fa-reply" style="color:#15803d"></i> 35% resp. · 406 alcançados · 2 grupos</div>
+                <span class="dq-badge">Enviado</span>
+              </div>
+              <div style="text-align:right">
+                <div class="dq-time">02/04</div>
+                <div style="font-size:9px;color:#64748b;margin-top:2px">15:00</div>
+                <div style="display:flex;gap:4px;justify-content:flex-end;margin-top:5px">
+                  <div class="icon-btn" style="width:22px;height:22px;font-size:10px"><i class="fas fa-rotate"></i></div>
+                  <div class="icon-btn" style="width:22px;height:22px;font-size:10px"><i class="fas fa-chart-bar"></i></div>
+                </div>
+              </div>
+            </div>
+            <div class="dq-item dq-sent">
+              <div class="dq-num"><i class="fas fa-check" style="font-size:9px"></i></div>
+              <div class="dq-thumb">👒</div>
+              <div class="dq-info">
+                <div class="dq-name">Chapéu Palha Decorado</div>
+                <div class="dq-meta"><i class="fas fa-reply" style="color:#15803d"></i> 28% resp. · 142 alcançados · 1 grupo</div>
+                <span class="dq-badge">Enviado</span>
+              </div>
+              <div style="text-align:right">
+                <div class="dq-time">30/03</div>
+                <div style="font-size:9px;color:#64748b;margin-top:2px">09:00</div>
+                <div style="display:flex;gap:4px;justify-content:flex-end;margin-top:5px">
+                  <div class="icon-btn" style="width:22px;height:22px;font-size:10px"><i class="fas fa-rotate"></i></div>
+                  <div class="icon-btn" style="width:22px;height:22px;font-size:10px"><i class="fas fa-chart-bar"></i></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /drpane-fila -->
+
+    <!-- ═══ SUB-TAB: PERFORMANCE ═══ -->
+    <div id="drpane-perf" class="dr-pane">
+
+      <div class="dr-sec">
+        <div class="dr-sec-hdr">
+          <div class="dr-sec-title"><i class="fas fa-chart-bar"></i> Métricas do Grupo</div>
+          <span class="sbadge sent" style="font-size:9.5px">dados reais</span>
+        </div>
+        <div class="dr-sec-body">
+          <div class="dr-metrics">
+            <div class="dr-metric"><div class="dr-metric-val">8</div><div class="dr-metric-lbl">Disparos</div><div class="dr-metric-tag" style="background:#dcfce7;color:#15803d">real</div></div>
+            <div class="dr-metric"><div class="dr-metric-val">42%</div><div class="dr-metric-lbl">Resposta</div><div class="dr-metric-tag" style="background:#dcfce7;color:#15803d">real</div></div>
+            <div class="dr-metric"><div class="dr-metric-val">1.242</div><div class="dr-metric-lbl">Alcance total</div><div class="dr-metric-tag">calculado</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dr-sec">
+        <div class="dr-sec-hdr">
+          <div class="dr-sec-title"><i class="fas fa-chart-bar"></i> Engajamento por Horário</div>
+        </div>
+        <div class="dr-sec-body">
+          <div class="eng-bars">
+            <div class="eng-bar-wrap"><div class="eng-bar low" style="height:14px"></div><div class="eng-lbl">08h</div></div>
+            <div class="eng-bar-wrap"><div class="eng-bar good" style="height:24px"></div><div class="eng-lbl">09h</div></div>
+            <div class="eng-bar-wrap"><div class="eng-bar low" style="height:10px"></div><div class="eng-lbl">10h</div></div>
+            <div class="eng-bar-wrap"><div class="eng-bar low" style="height:8px"></div><div class="eng-lbl">12h</div></div>
+            <div class="eng-bar-wrap"><div class="eng-bar low" style="height:12px"></div><div class="eng-lbl">14h</div></div>
+            <div class="eng-bar-wrap"><div class="eng-bar good" style="height:28px"></div><div class="eng-lbl">17h</div></div>
+            <div class="eng-bar-wrap"><div class="eng-bar best" style="height:44px"></div><div class="eng-lbl">19h</div></div>
+            <div class="eng-bar-wrap"><div class="eng-bar good" style="height:30px"></div><div class="eng-lbl">20h</div></div>
+            <div class="eng-bar-wrap"><div class="eng-bar low" style="height:16px"></div><div class="eng-lbl">21h</div></div>
+          </div>
+          <div class="eng-recommended"><i class="fas fa-lightbulb"></i> Melhor horário: <strong>19h</strong> — 74% de engajamento histórico</div>
+        </div>
+      </div>
+
+      <div class="dr-sec" style="border-bottom:none;margin-bottom:0">
+        <div class="dr-sec-hdr">
+          <div class="dr-sec-title"><i class="fas fa-calendar-week"></i> Tendência por Dia</div>
+        </div>
+        <div class="dr-sec-body">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;align-items:center;gap:8px"><div style="font-size:11px;color:#374151;font-weight:600;width:60px">Segunda</div><div style="flex:1;height:7px;background:#f1f5f9;border-radius:4px;overflow:hidden"><div style="height:100%;background:#7c3aed;border-radius:4px;width:35%"></div></div><div style="font-size:11px;font-weight:700;color:#374151;width:32px;text-align:right">35%</div></div>
+            <div style="display:flex;align-items:center;gap:8px"><div style="font-size:11px;color:#374151;font-weight:600;width:60px">Terça</div><div style="flex:1;height:7px;background:#f1f5f9;border-radius:4px;overflow:hidden"><div style="height:100%;background:#7c3aed;border-radius:4px;width:74%"></div></div><div style="font-size:11px;font-weight:700;color:#374151;width:32px;text-align:right">74%</div></div>
+            <div style="display:flex;align-items:center;gap:8px"><div style="font-size:11px;color:#374151;font-weight:600;width:60px">Quarta</div><div style="flex:1;height:7px;background:#f1f5f9;border-radius:4px;overflow:hidden"><div style="height:100%;background:#7c3aed;border-radius:4px;width:42%"></div></div><div style="font-size:11px;font-weight:700;color:#374151;width:32px;text-align:right">42%</div></div>
+            <div style="display:flex;align-items:center;gap:8px"><div style="font-size:11px;color:#374151;font-weight:600;width:60px">Quinta</div><div style="flex:1;height:7px;background:#f1f5f9;border-radius:4px;overflow:hidden"><div style="height:100%;background:#7c3aed;border-radius:4px;width:58%"></div></div><div style="font-size:11px;font-weight:700;color:#374151;width:32px;text-align:right">58%</div></div>
+            <div style="display:flex;align-items:center;gap:8px"><div style="font-size:11px;color:#15803d;font-weight:700;width:60px">Sexta</div><div style="flex:1;height:7px;background:#f1f5f9;border-radius:4px;overflow:hidden"><div style="height:100%;background:#22c55e;border-radius:4px;width:81%"></div></div><div style="font-size:11px;font-weight:700;color:#15803d;width:32px;text-align:right">81%</div></div>
+            <div style="display:flex;align-items:center;gap:8px"><div style="font-size:11px;color:#374151;font-weight:600;width:60px">Sábado</div><div style="flex:1;height:7px;background:#f1f5f9;border-radius:4px;overflow:hidden"><div style="height:100%;background:#7c3aed;border-radius:4px;width:66%"></div></div><div style="font-size:11px;font-weight:700;color:#374151;width:32px;text-align:right">66%</div></div>
+            <div style="display:flex;align-items:center;gap:8px"><div style="font-size:11px;color:#94a3b8;font-weight:600;width:60px">Domingo</div><div style="flex:1;height:7px;background:#f1f5f9;border-radius:4px;overflow:hidden"><div style="height:100%;background:#e2e8f0;border-radius:4px;width:28%"></div></div><div style="font-size:11px;font-weight:700;color:#94a3b8;width:32px;text-align:right">28%</div></div>
+          </div>
+          <div style="background:#faf5ff;border:1px solid #ddd6fe;border-radius:8px;padding:9px 12px;margin-top:12px;display:flex;align-items:center;gap:8px">
+            <i class="fas fa-wand-magic-sparkles" style="color:#7c3aed;font-size:13px;flex-shrink:0"></i>
+            <div style="font-size:11.5px;color:#5b21b6">IA recomenda disparar nas <strong>sextas às 19h</strong> e <strong>terças às 18h</strong></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /drpane-perf -->
+
+    <!-- ═══ SUB-TAB: CONFIGURAÇÃO ═══ -->
+    <div id="drpane-cfg" class="dr-pane">
+
+      <div class="dr-sec">
+        <div class="dr-sec-hdr">
+          <div class="dr-sec-title"><i class="fas fa-sliders"></i> Configuração do Grupo</div>
+        </div>
+        <div class="dr-sec-body">
+          <div class="dr-config-grid">
+            <div class="dr-cfg-field">
+              <label class="dr-cfg-label">Quantidade de produtos por dia</label>
+              <input class="finput" type="number" value="5">
+              <div class="dr-cfg-hint">Máx. de disparos diários neste grupo</div>
+            </div>
+            <div class="dr-cfg-field">
+              <label class="dr-cfg-label">Intervalo entre disparos (min)</label>
+              <input class="finput" type="number" value="2" min="0">
+              <div class="dr-cfg-hint">0 = sem intervalo</div>
+            </div>
+          </div>
+          <div style="margin-top:12px">
+            <label class="dr-cfg-label" style="margin-bottom:6px;display:block">Horário de Início dos Disparos</label>
+            <input class="finput" type="time" value="09:00" style="max-width:180px">
+          </div>
+          <div style="margin-top:14px">
+            <label class="dr-cfg-label" style="margin-bottom:8px;display:block;text-transform:uppercase;letter-spacing:.5px;font-size:10px;color:#94a3b8">Dias de Disparo</label>
+            <div class="days-grid">
+              <button class="day-btn on" onclick="this.classList.toggle('on')">Dom</button>
+              <button class="day-btn on" onclick="this.classList.toggle('on')">Seg</button>
+              <button class="day-btn on" onclick="this.classList.toggle('on')">Ter</button>
+              <button class="day-btn on" onclick="this.classList.toggle('on')">Qua</button>
+              <button class="day-btn on" onclick="this.classList.toggle('on')">Qui</button>
+              <button class="day-btn on" onclick="this.classList.toggle('on')">Sex</button>
+              <button class="day-btn on" onclick="this.classList.toggle('on')">Sáb</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dr-sec">
+        <div class="dr-sec-hdr">
+          <div class="dr-sec-title"><i class="fas fa-toggle-on"></i> Controles</div>
+        </div>
+        <div class="dr-sec-body" style="padding-top:2px">
+          <div style="display:flex;flex-direction:column;gap:0">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f8f9fa">
+              <div>
+                <div style="font-size:12px;font-weight:700;color:#374151">Status do grupo</div>
+                <div style="font-size:10.5px;color:#94a3b8;margin-top:1px">Ativar ou pausar os disparos automáticos</div>
+              </div>
+              <label class="toggle"><input type="checkbox" checked><span class="toggle-sl"></span></label>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f8f9fa">
+              <div>
+                <div style="font-size:12px;font-weight:700;color:#374151">IA Decide o horário</div>
+                <div style="font-size:10.5px;color:#94a3b8;margin-top:1px">IA analisa engajamento e escolhe o melhor momento</div>
+              </div>
+              <label class="toggle"><input type="checkbox" checked><span class="toggle-sl"></span></label>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0">
+              <div>
+                <div style="font-size:12px;font-weight:700;color:#374151">Sugestões da IA</div>
+                <div style="font-size:10.5px;color:#94a3b8;margin-top:1px">Receber campanhas geradas automaticamente</div>
+              </div>
+              <label class="toggle"><input type="checkbox" checked><span class="toggle-sl"></span></label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /drpane-cfg -->
+
+  </div>
+
+  <!-- FOOTER -->
+  <div class="dr-foot">
+    <button class="btn btn-danger btn-sm" onclick="showToast('Grupo removido!');fecharDrawer()"><i class="fas fa-trash"></i> Remover</button>
+    <label class="toggle" style="margin-left:4px;width:auto;height:auto;position:static" onclick="event.stopPropagation()">
+      <span style="font-size:11.5px;font-weight:700;color:#374151;margin-right:6px">Ativo</span>
+      <div style="position:relative;width:31px;height:17px;display:inline-block">
+        <input type="checkbox" checked style="opacity:0;width:0;height:0;position:absolute">
+        <span class="toggle-sl"></span>
+      </div>
+    </label>
+    <div style="margin-left:auto;display:flex;gap:7px">
+      <button class="btn btn-secondary btn-sm" onclick="fecharDrawer()">Fechar</button>
+      <button class="btn btn-primary btn-sm" onclick="showToast('Configurações salvas! ✅');fecharDrawer()"><i class="fas fa-check"></i> Salvar Edição</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══ MODAL: NOVO DISPARO (simplificado) ══ -->
+<div class="overlay hide" id="ov-novo-disparo">
+  <div class="modal lg">
+    <div class="mh">
+      <div><div class="mh-title"><i class="fab fa-whatsapp"></i> Novo Disparo IA para Grupos</div><div class="mh-sub">Produto → Conteúdo IA → Grupos & Agenda</div></div>
+      <button class="mh-close" onclick="fecharModal('novo-disparo')"><i class="fas fa-xmark"></i></button>
+    </div>
+    <div class="mb">
+      <div class="wizard">
+        <div class="ws-circle act" id="ws1">1</div><span class="ws-lbl act" id="wl1">Produto</span>
+        <div class="ws-line" id="wline1"></div>
+        <div class="ws-circle pend" id="ws2">2</div><span class="ws-lbl" id="wl2">Conteúdo IA</span>
+        <div class="ws-line" id="wline2"></div>
+        <div class="ws-circle pend" id="ws3">3</div><span class="ws-lbl" id="wl3">Grupos & Agenda</span>
+      </div>
+      <div id="ms1">
+        <div class="fz-search" style="max-width:100%;margin-bottom:12px"><i class="fas fa-magnifying-glass"></i><input type="text" placeholder="Buscar produto no Catálogo IA..." class="finput" style="padding-left:30px"></div>
+        <div class="prod-grid">
+          <div class="prod-pick sel" onclick="selProd(this)"><div class="pp-img">👗</div><div class="pp-name">Vestido Midi</div><div class="pp-price">R$ 259,90</div><span class="pp-badge ai-sug"><i class="fas fa-wand-magic-sparkles" style="font-size:8px"></i> IA sugere</span></div>
+          <div class="prod-pick" onclick="selProd(this)"><div class="pp-img">👠</div><div class="pp-name">Scarpin Nude</div><div class="pp-price">R$ 189,90</div><span class="pp-badge low">Último 3</span></div>
+          <div class="prod-pick" onclick="selProd(this)"><div class="pp-img">👜</div><div class="pp-name">Bolsa Caramelo</div><div class="pp-price">R$ 349,00</div><span class="pp-badge stock">Estoque</span></div>
+          <div class="prod-pick" onclick="selProd(this)"><div class="pp-img">👒</div><div class="pp-name">Chapéu Palha</div><div class="pp-price">R$ 89,90</div><span class="pp-badge stock">Estoque</span></div>
+          <div class="prod-pick" onclick="selProd(this)"><div class="pp-img">🧥</div><div class="pp-name">Jaqueta Jeans</div><div class="pp-price">R$ 219,00</div><span class="pp-badge low">Últimas 2</span></div>
+          <div class="prod-pick" onclick="selProd(this)"><div class="pp-img">👟</div><div class="pp-name">Tênis Dad</div><div class="pp-price">R$ 299,00</div><span class="pp-badge stock">Estoque</span></div>
+          <div class="prod-pick" onclick="selProd(this)"><div class="pp-img">👛</div><div class="pp-name">Clutch Dourada</div><div class="pp-price">R$ 159,90</div><span class="pp-badge stock">Estoque</span></div>
+          <div class="prod-pick" onclick="selProd(this)"><div class="pp-img">🧣</div><div class="pp-name">Lenço Estampado</div><div class="pp-price">R$ 69,90</div><span class="pp-badge stock">Estoque</span></div>
+        </div>
+        <div class="fg-row" style="margin-top:13px">
+          <div class="fg"><label>Tom de voz <span class="lbl-badge ai">IA</span></label><select class="fselect"><option>✨ Desejo — luxo</option><option>🔥 Urgência</option><option>💚 Casual</option><option>🎉 Festivo</option><option>💰 Oferta</option></select></div>
+          <div class="fg"><label>CTA <span class="lbl-badge ai">IA</span></label><select class="fselect"><option>📲 "Chama no privado!"</option><option>💬 "Me manda mensagem!"</option><option>🛍️ "Quer reservar?"</option></select></div>
+        </div>
+      </div>
+      <div id="ms2" style="display:none">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div>
+            <div class="fg"><label style="display:flex;align-items:center;justify-content:space-between"><span>Mensagem <span class="lbl-badge ai">IA</span></span><span id="char-count" style="font-size:11px;color:#94a3b8;font-weight:400">287 chars</span></label>
+              <textarea class="ftextarea" id="ia-msg" style="min-height:180px" oninput="syncPrev(this.value)">✨ NOVIDADE NA LOJA!
+
+👗 Vestido Midi Floral — Exclusivo
+
+Apaixonada por looks que têm tudo? Estampa floral exclusiva, caimento perfeito.
+
+🌸 Tamanhos P, M e G · Azul, Rosa e Branco
+💰 De R$ 310,00 por R$ 259,90
+
+📲 Chama no privado pra garantir o seu!</textarea>
+            </div>
+            <div style="display:flex;gap:6px"><button class="btn btn-ai btn-sm" onclick="regerarIA()"><i class="fas fa-wand-magic-sparkles"></i> Regerar IA</button><button class="btn btn-secondary btn-sm" onclick="showToast('Copiado!')"><i class="fas fa-copy"></i></button></div>
+          </div>
+          <div>
+            <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:7px"><i class="fab fa-whatsapp" style="color:#22c55e"></i> Preview</div>
+            <div class="wpp-wrap">
+              <div class="wpp-hbar"><div class="wpp-hav">L</div><div><div class="wpp-hn">Loja Fashion SP</div><div class="wpp-hs">242 participantes</div></div><div class="wpp-hicons"><i class="fas fa-video"></i><i class="fas fa-phone"></i><i class="fas fa-ellipsis-vertical"></i></div></div>
+              <div class="wpp-body">
+                <div class="wpp-bubble">
+                  <div class="wpp-carousel"><div class="wpp-carousel-thumb sel">👗</div><div class="wpp-carousel-thumb">👗</div></div>
+                  <div class="wpp-msg" id="wpp-text-prev">✨ NOVIDADE NA LOJA!
+
+👗 Vestido Midi Floral — Exclusivo
+
+Apaixonada por looks que têm tudo? Estampa floral exclusiva, caimento perfeito.
+
+🌸 Tamanhos P, M e G · Azul, Rosa e Branco
+💰 De R$ 310,00 por R$ 259,90
+
+📲 Chama no privado pra garantir o seu!</div>
+                  <div class="wpp-foot">14:32 <i class="fas fa-check-double"></i></div>
+                  <div class="wpp-cta"><i class="far fa-comment"></i> Quero ver mais</div>
+                </div>
+              </div>
+            </div>
+            <div class="wpp-metrics">
+              <div class="wpp-metric"><div class="wpp-metric-val">231</div><div class="wpp-metric-lbl">Alcance</div></div>
+              <div class="wpp-metric"><div class="wpp-metric-val">2</div><div class="wpp-metric-lbl">Grupos</div></div>
+              <div class="wpp-metric"><div class="wpp-metric-val">38%</div><div class="wpp-metric-lbl">Taxa méd.</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="ms3" style="display:none">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div>
+            <div class="fg"><label>Grupos <span class="lbl-badge req">Obrigatório</span></label>
+              <div>
+                <label class="gc-chk-item sel"><input type="checkbox" checked><div class="gc-chk-av"><i class="fas fa-star"></i></div><div style="flex:1"><div style="font-size:11.5px;font-weight:700;color:#0f172a">⭐ Clientes VIPs</div><div style="font-size:10px;color:#94a3b8">142 membros</div></div></label>
+                <label class="gc-chk-item sel"><input type="checkbox" checked><div class="gc-chk-av" style="background:linear-gradient(135deg,#128c7e,#25d366)"><i class="fas fa-tag"></i></div><div style="flex:1"><div style="font-size:11.5px;font-weight:700;color:#0f172a">🏷️ Promoções Flash</div><div style="font-size:10px;color:#94a3b8">89 membros</div></div></label>
+                <label class="gc-chk-item"><input type="checkbox"><div class="gc-chk-av" style="background:linear-gradient(135deg,#0891b2,#22d3ee)"><i class="fas fa-users"></i></div><div style="flex:1"><div style="font-size:11.5px;font-weight:700;color:#0f172a">👥 Clientes Gerais</div><div style="font-size:10px;color:#94a3b8">317 membros</div></div></label>
+              </div>
+              <div style="background:#f0fdf4;border-radius:7px;padding:7px 10px;margin-top:8px;font-size:11px;color:#14532d;display:flex;align-items:center;gap:5px"><i class="fas fa-users"></i> <strong>231 pessoas</strong> alcançadas</div>
+            </div>
+          </div>
+          <div>
+            <div class="fg"><label>Quando disparar?</label>
+              <div class="sched-opts">
+                <div class="sched-opt" onclick="selSched(this,'now')"><i class="fas fa-bolt"></i><div class="sched-opt-lbl">Agora</div><div class="sched-opt-sub">Imediato</div></div>
+                <div class="sched-opt sel" onclick="selSched(this,'schedule')"><i class="fas fa-calendar"></i><div class="sched-opt-lbl">Agendar</div><div class="sched-opt-sub">Data e hora</div></div>
+                <div class="sched-opt" onclick="selSched(this,'smart')"><i class="fas fa-wand-magic-sparkles"></i><div class="sched-opt-lbl">IA Decide</div><div class="sched-opt-sub">Melhor hora</div></div>
+              </div>
+              <div id="sched-fields"><div class="fg-row" style="gap:10px"><div class="fg" style="margin:0"><label>Data</label><input class="finput" type="date" value="2026-04-07"></div><div class="fg" style="margin:0"><label>Horário</label><input class="finput" type="time" value="19:00"></div></div></div>
+            </div>
+            <div class="fg"><label>Intervalo entre grupos</label><select class="fselect"><option>Simultâneo</option><option selected>5 min entre grupos</option><option>10 min</option></select><div style="font-size:10.5px;color:#94a3b8;margin-top:4px"><i class="fas fa-shield-halved"></i> Reduz risco de banimento</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-secondary" id="mbtn-back" style="display:none" onclick="mStepBack()"><i class="fas fa-chevron-left"></i> Voltar</button>
+      <button class="btn btn-secondary" onclick="fecharModal('novo-disparo')">Cancelar</button>
+      <button class="btn btn-ai btn-sm" id="mbtn-ia" style="display:none" onclick="regerarIA()"><i class="fas fa-wand-magic-sparkles"></i> Gerar com IA</button>
+      <button class="btn btn-primary" id="mbtn-next" onclick="mStepNext()">Próximo <i class="fas fa-chevron-right"></i></button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: CAMPANHAS IA ══ -->
+<div class="overlay hide" id="ov-ia-campanhas">
+  <div class="modal md">
+    <div class="mh"><div><div class="mh-title"><i class="fas fa-wand-magic-sparkles"></i> Campanhas Geradas pela IA</div><div class="mh-sub">A IA analisou o catálogo e criou campanhas prontas para aprovação</div></div><button class="mh-close" onclick="fecharModal('ia-campanhas')"><i class="fas fa-xmark"></i></button></div>
+    <div class="mb">
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;margin-bottom:16px">
+        <div style="width:30px;height:30px;background:#15803d;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;flex-shrink:0"><i class="fas fa-wand-magic-sparkles"></i></div>
+        <div style="flex:1"><div style="font-size:12px;font-weight:700;color:#14532d">IA analisou 24 produtos do catálogo</div><div style="font-size:11px;color:#15803d">2 parados · 1 baixo giro · 1 novo lançamento</div></div>
+        <button class="btn btn-secondary btn-sm" onclick="showToast('Reanalisando...')"><i class="fas fa-rotate"></i></button>
+      </div>
+      <div class="ai-sug-card">
+        <div class="ai-sug-hdr"><span style="font-size:22px">👗</span><div style="flex:1"><div class="ai-sug-title">Vestido Midi Floral</div><div class="ai-sug-reason"><i class="fas fa-triangle-exclamation"></i> Parado há 12 dias · 8 unidades</div></div><div class="ai-sug-badge"><i class="fas fa-wand-magic-sparkles"></i> IA · Desejo</div></div>
+        <div class="ai-sug-text">✨ NOVIDADE NA LOJA!
+
+👗 Vestido Midi Floral — Exclusivo
+
+Estampa floral exclusiva, caimento perfeito. Tamanhos P, M e G.
+
+💰 De R$ 310,00 por R$ 259,90
+📲 Chama no privado pra garantir o seu!</div>
+        <div class="ai-sug-foot"><div style="display:flex;gap:5px"><span class="gchip" style="font-size:10.5px"><i class="fas fa-users"></i> VIPs</span><span class="gchip" style="font-size:10.5px"><i class="fas fa-users"></i> Promos</span><span style="font-size:10.5px;color:#7c3aed;font-weight:600"><i class="fas fa-clock"></i> 19:00</span></div><div style="display:flex;gap:6px"><button class="btn btn-secondary btn-sm" onclick="showToast('Regenerado!')"><i class="fas fa-wand-magic-sparkles"></i> Regenerar</button><button class="btn btn-wpp btn-sm" onclick="showToast('Aprovado!');fecharModal('ia-campanhas')"><i class="fas fa-check"></i> Aprovar</button></div></div>
+      </div>
+      <div class="ai-sug-card">
+        <div class="ai-sug-hdr"><span style="font-size:22px">👠</span><div style="flex:1"><div class="ai-sug-title">Scarpin Nude Premium</div><div class="ai-sug-reason"><i class="fas fa-fire" style="color:#ef4444"></i> Últimas 3 unidades</div></div><div class="ai-sug-badge" style="background:linear-gradient(135deg,#d97706,#f59e0b)"><i class="fas fa-bolt"></i> IA · Urgência</div></div>
+        <div class="ai-sug-text">⚡ ÚLTIMAS UNIDADES!
+
+👠 Scarpin Nude Premium — só 3 disponíveis!
+
+💰 R$ 189,90 · Entrega imediata
+📲 Responde AQUI agora!</div>
+        <div class="ai-sug-foot"><span class="gchip" style="font-size:10.5px"><i class="fas fa-users"></i> VIPs</span><div style="display:flex;gap:6px"><button class="btn btn-secondary btn-sm" onclick="showToast('Regenerado!')"><i class="fas fa-wand-magic-sparkles"></i> Regenerar</button><button class="btn btn-wpp btn-sm" onclick="showToast('Aprovado!');fecharModal('ia-campanhas')"><i class="fas fa-check"></i> Aprovar</button></div></div>
+      </div>
+    </div>
+    <div class="mf"><button class="btn btn-secondary" onclick="fecharModal('ia-campanhas')">Fechar</button><button class="btn btn-ai" onclick="showToast('Todas aprovadas!');fecharModal('ia-campanhas')"><i class="fas fa-circle-check"></i> Aprovar Todas</button></div>
+  </div>
+</div>
+
+<!-- ══ MODAL: GERENCIAR GRUPOS ══ -->
+<div class="overlay hide" id="ov-gerenciar">
+  <div class="modal md">
+    <div class="mh"><div><div class="mh-title"><i class="fas fa-users"></i> Gerenciar Grupos WhatsApp</div><div class="mh-sub">Vincule grupos da Evolution API ao módulo Grupos IA</div></div><button class="mh-close" onclick="fecharModal('gerenciar')"><i class="fas fa-xmark"></i></button></div>
+    <div class="mb">
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <div style="width:28px;height:28px;background:#22c55e;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px"><i class="fab fa-whatsapp"></i></div>
+        <div style="flex:1"><div style="font-size:12px;font-weight:700;color:#14532d">Evolution API Conectada</div><div style="font-size:11px;color:#15803d">Instância: loja_fashion_01 · 5 grupos detectados</div></div>
+        <button class="btn btn-secondary btn-sm" onclick="showToast('Sincronizando...')"><i class="fas fa-rotate"></i> Sync</button>
+      </div>
+      <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Grupos na instância</div>
+      <div>
+        <label class="gc-chk-item sel"><input type="checkbox" checked><div class="gc-chk-av"><i class="fas fa-star"></i></div><div style="flex:1"><div style="font-size:11.5px;font-weight:700;color:#0f172a">⭐ Clientes VIPs</div><div style="font-size:10px;color:#94a3b8">142 · há 3 meses</div></div><span class="sbadge sent">Ativo</span></label>
+        <label class="gc-chk-item sel"><input type="checkbox" checked><div class="gc-chk-av" style="background:linear-gradient(135deg,#128c7e,#25d366)"><i class="fas fa-tag"></i></div><div style="flex:1"><div style="font-size:11.5px;font-weight:700;color:#0f172a">🏷️ Promoções Flash</div><div style="font-size:10px;color:#94a3b8">89 · há 1 mês</div></div><span class="sbadge sent">Ativo</span></label>
+        <label class="gc-chk-item sel"><input type="checkbox" checked><div class="gc-chk-av" style="background:linear-gradient(135deg,#0891b2,#22d3ee)"><i class="fas fa-users"></i></div><div style="flex:1"><div style="font-size:11.5px;font-weight:700;color:#0f172a">👥 Clientes Gerais</div><div style="font-size:10px;color:#94a3b8">317 · há 6 meses</div></div><span class="sbadge sent">Ativo</span></label>
+        <label class="gc-chk-item"><input type="checkbox"><div class="gc-chk-av" style="background:linear-gradient(135deg,#d97706,#fbbf24)"><i class="fas fa-heart"></i></div><div style="flex:1"><div style="font-size:11.5px;font-weight:700;color:#0f172a">💛 Seguidoras Instagram</div><div style="font-size:10px;color:#94a3b8">54 · há 2 semanas</div></div><span class="sbadge paused">Pausado</span></label>
+        <label class="gc-chk-item"><input type="checkbox"><div class="gc-chk-av" style="background:linear-gradient(135deg,#0ea5e9,#38bdf8)"><i class="fas fa-bag-shopping"></i></div><div style="flex:1"><div style="font-size:11.5px;font-weight:700;color:#0f172a">🛍️ Coleção Nova</div><div style="font-size:10px;color:#94a3b8">28 · há 3 dias</div></div><span class="sbadge pending">Novo</span></label>
+      </div>
+    </div>
+    <div class="mf"><button class="btn btn-secondary" onclick="fecharModal('gerenciar')">Cancelar</button><button class="btn btn-primary" onclick="showToast('Grupos salvos!');fecharModal('gerenciar')"><i class="fas fa-check"></i> Salvar</button></div>
+  </div>
+</div>
+
+<!-- ══ MODAL: AGENDA ══ -->
+<div class="overlay hide" id="ov-agenda">
+  <div class="modal md" style="max-width:760px">
+    <div class="mh"><div><div class="mh-title"><i class="fas fa-calendar-days"></i> Agenda de Disparos — Abril 2026</div><div class="mh-sub">Visualize e gerencie todos os disparos agendados</div></div><button class="mh-close" onclick="fecharModal('agenda')"><i class="fas fa-xmark"></i></button></div>
+    <div class="mb">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:14px;font-weight:700;color:#0f172a">Abril 2026</div>
+        <div style="display:flex;gap:5px">
+          <div style="width:28px;height:28px;border:1px solid #e2e8f0;border-radius:6px;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;color:#64748b"><i class="fas fa-chevron-left"></i></div>
+          <div style="width:28px;height:28px;border:1px solid #e2e8f0;border-radius:6px;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;color:#64748b"><i class="fas fa-chevron-right"></i></div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">
+        <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;text-align:center;padding:4px 0">Dom</div>
+        <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;text-align:center;padding:4px 0">Seg</div>
+        <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;text-align:center;padding:4px 0">Ter</div>
+        <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;text-align:center;padding:4px 0">Qua</div>
+        <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;text-align:center;padding:4px 0">Qui</div>
+        <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;text-align:center;padding:4px 0">Sex</div>
+        <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;text-align:center;padding:4px 0">Sáb</div>
+        <div style="background:#f8f9fa;border:1px solid #f1f5f9;border-radius:7px;padding:5px;min-height:60px"></div><div style="background:#f8f9fa;border:1px solid #f1f5f9;border-radius:7px;padding:5px;min-height:60px"></div><div style="background:#f8f9fa;border:1px solid #f1f5f9;border-radius:7px;padding:5px;min-height:60px"></div>
+        <div style="border:1px solid #f1f5f9;border-radius:7px;padding:5px;min-height:60px;background:#fff"><div style="font-size:11px;font-weight:700;color:#374151">1</div></div>
+        <div style="border:1px solid #f1f5f9;border-radius:7px;padding:5px;min-height:60px;background:#fff"><div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:3px">2</div><div style="background:#dcfce7;color:#15803d;border-radius:4px;padding:2px 5px;font-size:9px;font-weight:600"><i class="fas fa-circle-check"></i> Jaqueta 15h</div></div>
+        <div style="border:1px solid #f1f5f9;border-radius:7px;padding:5px;min-height:60px;background:#fff"><div style="font-size:11px;font-weight:700;color:#374151">3</div></div>
+        <div style="border:1px solid #f1f5f9;border-radius:7px;padding:5px;min-height:60px;background:#fff"><div style="font-size:11px;font-weight:700;color:#374151">4</div></div>
+        <div style="border:1px solid #f1f5f9;border-radius:7px;padding:5px;min-height:60px;background:#fff"><div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:3px">5</div><div style="background:#dcfce7;color:#15803d;border-radius:4px;padding:2px 5px;font-size:9px;font-weight:600"><i class="fas fa-circle-check"></i> Blusa 18:30</div></div>
+        <div style="border:1px solid #f1f5f9;border-radius:7px;padding:5px;min-height:60px;background:#fff"><div style="font-size:11px;font-weight:700;color:#374151">6</div></div>
+        <div style="border:1.5px solid #7c3aed;border-radius:7px;padding:5px;min-height:60px;background:#faf5ff;box-shadow:0 0 0 2px rgba(124,58,237,.12)"><div style="font-size:11px;font-weight:700;color:#7c3aed;margin-bottom:3px">7 ●</div><div style="background:#ede9fe;color:#5b21b6;border-radius:4px;padding:2px 5px;font-size:9px;font-weight:600;margin-bottom:2px"><i class="fas fa-spinner fa-spin"></i> Tênis agora</div><div style="background:#dbeafe;color:#1d4ed8;border-radius:4px;padding:2px 5px;font-size:9px;font-weight:600"><i class="fas fa-clock"></i> Vestido 19h</div></div>
+        <div style="border:1px solid #f1f5f9;border-radius:7px;padding:5px;min-height:60px;background:#fff"><div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:3px">8</div><div style="background:#dbeafe;color:#1d4ed8;border-radius:4px;padding:2px 5px;font-size:9px;font-weight:600"><i class="fas fa-clock"></i> Scarpin 10h</div></div>
+        <div style="border:1px solid #f1f5f9;border-radius:7px;padding:5px;min-height:60px;background:#fff"><div style="font-size:11px;font-weight:700;color:#374151">9</div></div>
+        <div style="border:1px solid #f1f5f9;border-radius:7px;padding:5px;min-height:60px;background:#fff"><div style="font-size:11px;font-weight:700;color:#374151">10</div></div>
+        <div style="border:1px solid #f1f5f9;border-radius:7px;padding:5px;min-height:60px;background:#fff"><div style="font-size:11px;font-weight:700;color:#374151">11</div></div>
+        <div style="border:1px solid #f1f5f9;border-radius:7px;padding:5px;min-height:60px;background:#fff"><div style="font-size:11px;font-weight:700;color:#374151">12</div></div>
+        <div style="border:1px solid #f1f5f9;border-radius:7px;padding:5px;min-height:60px;background:#fff"><div style="font-size:11px;font-weight:700;color:#374151">13</div></div>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:10px;padding-top:10px;border-top:1px solid #f1f5f9;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#64748b"><div style="width:9px;height:9px;border-radius:3px;background:#ede9fe;border:1px solid #c4b5fd"></div> Enviando</div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#64748b"><div style="width:9px;height:9px;border-radius:3px;background:#dbeafe;border:1px solid #93c5fd"></div> Agendado</div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#64748b"><div style="width:9px;height:9px;border-radius:3px;background:#dcfce7;border:1px solid #86efac"></div> Enviado</div>
+      </div>
+    </div>
+    <div class="mf"><button class="btn btn-secondary" onclick="fecharModal('agenda')">Fechar</button><button class="btn btn-wpp" onclick="fecharModal('agenda');abrirModal('novo-disparo')"><i class="fab fa-whatsapp"></i> Novo Disparo</button></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"><i class="fas fa-circle-check"></i><span id="toast-msg"></span></div>
+
+<script>
+// ── TABS ──
+function switchTab(tab){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('on'));
+  document.getElementById('tab-'+tab).classList.add('on');
+  document.getElementById('tab-body-grupos').style.display = tab==='grupos' ? 'flex' : 'none';
+  document.getElementById('tab-body-historico').style.display = tab==='historico' ? 'flex' : 'none';
+}
+
+// ── DRAWER ──
+function abrirDrawer(group){
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drawer-ov').classList.add('open');
+}
+function fecharDrawer(){
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawer-ov').classList.remove('open');
+}
+
+// ── MODALS ──
+function abrirModal(id){document.getElementById('ov-'+id).classList.remove('hide')}
+function fecharModal(id){document.getElementById('ov-'+id).classList.add('hide');if(id==='novo-disparo')resetSteps()}
+
+// ── TOAST ──
+let _tt;
+function showToast(msg){const t=document.getElementById('toast');document.getElementById('toast-msg').textContent=msg;t.classList.add('show');clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('show'),2600)}
+
+// ── MISC ──
+function filtrar(el){document.querySelectorAll('.fc').forEach(c=>c.classList.remove('on'));el.classList.add('on')}
+function selProd(el){document.querySelectorAll('.prod-pick').forEach(p=>p.classList.remove('sel'));el.classList.add('sel')}
+function selSched(el,type){
+  document.querySelectorAll('.sched-opt').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');
+  const f=document.getElementById('sched-fields');if(!f)return;
+  if(type==='now'){f.innerHTML='<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:7px;padding:9px 12px;font-size:11.5px;color:#14532d;display:flex;align-items:center;gap:7px"><i class="fas fa-bolt"></i> Enviado imediatamente ao salvar</div>'}
+  else if(type==='smart'){f.innerHTML='<div style="background:#faf5ff;border:1.5px solid #c4b5fd;border-radius:8px;padding:11px"><div style="font-size:12px;font-weight:700;color:#4c1d95;margin-bottom:8px;display:flex;align-items:center;gap:6px"><i class="fas fa-wand-magic-sparkles"></i> IA vai escolher o melhor horário</div><div style="background:#ede9fe;border-radius:6px;padding:6px 10px;font-size:11px;color:#5b21b6;font-weight:600;display:flex;align-items:center;gap:6px"><i class="fas fa-lightbulb"></i> Sugestão: <strong>Hoje às 19:00</strong> — pico: 74% engajamento VIPs</div></div>'}
+  else{f.innerHTML='<div class="fg-row" style="gap:10px"><div class="fg" style="margin:0"><label style="font-size:11.5px;font-weight:700;color:#374151;display:block;margin-bottom:5px">Data</label><input class="finput" type="date" value="2026-04-07"></div><div class="fg" style="margin:0"><label style="font-size:11.5px;font-weight:700;color:#374151;display:block;margin-bottom:5px">Horário</label><input class="finput" type="time" value="19:00"></div></div>'}
+}
+function syncPrev(v){const p=document.getElementById('wpp-text-prev');if(p)p.textContent=v;const c=document.getElementById('char-count');if(c)c.textContent=v.length+' chars'}
+function regerarIA(){const m=document.getElementById('ia-msg');if(!m)return;m.value='Gerando...';setTimeout(()=>{m.value='✨ NOVIDADE NA LOJA!\n\n👗 Vestido Midi Floral — Exclusivo\n\nEstampa floral exclusiva, caimento perfeito.\n\n🌸 Tamanhos P, M e G · Azul, Rosa e Branco\n💰 De R$ 310,00 por R$ 259,90\n\n📲 Chama no privado!';syncPrev(m.value);showToast('Regenerado! ✨')},1400)}
+
+// ── WIZARD ──
+let ms=1;
+function mStepNext(){
+  if(ms===1){ms=2;document.getElementById('ms1').style.display='none';document.getElementById('ms2').style.display='block';setWS(1,'done');setWS(2,'act');document.getElementById('wline1').className='ws-line done';document.getElementById('mbtn-back').style.display='inline-flex';document.getElementById('mbtn-ia').style.display='inline-flex'}
+  else if(ms===2){ms=3;document.getElementById('ms2').style.display='none';document.getElementById('ms3').style.display='block';setWS(2,'done');setWS(3,'act');document.getElementById('wline2').className='ws-line done';document.getElementById('mbtn-ia').style.display='none';document.getElementById('mbtn-next').innerHTML='<i class="fas fa-check"></i> Salvar Disparo'}
+  else{showToast('Disparo agendado! ✅');fecharModal('novo-disparo')}
+}
+function mStepBack(){
+  if(ms===2){ms=1;document.getElementById('ms2').style.display='none';document.getElementById('ms1').style.display='block';setWS(1,'act');setWS(2,'pend');document.getElementById('wline1').className='ws-line';document.getElementById('mbtn-back').style.display='none';document.getElementById('mbtn-ia').style.display='none';document.getElementById('mbtn-next').innerHTML='Próximo <i class="fas fa-chevron-right"></i>'}
+  else if(ms===3){ms=2;document.getElementById('ms3').style.display='none';document.getElementById('ms2').style.display='block';setWS(2,'act');setWS(3,'pend');document.getElementById('wline2').className='ws-line';document.getElementById('mbtn-ia').style.display='inline-flex';document.getElementById('mbtn-next').innerHTML='Próximo <i class="fas fa-chevron-right"></i>'}
+}
+function setWS(n,s){const c=document.getElementById('ws'+n),l=document.getElementById('wl'+n);if(!c)return;if(s==='done'){c.className='ws-circle done';c.innerHTML='<i class="fas fa-check" style="font-size:10px"></i>';l.className='ws-lbl done'}else if(s==='act'){c.className='ws-circle act';c.textContent=n;l.className='ws-lbl act'}else{c.className='ws-circle pend';c.textContent=n;l.className='ws-lbl'}}
+function resetSteps(){ms=1;['ms2','ms3'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none'});const s1=document.getElementById('ms1');if(s1)s1.style.display='block';[1,2,3].forEach(n=>setWS(n,n===1?'act':'pend'));['wline1','wline2'].forEach(id=>{const e=document.getElementById(id);if(e)e.className='ws-line'});const bb=document.getElementById('mbtn-back');if(bb)bb.style.display='none';const bi=document.getElementById('mbtn-ia');if(bi)bi.style.display='none';const bn=document.getElementById('mbtn-next');if(bn)bn.innerHTML='Próximo <i class="fas fa-chevron-right"></i>'}
+
+// ── DRAWER SUB-TABS ──
+function switchDrTab(name){
+  document.querySelectorAll('.dr-tab-btn').forEach(t=>t.classList.remove('act'));
+  document.querySelectorAll('.dr-pane').forEach(p=>p.classList.remove('act'));
+  const btn=document.getElementById('drtab-'+name);
+  const pane=document.getElementById('drpane-'+name);
+  if(btn)btn.classList.add('act');
+  if(pane)pane.classList.add('act');
+}
+
+// ── DAYS ──
+document.querySelectorAll('.day-btn').forEach(b=>b.addEventListener('click',()=>b.classList.toggle('on')));
+
+// ── SIDEBAR ──
+document.querySelectorAll('.mi,.mi-pro').forEach(m=>m.addEventListener('click',function(){document.querySelectorAll('.mi.act').forEach(x=>x.classList.remove('act'));this.classList.add('act')}));
+
+// ── CLOSE OVERLAY ON BG ──
+document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',function(e){if(e.target===this){const id=this.id.replace('ov-','');fecharModal(id)}}));
+</script>
+</body>
+</html>
